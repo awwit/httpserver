@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{81D9D9DB-4DE0-40E5-9CC0-6643C2695370}</ProjectGuid>
+    <Target>Bin</Target>
+    <Language>CPP</Language>
+    <Compiler>
+      <Compiler ctype="GppCompiler" />
+    </Compiler>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineSymbols>DEBUG MONODEVELOP POSIX</DefineSymbols>
+    <SourceDirectory>.</SourceDirectory>
+    <OutputName>httpserver</OutputName>
+    <CompileTarget>Bin</CompileTarget>
+    <ExtraCompilerArguments>-std=c++11</ExtraCompilerArguments>
+    <ExtraLinkerArguments>-lpthread -ldl</ExtraLinkerArguments>
+    <Commandlineparameters>--start</Commandlineparameters>
+    <WarningLevel>All</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release</OutputPath>
+    <DefineSymbols>MONODEVELOP POSIX</DefineSymbols>
+    <SourceDirectory>.</SourceDirectory>
+    <OptimizationLevel>3</OptimizationLevel>
+    <OutputName>httpserver</OutputName>
+    <CompileTarget>Bin</CompileTarget>
+    <ExtraCompilerArguments>-std=c++11</ExtraCompilerArguments>
+    <ExtraLinkerArguments>-lpthread -ldl</ExtraLinkerArguments>
+    <Commandlineparameters>--start</Commandlineparameters>
+    <WarningLevel>All</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Event.cpp" />
+    <Compile Include="Main.cpp" />
+    <Compile Include="Server.cpp" />
+    <Compile Include="Socket.cpp" />
+    <Compile Include="DataVariantFormUrlencoded.cpp" />
+    <Compile Include="DataVariantMultipartFormData.cpp" />
+    <Compile Include="FileIncoming.cpp" />
+    <Compile Include="ServerOutput.cpp" />
+    <Compile Include="ResourceMethodOptions.cpp" />
+    <Compile Include="ResourceAbstract.cpp" />
+    <Compile Include="ServerApplicationAbstract.cpp" />
+    <Compile Include="ServerApplicationsTree.cpp" />
+    <Compile Include="Utils.cpp" />
+    <Compile Include="DataVariantTextPlain.cpp" />
+    <Compile Include="SignalsHandles.cpp" />
+    <Compile Include="System.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Event.h" />
+    <None Include="Main.h" />
+    <None Include="Server.h" />
+    <None Include="Socket.h" />
+    <None Include="Utils.h" />
+    <None Include="DataVariantAbstract.h" />
+    <None Include="DataVariantFormUrlencoded.h" />
+    <None Include="DataVariantMultipartFormData.h" />
+    <None Include="FileIncoming.h" />
+    <None Include="ServerApplicationAbstract.h" />
+    <None Include="ServerOutput.h" />
+    <None Include="ServerRequest.h" />
+    <None Include="ServerResponse.h" />
+    <None Include="ResourceAbstract.h" />
+    <None Include="ResourceMethodAbstract.h" />
+    <None Include="ResourceMethodOptions.h" />
+    <None Include="ServerApplicationSettings.h" />
+    <None Include="ServerApplicationsTree.h" />
+    <None Include="Module.h" />
+    <None Include="System.h" />
+    <None Include="RawData.h" />
+    <None Include="DataVariantTextPlain.h" />
+    <None Include="SignalsHandles.h" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Policies>
+          <VersionControlPolicy inheritsSet="Mono">
+            <CommitMessageStyle FileSeparator=", " LastFilePostfix=":&#xA;  " />
+          </VersionControlPolicy>
+        </Policies>
+      </Properties>
+    </MonoDevelop>
+  </ProjectExtensions>
+</Project>
