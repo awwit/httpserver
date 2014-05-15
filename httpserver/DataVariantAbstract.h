@@ -3,7 +3,6 @@
 #include "Socket.h"
 #include "FileIncoming.h"
 
-#include <string>
 #include <unordered_map>
 
 namespace HttpServer
@@ -26,7 +25,8 @@ namespace HttpServer
 	//	virtual ~DataVariantAbstract() = 0;
 
 		/**
-		 * @param const Socket* - сокет, откуда можно достать остальные данные
+		 * @param const Socket & - сокет, откуда можно достать остальные данные
+		 * @param const std::chrono::milliseconds & - максимальное время ожидания данных (на сокете)
 		 * @param const std::string - первая часть полученных данных
 		 * @param const size_t - сколько осталось данных (в байтах) получить из сокета
 		 * @param const std::unordered_map<std::string, std::string> & - дополнительные параметры, описывающие формат данных
@@ -37,7 +37,8 @@ namespace HttpServer
 		 */
 		virtual bool parse
 		(
-			const Socket *,
+			const Socket &,
+			const std::chrono::milliseconds &,
 			const std::string,
 			const size_t,
 			const std::unordered_map<std::string, std::string> &,

@@ -199,7 +199,11 @@ namespace Utils
 		struct tm tc = {0};
 
 		// Parse RFC 822
+	#ifdef WIN32
+		if (std::numeric_limits<int>::max() != sscanf_s(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon, &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
+	#else
 		if (std::numeric_limits<int>::max() != sscanf(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon, &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
+	#endif
 		{
 			tc.tm_year -= 1900;
 
@@ -227,10 +231,26 @@ namespace Utils
 			time(&cur_time);
 		}
 
+	#ifdef WIN32
+		struct tm stm = {0};
+
+		if (isGmtTime)
+		{
+			localtime_s(&stm, &cur_time);
+		}
+		else
+		{
+			gmtime_s(&stm, &cur_time);
+		}
+
+		// RFC 822
+		strftime(buf, 64, "%a, %d %b %Y %H:%M:%S GMT", &stm);
+	#else
 		struct tm *ptm = isGmtTime ? localtime(&cur_time) : gmtime(&cur_time);
 
 		// RFC 822
 		strftime(buf, 64, "%a, %d %b %G %H:%M:%S GMT", ptm);
+	#endif
 
 		return std::string(buf);
 	}

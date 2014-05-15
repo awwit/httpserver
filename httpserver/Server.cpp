@@ -21,7 +21,7 @@ namespace HttpServer
 	/**
 	 * Передача файла (или его части)
 	 */
-	int Server::transferFile(const Socket *clientSocket, const std::string &fileName, const std::unordered_map<std::string, std::string> &inHeaders, const std::map<std::string, std::string> &outHeaders, const std::string &connectionHeader) const
+	int Server::transferFile(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const std::string &fileName, const std::unordered_map<std::string, std::string> &inHeaders, const std::map<std::string, std::string> &outHeaders, const std::string &connectionHeader) const
 	{
 		// Get current time in GMT
 		const std::string date_header = "Date: " + Utils::getDatetimeStringValue() + "\r\n";
@@ -37,7 +37,7 @@ namespace HttpServer
 			headers += connectionHeader + date_header;
 			headers += "\r\n";
 
-			clientSocket->send(headers);
+			clientSocket.nonblock_send(headers, timeout);
 
 			return 0;
 		}
@@ -57,7 +57,7 @@ namespace HttpServer
 				headers += connectionHeader + date_header;
 				headers += "\r\n";
 
-				clientSocket->send(headers);
+				clientSocket.nonblock_send(headers, timeout);
 
 				return 0;
 			}
@@ -77,7 +77,7 @@ namespace HttpServer
 			headers += connectionHeader + date_header;
 			headers += "\r\n";
 
-			clientSocket->send(headers);
+			clientSocket.nonblock_send(headers, timeout);
 
 			return 0;
 		}
@@ -99,7 +99,7 @@ namespace HttpServer
 		headers += "\r\n";
 
 		// Отправить заголовки
-		if (std::numeric_limits<size_t>::max() == clientSocket->send(headers) )
+		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
 		{
 			file.close();
 
@@ -116,7 +116,7 @@ namespace HttpServer
 			do
 			{
 				file.read(reinterpret_cast<char *>(buf.data() ), buf.size() );
-				send_size = clientSocket->send(buf, file.gcount() );
+				send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
 			}
 			while (false == file.eof() && std::numeric_limits<size_t>::max() != send_size);
 		}
@@ -179,7 +179,7 @@ namespace HttpServer
 	/**
 	 * Метод для обработки запроса (запускается в отдельном потоке)
 	 */
-	int Server::threadRequestProc(Socket *clientSocket)
+	int Server::threadRequestProc(Socket &clientSocket)
 	{
 		int app_exit_code;
 
@@ -206,7 +206,8 @@ namespace HttpServer
 			std::string uri_reference;
 
 			// Получить данные запроса от клиента
-			const size_t recv_len = clientSocket->recv(buf);
+			std::chrono::milliseconds timeout(5000);
+			const size_t recv_len = clientSocket.nonblock_recv(buf, timeout);
 
 			if (std::numeric_limits<size_t>::max() == recv_len)
 			{
@@ -432,7 +433,7 @@ namespace HttpServer
 										}
 
 										// Разобрать данные на составляющие
-										if (false == data_variant->parse(clientSocket, str_buf.substr(headers_end + 2), left_bytes, content_params, incoming_data, incoming_files) )
+										if (false == data_variant->parse(clientSocket, timeout, str_buf.substr(headers_end + 2), left_bytes, content_params, incoming_data, incoming_files) )
 										{
 											// TODO: HTTP 400 Bad Request
 
@@ -466,7 +467,7 @@ namespace HttpServer
 							filesIncomingToRawFilesInfo(&raw_fileinfo_files, incoming_files);
 
 							server_request request {
-								clientSocket->get_handle(),
+								clientSocket.get_handle(),
 								method.c_str(),
 								uri_reference.c_str(),
 								app_sets->root_dir.c_str(),
@@ -481,7 +482,7 @@ namespace HttpServer
 							};
 
 							server_response response {
-								clientSocket->get_handle(), 0, nullptr
+								clientSocket.get_handle(), 0, nullptr
 							};
 
 							// Попытаться
@@ -575,7 +576,7 @@ namespace HttpServer
 				{
 					const std::string connection_header = connection_keep_alive ? "Connection: keep-alive\r\n" : "Connection: close\r\n";
 
-					transferFile(clientSocket, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header);
+					transferFile(clientSocket, timeout, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header);
 				}
 			}
 		}
@@ -583,8 +584,8 @@ namespace HttpServer
 
 		if (false == connection_upgrade)
 		{
-			clientSocket->shutdown();
-			clientSocket->close();
+			clientSocket.shutdown();
+			clientSocket.close();
 		}
 
 		return app_exit_code;
@@ -606,7 +607,7 @@ namespace HttpServer
 			threads_max_count = System::getProcessorsCount();
 		}
 
-		std::function<int(Server &, Socket *)> serverThreadRequestProc = std::mem_fn(&Server::threadRequestProc);
+		std::function<int(Server &, Socket &)> serverThreadRequestProc = std::mem_fn(&Server::threadRequestProc);
 
 		std::vector<std::thread> active_threads;
 		std::vector<std::shared_ptr<Socket> > active_sockets;
@@ -622,7 +623,7 @@ namespace HttpServer
 			{
 				size_t i = 0;
 
-				while (false == active_threads[i].joinable() )
+				while (false == System::isDoneThread(active_threads[i].native_handle() ) )
 				{
 					if (++i == active_threads.size() )
 					{
@@ -636,7 +637,7 @@ namespace HttpServer
 			{
 				auto th = active_threads.begin() + i;
 
-				if (th->joinable() )
+				if (System::isDoneThread(th->native_handle() ) )
 				{
 					th->join();
 					active_threads.erase(th);
@@ -650,11 +651,11 @@ namespace HttpServer
 
 			while (active_threads.size() <= threads_max_count && sockets.empty() == false)
 			{
-				std::shared_ptr<Socket> sock_client = sockets.front();
+				std::shared_ptr<Socket> client_socket = sockets.front();
 				sockets.pop();
 
-				active_threads.emplace_back(serverThreadRequestProc, std::ref(*this), &(*sock_client) );
-				active_sockets.emplace_back(sock_client);
+				active_threads.emplace_back(serverThreadRequestProc, std::ref(*this), std::ref(*client_socket) );
+				active_sockets.emplace_back(client_socket);
 			}
 
 			if (false == eventNotFullQueue->notifed() )
@@ -1166,6 +1167,7 @@ namespace HttpServer
 
 			if (client_socket.is_open() )
 			{
+				client_socket.nonblock(true);
 				sockets.emplace(new Socket(client_socket) );
 
 				if (sockets.size() <= queue_max_length)

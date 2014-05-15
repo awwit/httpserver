@@ -41,8 +41,8 @@ namespace HttpServer
 
 	protected:
 		int cycleQueue(std::queue<std::shared_ptr<Socket> > &);
-		int threadRequestProc(Socket *);
-		int transferFile(const Socket *, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &) const;
+		int threadRequestProc(Socket &);
+		int transferFile(const Socket &, const std::chrono::milliseconds &, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &) const;
 		void parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &, const size_t, const size_t) const;
 
 		bool includeConfigFile(const std::string &, std::string &, const size_t);

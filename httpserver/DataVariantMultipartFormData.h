@@ -9,10 +9,11 @@ namespace HttpServer
 	public:
 		DataVariantMultipartFormData();
 
-	private:
+	protected:
 		bool append
 		(
-			const Socket *,
+			const Socket &,
+			const std::chrono::milliseconds &,
 			std::vector<std::string::value_type> &,
 			std::string &, const std::string &,
 			const size_t &,
@@ -23,7 +24,8 @@ namespace HttpServer
 	public:
 		virtual bool parse
 		(
-			const Socket *,
+			const Socket &,
+			const std::chrono::milliseconds &,
 			const std::string,
 			const size_t,
 			const std::unordered_map<std::string, std::string> &,

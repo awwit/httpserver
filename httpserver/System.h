@@ -11,8 +11,13 @@
 	#error "Undefine platform"
 #endif
 
+#ifndef SIGUSR1
+	#define SIGUSR1 10
+#endif
+
 #include <string>
 #include <ctime>
+#include <thread>
 
 namespace System
 {
@@ -57,6 +62,17 @@ namespace System
 	}
 
 	bool sendSignal(native_processid_type pid, int signal);
+
+	inline bool isDoneThread(std::thread::native_handle_type handle)
+	{
+	#ifdef WIN32
+		return WAIT_OBJECT_0 == WaitForSingleObject(handle, 0);
+	#elif POSIX
+		return 0 != pthread_kill(handle, 0);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
 
 	inline std::string getTempDir()
 	{

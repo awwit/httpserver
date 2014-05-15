@@ -10,7 +10,8 @@ namespace HttpServer
 
 	bool DataVariantTextPlain::parse
 	(
-		const Socket *sock,
+		const Socket &sock,
+		const std::chrono::milliseconds &timeout,
 		const std::string str,
 		const size_t leftBytes,
 		const std::unordered_map<std::string, std::string> &params,

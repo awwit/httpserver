@@ -10,6 +10,15 @@ namespace HttpServer
 		DataVariantTextPlain();
 
 	public:
-		virtual bool parse(const Socket *, const std::string, const size_t, const std::unordered_map<std::string, std::string> &, std::unordered_multimap<std::string, std::string> &, std::unordered_multimap<std::string, FileIncoming> &) override;
+		virtual bool parse
+		(
+			const Socket &,
+			const std::chrono::milliseconds &,
+			const std::string,
+			const size_t,
+			const std::unordered_map<std::string, std::string> &,
+			std::unordered_multimap<std::string, std::string> &,
+			std::unordered_multimap<std::string, FileIncoming> &
+		) override;
 	};
 };

@@ -13,7 +13,8 @@ namespace HttpServer
 
 	bool DataVariantMultipartFormData::append
 	(
-		const Socket *sock,
+		const Socket &sock,
+		const std::chrono::milliseconds &timeout,
 		std::vector<std::string::value_type> &buf,
 		std::string &str_buf,
 		const std::string &data_end,
@@ -29,7 +30,7 @@ namespace HttpServer
 		}
 
 		// Получаем данные из сокета
-		recv_len = sock->recv(buf);
+		recv_len = sock.nonblock_recv(buf, timeout);
 
 		// Завершаем работу, если ошибка получения данных через сокет
 		if (0 == recv_len || std::numeric_limits<size_t>::max() == recv_len)
@@ -54,7 +55,8 @@ namespace HttpServer
 
 	bool DataVariantMultipartFormData::parse
 	(
-		const Socket *sock,
+		const Socket &sock,
+		const std::chrono::milliseconds &timeout,
 		const std::string str,
 		const size_t leftBytes,
 		const std::unordered_map<std::string, std::string> &params,
@@ -92,7 +94,7 @@ namespace HttpServer
 		if (std::string::npos == str_cur)
 		{
 			// Получить следующий кусок данных
-			if (false == append(sock, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+			if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
 			{
 				return false;
 			}
@@ -125,7 +127,7 @@ namespace HttpServer
 			if (std::string::npos == headers_end)
 			{
 				// Получить следующий кусок данных
-				if (false == append(sock, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+				if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
 				{
 					return false;
 				}
@@ -282,7 +284,7 @@ namespace HttpServer
 											str_buf.assign(str_buf.cend() - data_end.length(), str_buf.cend() );
 
 											// Получить следующий кусок данных
-											if (false == append(sock, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+											if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
 											{
 												return false;
 											}
@@ -338,7 +340,7 @@ namespace HttpServer
 									str_buf.assign(str_buf.cend() - data_end.length(), str_buf.cend() );
 
 									// Получить следующий кусок данных
-									if (false == append(sock, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+									if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
 									{
 										return false;
 									}
@@ -389,7 +391,7 @@ namespace HttpServer
 					str_buf.assign(str_buf.cend() - data_end.length(), str_buf.cend() );
 
 					// Получить следующий кусок данных
-					if (false == append(sock, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+					if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
 					{
 						return false;
 					}

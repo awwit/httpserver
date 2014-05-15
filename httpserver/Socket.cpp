@@ -113,12 +113,65 @@ namespace HttpServer
 		return -1;
 	}
 
+	bool Socket::nonblock(bool isNonBlock)
+	{
+	#ifdef WIN32
+		unsigned long value = isNonBlock;
+		return 0 == ioctlsocket(socket_handle, FIONBIO, &value);
+	#elif POSIX
+		return -1 != fcntl(socket_handle, F_SETFL, isNonBlock ? O_NONBLOCK : O_SYNC);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	size_t Socket::recv(std::vector<std::string::value_type> &buf) const
 	{
 	#ifdef WIN32
 		return ::recv(socket_handle, buf.data(), buf.size(), 0);
 	#elif POSIX
 		return ::recv(socket_handle, buf.data(), buf.size(), MSG_NOSIGNAL);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	size_t Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeWait) const
+	{
+	#ifdef WIN32
+		fd_set readset;
+		FD_ZERO(&readset);
+		FD_SET(socket_handle, &readset);
+
+		long seconds = timeWait.count() / 1000;
+		timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+
+		if (0 < select(socket_handle + 1, &readset, nullptr, nullptr, &timeout) )
+		{
+			if (FD_ISSET(socket_handle, &readset) )
+			{
+				return ::recv(socket_handle, buf.data(), buf.size(), 0);
+			}
+		}
+
+		return std::numeric_limits<size_t>::max();
+	#elif POSIX
+		fd_set readset;
+		FD_ZERO(&readset);
+		FD_SET(socket_handle, &readset);
+
+		long seconds = timeWait.count() / 1000;
+		timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+
+		if (0 < select(socket_handle + 1, &readset, nullptr, nullptr, &timeout) )
+		{
+			if (FD_ISSET(socket_handle, &readset) )
+			{
+				return ::recv(socket_handle, buf.data(), buf.size(), MSG_NOSIGNAL);
+			}
+		}
+
+		return std::numeric_limits<size_t>::max();
 	#else
 		#error "Undefine platform"
 	#endif
@@ -141,6 +194,88 @@ namespace HttpServer
 		return ::send(socket_handle, buf.data(), length, 0);
 	#elif POSIX
 		return ::send(socket_handle, buf.data(), length, MSG_WAITALL | MSG_NOSIGNAL);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	size_t Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeWait) const
+	{
+	#ifdef WIN32
+		fd_set writeset;
+		FD_ZERO(&writeset);
+		FD_SET(socket_handle, &writeset);
+
+		long seconds = timeWait.count() / 1000;
+		timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+
+		if (0 < select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		{
+			if (FD_ISSET(socket_handle, &writeset) )
+			{
+				return ::send(socket_handle, buf.data(), buf.length(), 0);
+			}
+		}
+
+		return std::numeric_limits<size_t>::max();
+	#elif POSIX
+		fd_set writeset;
+		FD_ZERO(&writeset);
+		FD_SET(socket_handle, &writeset);
+
+		long seconds = timeWait.count() / 1000;
+		timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+
+		if (0 < select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		{
+			if (FD_ISSET(socket_handle, &writeset) )
+			{
+				return ::send(socket_handle, buf.data(), buf.length(), MSG_NOSIGNAL);
+			}
+		}
+
+		return std::numeric_limits<size_t>::max();
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	size_t Socket::nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeWait) const
+	{
+	#ifdef WIN32
+		fd_set writeset;
+		FD_ZERO(&writeset);
+		FD_SET(socket_handle, &writeset);
+
+		long seconds = timeWait.count() / 1000;
+		timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+
+		if (0 < select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		{
+			if (FD_ISSET(socket_handle, &writeset) )
+			{
+				return ::send(socket_handle, buf.data(), length, 0);
+			}
+		}
+
+		return std::numeric_limits<size_t>::max();
+	#elif POSIX
+		fd_set writeset;
+		FD_ZERO(&writeset);
+		FD_SET(socket_handle, &writeset);
+
+		long seconds = timeWait.count() / 1000;
+		timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+
+		if (0 < select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		{
+			if (FD_ISSET(socket_handle, &writeset) )
+			{
+				return ::send(socket_handle, buf.data(), length, MSG_WAITALL | MSG_NOSIGNAL);
+			}
+		}
+
+		return std::numeric_limits<size_t>::max();
 	#else
 		#error "Undefine platform"
 	#endif

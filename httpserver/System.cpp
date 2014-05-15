@@ -50,14 +50,14 @@ namespace System
 	bool getFileSizeAndTimeGmt(const std::string &filePath, size_t *fileSize, time_t *fileTime)
 	{
 	#ifdef WIN32
-		::HANDLE hFile = ::CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+		::HANDLE hFile = ::CreateFile(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 
-		if (::INVALID_HANDLE_VALUE == hFile)
+		if (INVALID_HANDLE_VALUE == hFile)
 		{
 			return false;
 		}
 
-		if (false == ::GetFileSizeEx(hFile, fileSize) )
+		if (false == ::GetFileSizeEx(hFile, reinterpret_cast<PLARGE_INTEGER>(fileSize) ) )
 		{
 			return false;
 		}
