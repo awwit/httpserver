@@ -44,15 +44,26 @@ namespace HttpServer
 
 		inline bool is_open() const
 		{
+		#ifdef WIN32
+			return INVALID_SOCKET != socket_handle;
+		#elif POSIX
 			return -1 != socket_handle;
+		#else
+			#error "Undefine platform"
+		#endif
 		}
 
 		int bind(const int) const;
 		int listen() const;
+
 		Socket accept() const;
+		Socket nonblock_accept() const;
+		Socket nonblock_accept(const std::chrono::milliseconds &) const;
+
 		int shutdown() const;
 
-		bool nonblock(bool = true);
+		bool nonblock(const bool = true) const;
+	//	bool is_nonblock() const;
 
 		size_t recv(std::vector<std::string::value_type> &) const;
 		size_t nonblock_recv(std::vector<std::string::value_type> &, const std::chrono::milliseconds &) const;

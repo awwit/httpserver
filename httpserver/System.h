@@ -22,7 +22,7 @@
 namespace System
 {
 #ifdef WIN32
-	typedef SOCKET native_socket_type;
+	typedef ::SOCKET native_socket_type;
 #elif POSIX
 	typedef int native_socket_type;
 #else
@@ -30,9 +30,9 @@ namespace System
 #endif
 
 #ifdef WIN32
-	typedef DWORD native_processid_type;
+	typedef ::DWORD native_processid_type;
 #elif POSIX
-	typedef pid_t native_processid_type;
+	typedef ::pid_t native_processid_type;
 #else
 	#error "Undefine platform"
 #endif
@@ -40,11 +40,11 @@ namespace System
 	inline size_t getProcessorsCount()
 	{
 	#ifdef WIN32
-		SYSTEM_INFO si = {0};
-		GetSystemInfo(&si);
+		::SYSTEM_INFO si = {0};
+		::GetSystemInfo(&si);
 		return si.dwNumberOfProcessors;
 	#elif POSIX
-		return get_nprocs();
+		return ::get_nprocs();
 	#else
 		#error "Undefine platform"
 	#endif
@@ -53,22 +53,22 @@ namespace System
 	inline native_processid_type getProcessId()
 	{
 	#ifdef WIN32
-		return GetCurrentProcessId();
+		return ::GetCurrentProcessId();
 	#elif POSIX
-		return getpid();
+		return ::getpid();
 	#else
 		#error "Undefine platform"
 	#endif
 	}
 
-	bool sendSignal(native_processid_type pid, int signal);
+	bool sendSignal(const native_processid_type pid, const int signal);
 
-	inline bool isDoneThread(std::thread::native_handle_type handle)
+	inline bool isDoneThread(const std::thread::native_handle_type handle)
 	{
 	#ifdef WIN32
-		return WAIT_OBJECT_0 == WaitForSingleObject(handle, 0);
+		return WAIT_OBJECT_0 == ::WaitForSingleObject(handle, 0);
 	#elif POSIX
-		return 0 != pthread_kill(handle, 0);
+		return 0 != ::pthread_kill(handle, 0);
 	#else
 		#error "Undefine platform"
 	#endif

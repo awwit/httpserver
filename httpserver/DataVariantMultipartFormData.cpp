@@ -296,8 +296,6 @@ namespace HttpServer
 										// Добавить последнюю часть данных к значению
 										file.write(str_buf.data(), delimiter);
 
-										// TODO: структра (класс) данных о файле
-
 										// Добавить данные в список
 										files.emplace(name->second, FileIncoming(tmp_name, filetype->second, file.tellp() ) );
 

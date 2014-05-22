@@ -16,7 +16,7 @@ namespace HttpServer
 	{
 	protected:
 	#ifdef WIN32
-		HMODULE lib_handle;
+		::HMODULE lib_handle;
 	#elif POSIX
 		void *lib_handle;
 	#else
@@ -44,9 +44,9 @@ namespace HttpServer
 		inline bool open(const std::string &libPath)
 		{
 		#ifdef WIN32
-			lib_handle = LoadLibrary(libPath.c_str() );
+			lib_handle = ::LoadLibrary(libPath.c_str() );
 		#elif POSIX
-			lib_handle = dlopen(libPath.c_str(), RTLD_NOW);
+			lib_handle = ::dlopen(libPath.c_str(), RTLD_NOW);
 		#else
 			#error "Undefine platform"
 		#endif
@@ -59,9 +59,9 @@ namespace HttpServer
 			if (lib_handle)
 			{
 			#ifdef WIN32
-				FreeLibrary(lib_handle);
+				::FreeLibrary(lib_handle);
 			#elif POSIX
-				dlclose(lib_handle);
+				::dlclose(lib_handle);
 			#else
 				#error "Undefine platform"
 			#endif
@@ -75,15 +75,15 @@ namespace HttpServer
 			if (lib_handle)
 			{
 			#ifdef WIN32
-				*addr = GetProcAddress(lib_handle, symbolName.c_str() );
+				*addr = ::GetProcAddress(lib_handle, symbolName.c_str() );
 
 				return nullptr != *addr;
 			#elif POSIX
-				dlerror();
+				::dlerror();
 
-				*addr = dlsym(lib_handle, symbolName.c_str() );
+				*addr = ::dlsym(lib_handle, symbolName.c_str() );
 
-				char *error = dlerror();
+				char *error = ::dlerror();
 
 				return nullptr == error;
 			#else
@@ -99,13 +99,13 @@ namespace HttpServer
 			if (lib_handle)
 			{
 			#ifdef WIN32
-				*addr = GetProcAddress(lib_handle, symbolName);
+				*addr = ::GetProcAddress(lib_handle, symbolName);
 
 				return nullptr != *addr;
 			#elif POSIX
-				*addr = dlsym(lib_handle, symbolName);
+				*addr = ::dlsym(lib_handle, symbolName);
 
-				char *error = dlerror();
+				char *error = ::dlerror();
 
 				return nullptr == error;
 			#else

@@ -44,10 +44,6 @@
     <Compile Include="DataVariantFormUrlencoded.cpp" />
     <Compile Include="DataVariantMultipartFormData.cpp" />
     <Compile Include="FileIncoming.cpp" />
-    <Compile Include="ServerOutput.cpp" />
-    <Compile Include="ResourceMethodOptions.cpp" />
-    <Compile Include="ResourceAbstract.cpp" />
-    <Compile Include="ServerApplicationAbstract.cpp" />
     <Compile Include="ServerApplicationsTree.cpp" />
     <Compile Include="Utils.cpp" />
     <Compile Include="DataVariantTextPlain.cpp" />
@@ -64,13 +60,8 @@
     <None Include="DataVariantFormUrlencoded.h" />
     <None Include="DataVariantMultipartFormData.h" />
     <None Include="FileIncoming.h" />
-    <None Include="ServerApplicationAbstract.h" />
-    <None Include="ServerOutput.h" />
     <None Include="ServerRequest.h" />
     <None Include="ServerResponse.h" />
-    <None Include="ResourceAbstract.h" />
-    <None Include="ResourceMethodAbstract.h" />
-    <None Include="ResourceMethodOptions.h" />
     <None Include="ServerApplicationSettings.h" />
     <None Include="ServerApplicationsTree.h" />
     <None Include="Module.h" />

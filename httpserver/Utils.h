@@ -15,7 +15,7 @@
 
 namespace Utils
 {
-	inline void tolower(std::string &str, std::locale &loc)
+	inline void tolower(std::string &str, const std::locale &loc)
 	{
 		for (auto &c : str)
 		{
@@ -49,7 +49,7 @@ namespace Utils
 
 	time_t stringTimeToTimestamp(const std::string &);
 
-	std::string getDatetimeStringValue(const time_t = -1, const bool = false);
+	std::string getDatetimeStringValue(const ::time_t = std::numeric_limits<::time_t>::max(), const bool = false);
 
 	size_t getNumberLength(const size_t number);
 };
