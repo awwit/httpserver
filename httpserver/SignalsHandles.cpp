@@ -67,7 +67,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-int mainMessageLoop(HINSTANCE hInstance, HttpServer::Event *pCreatedWindow)
+WPARAM mainMessageLoop(HINSTANCE hInstance, HttpServer::Event *pCreatedWindow)
 {
 	HWND hWnd = CreateWindow(wndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
 
