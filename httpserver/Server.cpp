@@ -501,10 +501,11 @@ namespace HttpServer
 								rawPairsToStlMap(outgoing_headers, response.headers, response.headers_count);
 							}
 
-							if (response.headers_count && response.headers)
+							try
 							{
-								destroyRawPairs(response.headers, response.headers_count);
+								app_sets->application_clear(response.headers, response.headers_count);
 							}
+							catch (...) {}
 
 							destroyRawPairs(raw_pair_params, incoming_params.size() );
 							destroyRawPairs(raw_pair_headers, incoming_headers.size() );
@@ -930,71 +931,77 @@ namespace HttpServer
 
 									if (app_call)
 									{
-										std::function<bool()> app_init = std::function<bool()>();
-
-										if (module.find("application_init", &addr) )
+										if (module.find("application_clear", &addr) )
 										{
-											app_init = reinterpret_cast<bool(*)()>(addr);
-										}
+											std::function<void(Utils::raw_pair [], const size_t)> app_clear = reinterpret_cast<void(*)(Utils::raw_pair [], const size_t)>(addr);
 
-										std::function<void()> app_final = std::function<void()>();
+											std::function<bool()> app_init = std::function<bool()>();
 
-										if (module.find("application_final", &addr) )
-										{
-											app_final = reinterpret_cast<void(*)()>(addr);
-										}
-
-										bool success = true;
-
-										try
-										{
-											if (app_init)
+											if (module.find("application_init", &addr) )
 											{
-												success = app_init();
-											}
-										}
-										catch (...)
-										{
-											success = false;
-										}
-
-										if (success)
-										{
-											auto it_temp_dir = app.find("temp_dir");
-
-											const std::string temp_dir = app.end() != it_temp_dir ? it_temp_dir->second : default_temp_dir;
-
-											auto it_request_max_size = app.find("request_max_size");
-
-											const size_t request_max_size = app.end() != it_request_max_size ? std::stoull(it_request_max_size->second) : default_request_max_size;
-
-											// Если путь к директории заканчивается слешем, то убираем его
-											if ('/' == it_root_dir->second.back() )
-											{
-												it_root_dir->second.assign(it_root_dir->second.cbegin(), it_root_dir->second.cend() - 1);
+												app_init = reinterpret_cast<bool(*)()>(addr);
 											}
 
-											ServerApplicationSettings *sets = new ServerApplicationSettings {
-												it_root_dir->second,
-												temp_dir,
-												request_max_size,
-												app_call,
-												app_init,
-												app_final
-											};
+											std::function<void()> app_final = std::function<void()>();
 
-											if (names.empty() )
+											if (module.find("application_final", &addr) )
 											{
-												apps_tree.addApplication(app_name, sets);
+												app_final = reinterpret_cast<void(*)()>(addr);
 											}
-											else
+
+											bool success = true;
+
+											try
 											{
-												for (size_t i = 0; i < names.size(); ++i)
+												if (app_init)
 												{
-													apps_tree.addApplication(names[i], sets);
+													success = app_init();
 												}
 											}
-										} // end success
+											catch (...)
+											{
+												success = false;
+											}
+
+											if (success)
+											{
+												auto it_temp_dir = app.find("temp_dir");
+
+												const std::string temp_dir = app.end() != it_temp_dir ? it_temp_dir->second : default_temp_dir;
+
+												auto it_request_max_size = app.find("request_max_size");
+
+												const size_t request_max_size = app.end() != it_request_max_size ? std::stoull(it_request_max_size->second) : default_request_max_size;
+
+												// Если путь к директории заканчивается слешем, то убираем его
+												if ('/' == it_root_dir->second.back() )
+												{
+													it_root_dir->second.pop_back();
+												}
+
+												ServerApplicationSettings *sets = new ServerApplicationSettings {
+													it_root_dir->second,
+													temp_dir,
+													request_max_size,
+													app_call,
+													app_clear,
+													app_init,
+													app_final
+												};
+
+												if (names.empty() )
+												{
+													apps_tree.addApplication(app_name, sets);
+												}
+												else
+												{
+													for (size_t i = 0; i < names.size(); ++i)
+													{
+														apps_tree.addApplication(names[i], sets);
+													}
+												}
+											} // end success
+										} // end if module find
 									} // end if app_call
 								} // end module find
 							} // end module.is_open()
