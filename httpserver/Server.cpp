@@ -66,7 +66,7 @@ namespace HttpServer
 		// TODO: Range check
 
 		// TODO: file transfer
-		std::ifstream file(fileName);
+		std::ifstream file(fileName, std::ifstream::in | std::ifstream::binary);
 
 		if ( ! file)
 		{
