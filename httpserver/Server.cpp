@@ -18,10 +18,234 @@
 
 namespace HttpServer
 {
+	int Server::transferFilePart
+	(
+		const Socket &clientSocket,
+		const std::chrono::milliseconds &timeout,
+		const std::string &fileName,
+		const time_t fileTime,
+		const size_t fileSize,
+		const std::string &rangeHeader,
+		const std::string &connectionHeader,
+		const std::string &dateHeader,
+		const bool headersOnly
+	) const
+	{
+		size_t delimiter = rangeHeader.find('=');
+
+		if (std::string::npos == delimiter)
+		{
+			// HTTP 400
+			std::string headers("HTTP/1.1 400 Bad Request\r\n");
+			headers += connectionHeader + dateHeader + "\r\n";
+
+			clientSocket.nonblock_send(headers, timeout);
+
+			return 0;
+		}
+
+		std::string range_unit_name(rangeHeader.cbegin(), rangeHeader.cbegin() + delimiter);
+
+		const std::unordered_map<std::string, size_t> ranges_units {
+			{"bytes", 1}
+		};
+
+		auto it_unit = ranges_units.find(range_unit_name);
+
+		if (ranges_units.cend() == it_unit)
+		{
+			// HTTP 416
+			std::string headers("HTTP/1.1 416 Requested Range Not Satisfiable\r\n");
+			headers += connectionHeader + dateHeader + "\r\n";
+
+			clientSocket.nonblock_send(headers, timeout);
+
+			return 0;
+		}
+
+		const size_t range_unit = it_unit->second;
+
+		std::vector<std::tuple<size_t, size_t> > ranges;
+
+		std::string content_range_header("bytes ");
+
+		size_t content_length = 0;
+
+		for (size_t str_pos; std::string::npos != delimiter; )
+		{
+			str_pos = delimiter + 1;
+
+			delimiter = rangeHeader.find(',', str_pos);
+
+			size_t range_pos = rangeHeader.find('-', str_pos);
+
+			if (range_pos < delimiter)
+			{
+				const std::string range_begin_str(rangeHeader.cbegin() + str_pos, rangeHeader.cbegin() + range_pos);
+				const std::string range_end_str(rangeHeader.cbegin() + range_pos + 1, std::string::npos == delimiter ? rangeHeader.cend() : rangeHeader.cbegin() + delimiter);
+
+				if (false == range_begin_str.empty() )
+				{
+					const size_t range_begin = std::stoull(range_begin_str) * range_unit;
+
+					if (range_begin < fileSize)
+					{
+						if (false == range_end_str.empty() )
+						{
+							size_t range_end = std::stoull(range_end_str) * range_unit;
+
+							if (range_end >= range_begin)
+							{
+								if (range_end > fileSize)
+								{
+									range_end = fileSize;
+								}
+
+								const size_t length = range_end - range_begin + 1;
+
+								content_length += length;
+
+								content_range_header += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
+
+								ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
+							}
+						}
+						else // if range_end_str empty
+						{
+							const size_t length = fileSize - range_begin;
+
+							content_length += length;
+
+							content_range_header += std::to_string(range_begin) + '-' + std::to_string(fileSize - 1) + ',';
+
+							ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
+						}
+					}
+				}
+				else if (false == range_end_str.empty() ) // if range_begin_str empty
+				{
+					size_t range_end = std::stoull(range_end_str) * range_unit;
+
+					const size_t length = range_end < fileSize ? fileSize - range_end : fileSize;
+
+					const size_t range_begin = fileSize - length;
+
+					range_end = fileSize - range_begin - 1;
+
+					content_length += length;
+
+					content_range_header += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
+
+					ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
+				}
+			}
+		}
+
+		if (0 == content_length)
+		{
+			// HTTP 416
+			std::string headers("HTTP/1.1 416 Requested Range Not Satisfiable\r\n");
+			headers += connectionHeader + dateHeader + "\r\n";
+
+			clientSocket.nonblock_send(headers, timeout);
+
+			return 0;
+		}
+
+		content_range_header.back() = '/';
+
+		content_range_header += std::to_string(fileSize);
+
+		// Ranges transfer
+		std::ifstream file(fileName, std::ifstream::binary);
+
+		if ( ! file)
+		{
+			file.close();
+
+			// HTTP 500
+			std::string headers("HTTP/1.1 500 Internal Server Error\r\n");
+			headers += connectionHeader + dateHeader + "\r\n";
+
+			clientSocket.nonblock_send(headers, timeout);
+
+			return 0;
+		}
+
+		const size_t ext_pos = fileName.rfind('.');
+		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
+
+		std::locale loc;
+		Utils::tolower(file_ext, loc);
+
+		auto it_mime = mimes_types.find(file_ext);
+
+		std::string file_mime_type = mimes_types.end() != it_mime ? it_mime->second : "application/octet-stream";
+
+		std::string headers("HTTP/1.1 206 Partial Content\r\n");
+		headers += "Content-Type: " + file_mime_type + "\r\n"
+			+ "Content-Length: " + std::to_string(content_length) + "\r\n"
+			+ "Accept-Ranges: bytes\r\n"
+			+ "Content-Range: " + content_range_header + "\r\n"
+			+ "Last-Modified: " + Utils::getDatetimeStringValue(fileTime, true) + "\r\n"
+			+ connectionHeader + dateHeader + "\r\n";
+
+		// Отправить заголовки
+		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
+		{
+			file.close();
+
+			return 0;
+		}
+
+		if (false == headersOnly)
+		{
+			for (auto &range : ranges)
+			{
+				const size_t length = std::get<1>(range);
+
+				std::vector<std::string::value_type> buf(length < 512 * 1024 ? length : 512 *1024);
+
+				file.seekg(std::get<0>(range), file.beg);
+
+				size_t send_size_left = length;
+
+				size_t send_size;
+
+				do
+				{
+					if (send_size_left < 512 * 1024)
+					{
+						buf.resize(send_size_left);
+					}
+
+					file.read(reinterpret_cast<char *>(buf.data() ), buf.size() );
+					send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
+
+					send_size_left -= send_size;
+				}
+				while (false == file.eof() && std::numeric_limits<size_t>::max() != send_size && send_size_left);
+			}
+		}
+
+		file.close();
+
+		return 0;
+	}
+
 	/**
 	 * Передача файла (или его части)
 	 */
-	int Server::transferFile(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const std::string &fileName, const std::unordered_map<std::string, std::string> &inHeaders, const std::map<std::string, std::string> &outHeaders, const std::string &connectionHeader) const
+	int Server::transferFile
+	(
+		const Socket &clientSocket,
+		const std::chrono::milliseconds &timeout,
+		const std::string &fileName,
+		const std::unordered_map<std::string, std::string> &inHeaders,
+		const std::map<std::string, std::string> &outHeaders,
+		const std::string &connectionHeader,
+		const bool headersOnly
+	) const
 	{
 		// Get current time in GMT
 		const std::string date_header = "Date: " + Utils::getDatetimeStringValue() + "\r\n";
@@ -34,8 +258,7 @@ namespace HttpServer
 		{
 			// HTTP 404
 			std::string headers("HTTP/1.1 404 Not Found\r\n");
-			headers += connectionHeader + date_header;
-			headers += "\r\n";
+			headers += connectionHeader + date_header + "\r\n";
 
 			clientSocket.nonblock_send(headers, timeout);
 
@@ -54,8 +277,7 @@ namespace HttpServer
 			{
 				// HTTP 304
 				std::string headers("HTTP/1.1 304 Not Modified\r\n");
-				headers += connectionHeader + date_header;
-				headers += "\r\n";
+				headers += connectionHeader + date_header + "\r\n";
 
 				clientSocket.nonblock_send(headers, timeout);
 
@@ -63,10 +285,16 @@ namespace HttpServer
 			}
 		}
 
-		// TODO: Range check
+		auto it_range = inHeaders.find("Range");
 
-		// TODO: file transfer
-		std::ifstream file(fileName, std::ifstream::in | std::ifstream::binary);
+		// Range transfer
+		if (inHeaders.end() != it_range)
+		{
+			return transferFilePart(clientSocket, timeout, fileName, file_time, file_size, it_range->second, connectionHeader, date_header, headersOnly);
+		}
+
+		// File transfer
+		std::ifstream file(fileName, std::ifstream::binary);
 
 		if ( ! file)
 		{
@@ -74,29 +302,29 @@ namespace HttpServer
 
 			// HTTP 500
 			std::string headers("HTTP/1.1 500 Internal Server Error\r\n");
-			headers += connectionHeader + date_header;
-			headers += "\r\n";
+			headers += connectionHeader + date_header + "\r\n";
 
 			clientSocket.nonblock_send(headers, timeout);
 
 			return 0;
 		}
 
-		// TODO: Get file mime type (by file extenition)
 		const size_t ext_pos = fileName.rfind('.');
-		const std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
+		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
+
+		std::locale loc;
+		Utils::tolower(file_ext, loc);
 
 		auto it_mime = mimes_types.find(file_ext);
 
 		std::string file_mime_type = mimes_types.end() != it_mime ? it_mime->second : "application/octet-stream";
-	//	std::string file_mime_type("text/html");
 
 		std::string headers("HTTP/1.1 200 OK\r\n");
-		headers += "Content-Type: " + file_mime_type + "\r\n";
-		headers += "Content-Length: " + std::to_string(file_size) + "\r\n";
-		headers += "Last-Modified: " + Utils::getDatetimeStringValue(file_time, true) + "\r\n";
-		headers += connectionHeader + date_header;
-		headers += "\r\n";
+		headers += "Content-Type: " + file_mime_type + "\r\n"
+			+ "Content-Length: " + std::to_string(file_size) + "\r\n"
+			+ "Accept-Ranges: bytes\r\n"
+			+ "Last-Modified: " + Utils::getDatetimeStringValue(file_time, true) + "\r\n"
+			+ connectionHeader + date_header + "\r\n";
 
 		// Отправить заголовки
 		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
@@ -107,7 +335,7 @@ namespace HttpServer
 		}
 
 		// Отправить файл
-		if (file_size)
+		if (false == headersOnly && file_size)
 		{
 			std::vector<std::string::value_type> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
 
@@ -216,15 +444,11 @@ namespace HttpServer
 			#elif POSIX
 				std::cout << "Error: " << errno << std::endl;
 			#endif
-
-				// TODO: exit thread
 				break;
 			}
 			else if (recv_len) // Если данные были получены
 			{
 				str_buf.assign(buf.cbegin(), buf.cbegin() + recv_len);
-
-			//	std::cout << str_buf << std::endl << typeid(*this).name() << "\n" << __PRETTY_FUNCTION__ << "\n" << __FUNCTION__ << "\n" << __LINE__  << "\n---Thank you for request!---\n\n";
 
 				// Поиск конца заголовков (пустая строка)
 				size_t headers_end = str_buf.find("\r\n\r\n");
@@ -241,7 +465,6 @@ namespace HttpServer
 					// Если не найден конец заголовка
 					if (std::string::npos == str_end)
 					{
-						// TODO: exit thread
 						break;
 					}
 
@@ -577,7 +800,9 @@ namespace HttpServer
 				{
 					const std::string connection_header = connection_keep_alive ? "Connection: keep-alive\r\n" : "Connection: close\r\n";
 
-					transferFile(clientSocket, timeout, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header);
+					const bool headers_only = ("head" == method);
+
+					transferFile(clientSocket, timeout, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header, headers_only);
 				}
 			}
 		}
@@ -851,6 +1076,9 @@ namespace HttpServer
 		mimes_types["js"] = "text/javascript";
 		mimes_types["css"] = "text/css";
 		mimes_types["png"] = "image/png";
+		mimes_types["jpg"] = "image/jpeg";
+		mimes_types["webm"] = "video/webm";
+		mimes_types["mp4"] = "video/mp4";
 
 		if (applications.size() )
 		{

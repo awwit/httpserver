@@ -27,7 +27,7 @@ namespace HttpServer
 		/**
 		 * @param const Socket & - сокет, откуда можно достать остальные данные
 		 * @param const std::chrono::milliseconds & - максимальное время ожидания данных (на сокете)
-		 * @param const std::string - первая часть полученных данных
+		 * @param const std::string & - первая часть полученных данных
 		 * @param const size_t - сколько осталось данных (в байтах) получить из сокета
 		 * @param const std::unordered_map<std::string, std::string> & - дополнительные параметры, описывающие формат данных
 		 * @param std::unordered_multimap<std::string, std::string> & - данные в виде ключ->значение
@@ -39,7 +39,7 @@ namespace HttpServer
 		(
 			const Socket &,
 			const std::chrono::milliseconds &,
-			const std::string,
+			const std::string &,
 			const size_t,
 			const std::unordered_map<std::string, std::string> &,
 			std::unordered_multimap<std::string, std::string> &,

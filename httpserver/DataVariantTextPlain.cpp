@@ -12,7 +12,7 @@ namespace HttpServer
 	(
 		const Socket &sock,
 		const std::chrono::milliseconds &timeout,
-		const std::string str,
+		const std::string &str,
 		const size_t leftBytes,
 		const std::unordered_map<std::string, std::string> &params,
 		std::unordered_multimap<std::string, std::string> &data,

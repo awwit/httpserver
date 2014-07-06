@@ -57,7 +57,7 @@ namespace HttpServer
 	(
 		const Socket &sock,
 		const std::chrono::milliseconds &timeout,
-		const std::string str,
+		const std::string &str,
 		const size_t leftBytes,
 		const std::unordered_map<std::string, std::string> &params,
 		std::unordered_multimap<std::string, std::string> &data,
@@ -261,10 +261,10 @@ namespace HttpServer
 								if (headers.end() != filetype)
 								{
 									// Сгенерировать уникальное имя
-									std::string tmp_name = "/tmp/" + Utils::getUniqueName();
+									std::string tmp_name = System::getTempDir() + Utils::getUniqueName();
 
 									// Создать файл
-									std::ofstream file(tmp_name, std::ios_base::trunc);
+									std::ofstream file(tmp_name, std::ofstream::trunc | std::ofstream::binary);
 
 									// Если файл был создан и готов для работы
 									if (file.is_open() )
