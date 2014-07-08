@@ -80,6 +80,7 @@ namespace HttpServer
 		// Установить размер буфера данных
 		const size_t buf_len = (leftBytes >= 512 * 1024) ? 512 * 1024 : leftBytes;
 
+		// Создание буферов
 		std::vector<std::string::value_type> buf(buf_len);
 		std::string str_buf = str;
 

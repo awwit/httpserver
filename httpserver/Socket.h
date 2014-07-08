@@ -37,6 +37,9 @@ namespace HttpServer
 	public:
 		Socket();
 		Socket(const System::native_socket_type);
+		Socket(const Socket &);
+		Socket(Socket &&);
+
 		~Socket() = default;
 
 		System::native_socket_type open();
@@ -47,7 +50,7 @@ namespace HttpServer
 		#ifdef WIN32
 			return INVALID_SOCKET != socket_handle;
 		#elif POSIX
-			return -1 != socket_handle;
+			return ~0 != socket_handle;
 		#else
 			#error "Undefine platform"
 		#endif

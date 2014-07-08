@@ -27,14 +27,24 @@ namespace HttpServer
 	#endif
 	}
 
-	Socket::Socket(): socket_handle(-1)
+	Socket::Socket(): socket_handle(~0)
 	{
 		
 	}
 
-	Socket::Socket(const System::native_socket_type handle)
+	Socket::Socket(const System::native_socket_type handle) : socket_handle(handle)
 	{
-		socket_handle = handle;
+		
+	}
+
+	Socket::Socket(const Socket &obj) : socket_handle(obj.socket_handle)
+	{
+		
+	}
+
+	Socket::Socket(Socket &&that) : socket_handle(that.socket_handle)
+	{
+		that.socket_handle = ~0;
 	}
 
 	System::native_socket_type Socket::open()
@@ -60,13 +70,13 @@ namespace HttpServer
 
 			if (0 == result)
 			{
-				socket_handle = -1;
+				socket_handle = ~0;
 			}
 
 			return result;
 		}
 
-		return -1;
+		return ~0;
 	}
 
 	int Socket::bind(const int port) const
@@ -98,7 +108,7 @@ namespace HttpServer
 
 	Socket Socket::nonblock_accept() const
 	{
-		System::native_socket_type client_socket = -1;
+		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
 		::fd_set readset;
 		FD_ZERO(&readset);
@@ -131,7 +141,7 @@ namespace HttpServer
 
 	Socket Socket::nonblock_accept(const std::chrono::milliseconds &timeWait) const
 	{
-		System::native_socket_type client_socket = -1;
+		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
 		::fd_set readset;
 		FD_ZERO(&readset);

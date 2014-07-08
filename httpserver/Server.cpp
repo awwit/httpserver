@@ -407,7 +407,7 @@ namespace HttpServer
 	/**
 	 * Метод для обработки запроса (запускается в отдельном потоке)
 	 */
-	int Server::threadRequestProc(Socket &clientSocket)
+	int Server::threadRequestProc(Socket clientSocket)
 	{
 		int app_exit_code;
 
@@ -817,7 +817,7 @@ namespace HttpServer
 		return app_exit_code;
 	}
 
-	int Server::cycleQueue(std::queue<std::shared_ptr<Socket> > &sockets)
+	int Server::cycleQueue(std::queue<Socket> &sockets)
 	{
 		auto it_option = settings.find("threads_max_count");
 
@@ -833,13 +833,10 @@ namespace HttpServer
 			threads_max_count = System::getProcessorsCount();
 		}
 
-		std::function<int(Server &, Socket &)> serverThreadRequestProc = std::mem_fn(&Server::threadRequestProc);
+		std::function<int(Server &, Socket)> serverThreadRequestProc = std::mem_fn(&Server::threadRequestProc);
 
 		std::vector<std::thread> active_threads;
-		std::vector<std::shared_ptr<Socket> > active_sockets;
-
 		active_threads.reserve(threads_max_count);
-		active_sockets.reserve(threads_max_count);
 
 		while (process_flag)
 		{
@@ -867,7 +864,6 @@ namespace HttpServer
 				{
 					th->join();
 					active_threads.erase(th);
-					active_sockets.erase(active_sockets.begin() + i);
 				}
 				else
 				{
@@ -877,11 +873,8 @@ namespace HttpServer
 
 			while (active_threads.size() <= threads_max_count && sockets.empty() == false)
 			{
-				std::shared_ptr<Socket> client_socket = sockets.front();
+				active_threads.emplace_back(serverThreadRequestProc, std::ref(*this), std::move(sockets.front() ) );
 				sockets.pop();
-
-				active_threads.emplace_back(serverThreadRequestProc, std::ref(*this), std::ref(*client_socket) );
-				active_sockets.emplace_back(client_socket);
 			}
 
 			if (false == eventNotFullQueue->notifed() )
@@ -901,17 +894,6 @@ namespace HttpServer
 			}
 
 			active_threads.clear();
-		}
-
-		if (false == active_sockets.empty() )
-		{
-			for (std::shared_ptr<Socket> &sock : active_sockets)
-			{
-				sock->shutdown();
-				sock->close();
-			}
-
-			active_sockets.clear();
 		}
 
 		return 0;
@@ -1385,11 +1367,11 @@ namespace HttpServer
 		eventNotFullQueue = new Event(true, true);
 		eventProcessQueue = new Event();
 
-		std::queue<std::shared_ptr<Socket> > sockets;
+		std::queue<Socket> sockets;
 
 		process_flag = true;
 
-		std::function<int(Server &, std::queue<std::shared_ptr<Socket> > &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
+		std::function<int(Server &, std::queue<Socket> &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
 		std::thread threadQueue(serverCycleQueue, std::ref(*this), std::ref(sockets) );
 
 		Socket client_socket;
@@ -1403,7 +1385,7 @@ namespace HttpServer
 			if (client_socket.is_open() )
 			{
 				client_socket.nonblock(true);
-				sockets.emplace(new Socket(client_socket) );
+				sockets.emplace(std::move(client_socket) );
 
 				if (sockets.size() <= queue_max_length)
 				{
