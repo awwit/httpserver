@@ -404,10 +404,30 @@ namespace HttpServer
 		}
 	}
 
+	void Server::sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode) const
+	{
+		const std::unordered_map<size_t, std::string> statuses {
+			{400, "Bad Request"},
+			{404, "Not Found"},
+			{413, "Request Entity Too Large"}
+		};
+
+		auto it = statuses.find(statusCode);
+
+		if (statuses.cend() != it)
+		{
+			const std::string &status = it->second;
+
+			std::string headers("HTTP/1.1 " + std::to_string(statusCode) + status + "\r\n\r\n");
+
+			clientSocket.nonblock_send(headers, timeout);
+		}
+	}
+
 	/**
 	 * Метод для обработки запроса (запускается в отдельном потоке)
 	 */
-	int Server::threadRequestProc(Socket clientSocket)
+	int Server::threadRequestProc(Socket clientSocket) const
 	{
 		int app_exit_code;
 
@@ -439,10 +459,12 @@ namespace HttpServer
 
 			if (std::numeric_limits<size_t>::max() == recv_len)
 			{
-			#ifdef WIN32
-				std::cout << "Error: " << WSAGetLastError() << std::endl;
-			#elif POSIX
-				std::cout << "Error: " << errno << std::endl;
+			#ifdef DEBUG
+				#ifdef WIN32
+					std::cout << "Error: " << WSAGetLastError() << std::endl;
+				#elif POSIX
+					std::cout << "Error: " << errno << std::endl;
+				#endif
 			#endif
 				break;
 			}
@@ -465,6 +487,7 @@ namespace HttpServer
 					// Если не найден конец заголовка
 					if (std::string::npos == str_end)
 					{
+						sendStatus(clientSocket, timeout, 400);
 						break;
 					}
 
@@ -555,13 +578,17 @@ namespace HttpServer
 						size_t delimiter = it_host->second.find(':');
 
 						// Получить имя (или адрес)
-						std::string host = it_host->second.substr(0, delimiter);
+						const std::string host = it_host->second.substr(0, delimiter);
 
-					/*	TODO: port
+					/*	size_t port = 80;
+
+						// Получить номер порта
 						if (std::string::npos != delimiter)
 						{
-							host.erase(delimiter);
+							port = std::stoull(it_host->second.substr(delimiter + 1) );
 						}*/
+
+						// TODO: application check port
 
 						// Поиск настроек приложения по имени
 						ServerApplicationSettings *app_sets = apps_tree.find(host);
@@ -658,24 +685,27 @@ namespace HttpServer
 										// Разобрать данные на составляющие
 										if (false == data_variant->parse(clientSocket, timeout, str_buf.substr(headers_end + 2), left_bytes, content_params, incoming_data, incoming_files) )
 										{
-											// TODO: HTTP 400 Bad Request
-
 											for (auto it : incoming_files)
 											{
 												remove(it.second.getName().c_str() );
 											}
+
+											// HTTP 400 Bad Request
+											sendStatus(clientSocket, timeout, 400);
 
 											break;
 										}
 									}
 									else
 									{
-										// TODO: HTTP 413 Request Entity Too Large
+										// HTTP 413 Request Entity Too Large
+										sendStatus(clientSocket, timeout, 413);
 									}
 								}
 								else
 								{
-									// TODO: HTTP 400 Bad Request
+									// HTTP 400 Bad Request
+									sendStatus(clientSocket, timeout, 400);
 								}
 							}
 
@@ -737,22 +767,26 @@ namespace HttpServer
 						}
 						else
 						{
-							// TODO: HTTP 404 Not Found
+							// HTTP 404 Not Found
+							sendStatus(clientSocket, timeout, 404);
 						}
 					}
 					else
 					{
-						// TODO: HTTP 400 Bad Request
+						// HTTP 400 Bad Request
+						sendStatus(clientSocket, timeout, 400);
 					}
 				}
 				else
 				{
-					// TODO: HTTP 400 Bad Request
+					// HTTP 400 Bad Request
+					sendStatus(clientSocket, timeout, 400);
 				}
 			}
 			else // Если запрос пустой
 			{
-				// TODO: HTTP 400 Bad Request
+				// HTTP 400 Bad Request
+				sendStatus(clientSocket, timeout, 400);
 				break;
 			}
 

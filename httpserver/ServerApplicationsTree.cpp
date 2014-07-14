@@ -1,8 +1,6 @@
 ﻿
 #include "ServerApplicationsTree.h"
 
-#include <iostream>
-
 namespace HttpServer
 {
 	ServerApplicationsTree::ServerApplicationsTree(): app_sets(nullptr)
@@ -76,15 +74,6 @@ namespace HttpServer
 		{
 			name_parts.push_back(name);
 		}
-
-		// TODO: remove #include<iostream>
-
-		for (auto part : name_parts)
-		{
-			std::cout << " " << part;
-		}
-
-		std::cout << ";" << std::endl;
 
 		addApplication(name_parts, sets);
 	}
