@@ -35,6 +35,7 @@ namespace HttpServer
 	 * @member const std::unordered_map<std::string, std::string> headers - заголовки запроса
 	 * @member const std::unordered_multimap<std::string, std::string> data - входящие данные запроса
 	 * @member const std::unordered_multimap<std::string, FileIncoming> files - входящие файлы запроса
+	 * @member const std::unordered_multimap<std::string, std::string> cookies - входящие куки запроса
 	 */
 	struct ServerRequest
 	{
@@ -46,5 +47,6 @@ namespace HttpServer
 		const std::unordered_map<std::string, std::string> headers;
 		const std::unordered_multimap<std::string, std::string> data;
 		const std::unordered_multimap<std::string, FileIncoming> files;
+		const std::unordered_multimap<std::string, std::string> cookies;
 	};
 };

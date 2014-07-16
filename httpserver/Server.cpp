@@ -357,17 +357,11 @@ namespace HttpServer
 	/**
 	 * Парсинг переданных параметров (URI)
 	 */
-	void Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &map, const std::string &str, const size_t start, const size_t end) const
+	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &map, const std::string &str, const size_t start, const size_t end) const
 	{
 		if (str.length() > start)
 		{
-			size_t var_pos = start;
-			size_t var_end = std::string::npos;
-
-			std::string var_name;
-			std::string var_value;
-
-			for (; std::string::npos != var_pos; var_pos = var_end)
+			for (size_t var_pos = start, var_end; std::string::npos != var_pos; var_pos = var_end)
 			{
 				// Поиск следующего параметра
 				var_end = str.find('&', var_pos);
@@ -375,33 +369,41 @@ namespace HttpServer
 				// Поиск значения параметра
 				size_t delimiter = str.find('=', var_pos);
 
-				if (std::string::npos != delimiter)
+				if (std::string::npos == delimiter || delimiter > var_end)
 				{
-					// Получить имя параметра
-					var_name = str.substr(var_pos, delimiter - var_pos);
+					return false;
+				}
 
-					++delimiter;
+				// Получить имя параметра
+				std::string var_name = str.substr(var_pos, delimiter - var_pos);
 
-					// Если последний параметр
-					if (std::string::npos == var_end)
-					{
-						var_value = str.substr(delimiter, end - delimiter);
-					}
-					else // Если не последний параметр
-					{
-						var_value = str.substr(delimiter, var_end - delimiter);
-					}
+				++delimiter;
 
-					// Сохранить параметр и значение
-					map.emplace(var_name, var_value);
+				std::string var_value;
 
-					if (std::string::npos != var_end)
-					{
-						++var_end;
-					}
+				// Если последний параметр
+				if (std::string::npos == var_end)
+				{
+					var_value = str.substr(delimiter, end - delimiter);
+				}
+				else // Если не последний параметр
+				{
+					var_value = str.substr(delimiter, var_end - delimiter);
+				}
+
+				// Сохранить параметр и значение
+				map.emplace(std::move(var_name), std::move(var_value) );
+
+				if (std::string::npos != var_end)
+				{
+					++var_end;
 				}
 			}
+
+			return true;
 		}
+
+		return false;
 	}
 
 	void Server::sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode) const
@@ -534,7 +536,12 @@ namespace HttpServer
 					if (std::string::npos != params_pos)
 					{
 						// Извлекаем параметры запроса из URI
-						parseIncomingVars(incoming_params, str_buf, params_pos + 1, uri_end);
+						if (false == parseIncomingVars(incoming_params, str_buf, params_pos + 1, uri_end) )
+						{
+							// HTTP 400 Bad Request
+							sendStatus(clientSocket, timeout, 400);
+							break;
+						}
 					}
 
 					// Переход к обработке следующего заголовка
@@ -554,14 +561,13 @@ namespace HttpServer
 						if (delimiter < str_end)
 						{
 							std::string header_name = str_buf.substr(str_cur, delimiter - str_cur);
-
 							std::string header_value = str_buf.substr(delimiter + 1, str_end - delimiter - 1);
 
 							// Удалить лишние пробелы в начале и в конце строки
 							Utils::trim(header_value);
 
 							// Сохранить заголовок и его значение
-							incoming_headers.emplace(header_name, header_value);
+							incoming_headers.emplace(std::move(header_name), std::move(header_value) );
 						}
 
 						// Перейти к следующей строке
@@ -627,7 +633,7 @@ namespace HttpServer
 										{
 											std::string param_name = (std::string::npos == str_param_end) ? header_value.substr(str_param_cur) : header_value.substr(str_param_cur, str_param_end - str_param_cur);
 											Utils::trim(param_name);
-											content_params.emplace(param_name, "");
+											content_params.emplace(std::move(param_name), "");
 										}
 										else
 										{
@@ -639,7 +645,7 @@ namespace HttpServer
 											std::string param_value = (std::string::npos == str_param_end) ? header_value.substr(delimiter) : header_value.substr(delimiter, str_param_end - delimiter);
 											Utils::trim(param_value);
 
-											content_params.emplace(param_name, param_value);
+											content_params.emplace(std::move(param_name), std::move(param_value) );
 										}
 
 										if (std::string::npos != str_param_end)
@@ -1025,7 +1031,7 @@ namespace HttpServer
 					}
 					else
 					{
-						settings.emplace(param_name, param_value);
+						settings.emplace(std::move(param_name), std::move(param_value) );
 					}
 				}
 
@@ -1066,7 +1072,7 @@ namespace HttpServer
 							}
 							else
 							{
-								app.emplace(param_name, param_value);
+								app.emplace(std::move(param_name), std::move(param_value) );
 							}
 						}
 
@@ -1075,7 +1081,7 @@ namespace HttpServer
 						end_pos = str_buf.find(';', cur_pos);
 					}
 
-					applications.emplace_back(app);
+					applications.emplace_back(std::move(app) );
 
 					cur_pos = block_end + 1;
 				}
@@ -1130,13 +1136,13 @@ namespace HttpServer
 						while (std::string::npos != delimiter)
 						{
 							std::string name = app_name.substr(cur_pos, delimiter - cur_pos);
-							names.emplace_back(name);
+							names.emplace_back(std::move(name) );
 							cur_pos = app_name.find_first_not_of(whitespace, delimiter + 1);
 							delimiter = app_name.find_first_of(whitespace, cur_pos);
 						}
 
 						std::string name = app_name.substr(cur_pos);
-						names.emplace_back(name);
+						names.emplace_back(std::move(name) );
 					}
 
 					auto it_root_dir = app.find("root_dir");
@@ -1151,22 +1157,6 @@ namespace HttpServer
 
 							if (module.is_open() )
 							{
-								bool is_exists = false;
-
-								for (size_t i = 0; i < modules.size(); ++i)
-								{
-									if (modules[i] == module)
-									{
-										is_exists = true;
-										break;
-									}
-								}
-
-								if (false == is_exists)
-								{
-									modules.push_back(module);
-								}
-
 								void *addr = nullptr;
 
 								if (module.find("application_call", &addr) )
@@ -1248,6 +1238,22 @@ namespace HttpServer
 										} // end if module find
 									} // end if app_call
 								} // end module find
+
+								bool is_exists = false;
+
+								for (size_t i = 0; i < modules.size(); ++i)
+								{
+									if (modules[i] == module)
+									{
+										is_exists = true;
+										break;
+									}
+								}
+
+								if (false == is_exists)
+								{
+									modules.emplace_back(std::move(module) );
+								}
 							} // end module.is_open()
 						} // end find module name
 					} // end find document_root_dir

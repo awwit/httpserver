@@ -34,6 +34,16 @@ namespace HttpServer
 			open(libPath);
 		}
 
+		Module(const Module &module) : lib_handle(module.lib_handle)
+		{
+			
+		}
+
+		Module(Module &&module) : lib_handle(module.lib_handle)
+		{
+			module.lib_handle = nullptr;
+		}
+
 		~Module() = default;
 
 		inline bool is_open() const

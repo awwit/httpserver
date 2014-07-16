@@ -7,9 +7,6 @@ namespace Utils
 {
 	void trim(std::string &str)
 	{
-	//	str.erase(std::find_if(str.rbegin(), str.rend(), std::not1(std::ptr_fun<int, int>(std::isspace) ) ).base(), str.end() );
-	//	str.erase(str.begin(), std::find_if(str.begin(), str.end(), std::not1(std::ptr_fun<int, int>(std::isspace) ) ) );
-
 		size_t last = str.find_last_not_of(" \t\n\v\f\r");
 
 		if (std::string::npos == last)
@@ -109,11 +106,11 @@ namespace Utils
 			{
 				arr[i].key = stlStringToPChar(it->first);
 
-				const HttpServer::FileIncoming &info = it->second;
+				const HttpServer::FileIncoming &file = it->second;
 
-				arr[i].file_name = stlStringToPChar(info.getName() );
-				arr[i].file_type = stlStringToPChar(info.getType() );
-				arr[i].file_size = info.getSize();
+				arr[i].file_name = stlStringToPChar(file.getName() );
+				arr[i].file_type = stlStringToPChar(file.getType() );
+				arr[i].file_size = file.getSize();
 			}
 		}
 	}
@@ -270,5 +267,42 @@ namespace Utils
 		while (n);
 
 		return length;
+	}
+
+	bool parseCookies(const std::string &cookieHeader, std::unordered_multimap<std::string, std::string> &cookies)
+	{
+		if (cookieHeader.empty() )
+		{
+			return false;
+		}
+
+		for (size_t cur_pos = 0, next_value; std::string::npos != cur_pos; cur_pos = next_value)
+		{
+			next_value = cookieHeader.find(' ', cur_pos);
+
+			size_t delimiter = cookieHeader.find('=', cur_pos);
+
+			if (std::string::npos == delimiter || delimiter > next_value)
+			{
+				return false;
+			}
+
+			std::string key = cookieHeader.substr(cur_pos, delimiter - cur_pos);
+			trim(key);
+
+			++delimiter;
+
+			std::string value = cookieHeader.substr(delimiter, std::string::npos != next_value ? next_value - delimiter : next_value);
+			trim(value);
+
+			cookies.emplace(std::move(key), std::move(value) );
+
+			if (std::string::npos != next_value)
+			{
+				++next_value;
+			}
+		}
+
+		return true;
 	}
 };

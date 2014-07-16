@@ -21,9 +21,7 @@ namespace HttpServer
 		}
 		else
 		{
-			std::string part = nameParts.back();
-
-			nameParts.pop_back();
+			std::string &part = nameParts.back();
 
 			auto it = list.find(part);
 
@@ -36,8 +34,10 @@ namespace HttpServer
 			else
 			{
 				sub = new ServerApplicationsTree();
-				list.emplace(part, sub);
+				list.emplace(std::move(part), sub);
 			}
+
+			nameParts.pop_back();
 
 			sub->addApplication(nameParts, sets);
 		}
@@ -62,17 +62,18 @@ namespace HttpServer
 					part = "*";
 				}
 
-				name_parts.emplace_back(part);
+				name_parts.emplace_back(std::move(part) );
 				cur_pos = delimiter + 1;
 				delimiter = name.find('.', cur_pos);
 			}
 
+			// Emplace last part
 			std::string part = name.substr(cur_pos);
-			name_parts.emplace_back(part);
+			name_parts.emplace_back(std::move(part) );
 		}
 		else
 		{
-			name_parts.push_back(name);
+			name_parts.emplace_back(name);
 		}
 
 		addApplication(name_parts, sets);
@@ -123,17 +124,17 @@ namespace HttpServer
 			while (std::string::npos != delimiter)
 			{
 				std::string part = name.substr(cur_pos, delimiter - cur_pos);
-				name_parts.emplace_back(part);
+				name_parts.emplace_back(std::move(part) );
 				cur_pos = delimiter + 1;
 				delimiter = name.find('.', cur_pos);
 			}
 
 			std::string part = name.substr(cur_pos);
-			name_parts.emplace_back(part);
+			name_parts.emplace_back(std::move(part) );
 		}
 		else
 		{
-			name_parts.push_back(name);
+			name_parts.emplace_back(name);
 		}
 
 		return find(name_parts);

@@ -16,6 +16,8 @@ namespace HttpServer
 
 	public:
 		FileIncoming(const std::string &, const std::string &, const size_t);
+		FileIncoming(const FileIncoming &);
+		FileIncoming(FileIncoming &&);
 		~FileIncoming() = default;
 
 		inline std::string getName() const

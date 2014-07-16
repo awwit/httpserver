@@ -1,9 +1,9 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="httpserver/Server.cpp">
+  <MonoDevelop.Ide.Workbench ActiveDocument="httpserver/Utils.h">
     <Files>
-      <File FileName="httpserver/Server.cpp" Line="750" Column="9" />
-      <File FileName="httpserver/Server.h" Line="44" Column="90" />
+      <File FileName="httpserver/Server.cpp" Line="1" Column="1" />
+      <File FileName="httpserver/Server.h" Line="1" Column="1" />
       <File FileName="httpserver/Main.cpp" Line="1" Column="1" />
       <File FileName="httpserver/Main.h" Line="1" Column="1" />
       <File FileName="httpserver/DataVariantMultipartFormData.h" Line="1" Column="1" />
@@ -16,7 +16,7 @@
       <File FileName="httpserver/DataVariantFormUrlencoded.cpp" Line="1" Column="1" />
       <File FileName="httpserver/ServerApplicationSettings.h" Line="1" Column="1" />
       <File FileName="httpserver/ServerApplicationsTree.h" Line="1" Column="1" />
-      <File FileName="httpserver/ServerApplicationsTree.cpp" Line="76" Column="4" />
+      <File FileName="httpserver/ServerApplicationsTree.cpp" Line="1" Column="1" />
       <File FileName="httpserver/Module.h" Line="1" Column="1" />
       <File FileName="httpserver/Event.h" Line="1" Column="1" />
       <File FileName="httpserver/System.h" Line="1" Column="1" />
@@ -25,9 +25,9 @@
       <File FileName="httpserver/SignalsHandles.cpp" Line="1" Column="1" />
       <File FileName="httpserver/SignalsHandles.h" Line="1" Column="1" />
       <File FileName="httpserver/System.cpp" Line="1" Column="1" />
-      <File FileName="httpserver/Socket.cpp" Line="1" Column="1" />
-      <File FileName="httpserver/Utils.h" Line="1" Column="1" />
-      <File FileName="httpserver/Utils.cpp" Line="1" Column="1" />
+      <File FileName="httpserver/Socket.cpp" Line="18" Column="2" />
+      <File FileName="httpserver/Utils.h" Line="35" Column="46" />
+      <File FileName="httpserver/Utils.cpp" Line="287" Column="18" />
       <File FileName="httpserver/Socket.h" Line="1" Column="1" />
       <File FileName="httpserver/FileIncoming.h" Line="1" Column="1" />
       <File FileName="httpserver/RawData.h" Line="1" Column="1" />

@@ -156,7 +156,7 @@ namespace HttpServer
 					{
 						std::string header_name = str_buf.substr(str_cur, line_end - str_cur);
 						Utils::trim(header_name);
-						headers.emplace(header_name, "");
+						headers.emplace(std::move(header_name), "");
 					}
 					else
 					{
@@ -168,7 +168,7 @@ namespace HttpServer
 						std::string header_value = str_buf.substr(delimiter, line_end - delimiter);
 						Utils::trim(header_value);
 
-						headers.emplace(header_name, header_value);
+						headers.emplace(std::move(header_name), std::move(header_value) );
 					}
 
 					// Перейти к следующему заголовку
@@ -207,7 +207,7 @@ namespace HttpServer
 							{
 								std::string param_name = (std::string::npos == str_param_end) ? header_value.substr(str_param_cur) : header_value.substr(str_param_cur, str_param_end - str_param_cur);
 								Utils::trim(param_name);
-								header_params.emplace(param_name, "");
+								header_params.emplace(std::move(param_name), "");
 							}
 							else
 							{
@@ -225,7 +225,7 @@ namespace HttpServer
 									std::string param_value = (std::string::npos == str_param_end) ? header_value.substr(delimiter) : header_value.substr(delimiter, str_param_end - delimiter);
 									Utils::trim(param_value);
 
-									header_params.emplace(param_name, param_value);
+									header_params.emplace(std::move(param_name), std::move(param_value) );
 								}
 								else
 								{
@@ -236,7 +236,7 @@ namespace HttpServer
 
 									std::string param_value = (std::string::npos == str_param_cur) ? header_value.substr(delimiter) : header_value.substr(delimiter, str_param_cur - delimiter);
 
-									header_params.emplace(param_name, param_value);
+									header_params.emplace(std::move(param_name), std::move(param_value) );
 								}
 							}
 
@@ -247,19 +247,19 @@ namespace HttpServer
 						}
 
 						// Поиск имени блока данных
-						auto name = header_params.find("name");
+						auto it_name = header_params.find("name");
 
-						if (header_params.end() != name)
+						if (header_params.end() != it_name)
 						{
 							// Если данные пришли из файла
-							auto filename = header_params.find("filename");
+							auto it_filename = header_params.find("filename");
 
-							if (header_params.end() != filename)
+							if (header_params.end() != it_filename)
 							{
 								// Найти тип файла
-								auto filetype = headers.find("Content-Type");
+								auto it_filetype = headers.find("Content-Type");
 
-								if (headers.end() != filetype)
+								if (headers.end() != it_filetype)
 								{
 									// Сгенерировать уникальное имя
 									std::string tmp_name = System::getTempDir() + Utils::getUniqueName();
@@ -298,7 +298,7 @@ namespace HttpServer
 										file.write(str_buf.data(), delimiter);
 
 										// Добавить данные в список
-										files.emplace(name->second, FileIncoming(tmp_name, filetype->second, file.tellp() ) );
+										files.emplace(it_name->second, FileIncoming(std::move(tmp_name), it_filetype->second, file.tellp() ) );
 
 										file.close();
 
@@ -352,7 +352,7 @@ namespace HttpServer
 								value.append(str_buf.cbegin(), str_buf.cbegin() + delimiter);
 
 								// Добавить данные в список
-								data.emplace(name->second, value);
+								data.emplace(it_name->second, std::move(value) );
 
 								// Если найден конец данных
 								if (str_buf.find(data_end, delimiter) == delimiter)

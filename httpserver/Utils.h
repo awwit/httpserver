@@ -52,4 +52,6 @@ namespace Utils
 	std::string getDatetimeStringValue(const ::time_t = std::numeric_limits<::time_t>::max(), const bool = false);
 
 	size_t getNumberLength(const size_t number);
+
+	bool parseCookies(const std::string &, std::unordered_multimap<std::string, std::string> &);
 };
