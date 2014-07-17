@@ -49,9 +49,12 @@ namespace Utils
 
 	time_t stringTimeToTimestamp(const std::string &);
 
-	std::string getDatetimeStringValue(const ::time_t = std::numeric_limits<::time_t>::max(), const bool = false);
+	std::string getDatetimeStringValue(const ::time_t tTime = ~0, const bool isGmtTime = false);
 
 	size_t getNumberLength(const size_t number);
 
 	bool parseCookies(const std::string &, std::unordered_multimap<std::string, std::string> &);
+
+	std::string urlEncode(const std::string &);
+	std::string urlDecode(const std::string &);
 };

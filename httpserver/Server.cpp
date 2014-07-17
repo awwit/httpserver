@@ -357,17 +357,17 @@ namespace HttpServer
 	/**
 	 * Парсинг переданных параметров (URI)
 	 */
-	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &map, const std::string &str, const size_t start, const size_t end) const
+	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &map, const std::string &uriParams) const
 	{
-		if (str.length() > start)
+		if (uriParams.length() )
 		{
-			for (size_t var_pos = start, var_end; std::string::npos != var_pos; var_pos = var_end)
+			for (size_t var_pos = 0, var_end; std::string::npos != var_pos; var_pos = var_end)
 			{
 				// Поиск следующего параметра
-				var_end = str.find('&', var_pos);
+				var_end = uriParams.find('&', var_pos);
 
 				// Поиск значения параметра
-				size_t delimiter = str.find('=', var_pos);
+				size_t delimiter = uriParams.find('=', var_pos);
 
 				if (std::string::npos == delimiter || delimiter > var_end)
 				{
@@ -375,7 +375,7 @@ namespace HttpServer
 				}
 
 				// Получить имя параметра
-				std::string var_name = str.substr(var_pos, delimiter - var_pos);
+				std::string var_name = uriParams.substr(var_pos, delimiter - var_pos);
 
 				++delimiter;
 
@@ -384,11 +384,11 @@ namespace HttpServer
 				// Если последний параметр
 				if (std::string::npos == var_end)
 				{
-					var_value = str.substr(delimiter, end - delimiter);
+					var_value = Utils::urlDecode(uriParams.substr(delimiter) );
 				}
 				else // Если не последний параметр
 				{
-					var_value = str.substr(delimiter, var_end - delimiter);
+					var_value = Utils::urlDecode(uriParams.substr(delimiter, var_end - delimiter) );
 				}
 
 				// Сохранить параметр и значение
@@ -530,13 +530,13 @@ namespace HttpServer
 					// Поиск именованных параметров запросов (переменных ?)
 					size_t params_pos = str_buf.find('?', delimiter);
 
-					// Сохранить полную ссылку URI (с параметрами)
+					// Сохранить полную ссылку URI (без параметров)
 					uri_reference = (std::string::npos == params_pos) ? str_buf.substr(delimiter) : str_buf.substr(delimiter, params_pos - delimiter);
 
 					if (std::string::npos != params_pos)
 					{
 						// Извлекаем параметры запроса из URI
-						if (false == parseIncomingVars(incoming_params, str_buf, params_pos + 1, uri_end) )
+						if (false == parseIncomingVars(incoming_params, str_buf.substr(params_pos + 1, uri_end) ) )
 						{
 							// HTTP 400 Bad Request
 							sendStatus(clientSocket, timeout, 400);

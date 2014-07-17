@@ -1,6 +1,8 @@
 ﻿
 #include "DataVariantFormUrlencoded.h"
 
+#include "Utils.h"
+
 namespace HttpServer
 {
 	DataVariantFormUrlencoded::DataVariantFormUrlencoded()
@@ -44,11 +46,11 @@ namespace HttpServer
 				// Если последний параметр
 				if (std::string::npos == var_end)
 				{
-					var_value = str.substr(delimiter);
+					var_value = Utils::urlDecode(str.substr(delimiter) );
 				}
 				else // Если не последний параметр
 				{
-					var_value = str.substr(delimiter, var_end - delimiter);
+					var_value = Utils::urlDecode(str.substr(delimiter, var_end - delimiter) );
 				}
 
 				// Сохранить параметр и значение

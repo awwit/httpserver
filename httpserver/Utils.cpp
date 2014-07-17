@@ -2,6 +2,7 @@
 #include "Utils.h"
 
 #include <cstring>
+#include <iomanip>
 
 namespace Utils
 {
@@ -224,7 +225,7 @@ namespace Utils
 
 		::time_t cur_time = tTime;
 
-		if (std::numeric_limits<::time_t>::max() == tTime)
+		if ( (time_t)~0 == tTime)
 		{
 			::time(&cur_time);
 		}
@@ -278,7 +279,7 @@ namespace Utils
 
 		for (size_t cur_pos = 0, next_value; std::string::npos != cur_pos; cur_pos = next_value)
 		{
-			next_value = cookieHeader.find(' ', cur_pos);
+			next_value = cookieHeader.find(';', cur_pos);
 
 			size_t delimiter = cookieHeader.find('=', cur_pos);
 
@@ -289,11 +290,13 @@ namespace Utils
 
 			std::string key = cookieHeader.substr(cur_pos, delimiter - cur_pos);
 			trim(key);
+			key = urlDecode(key);
 
 			++delimiter;
 
 			std::string value = cookieHeader.substr(delimiter, std::string::npos != next_value ? next_value - delimiter : next_value);
 			trim(value);
+			value = urlDecode(value);
 
 			cookies.emplace(std::move(key), std::move(value) );
 
@@ -304,5 +307,84 @@ namespace Utils
 		}
 
 		return true;
+	}
+
+	inline bool isUrlAllowed(const std::string::value_type c)
+	{
+		static const std::string special("-_.~");
+
+		return std::string::npos != special.find(c);
+	}
+
+	std::string urlEncode(const std::string &str)
+	{
+		std::ostringstream encoded;
+		encoded.fill('0');
+		encoded << std::hex;
+
+		for (auto it = str.cbegin(); str.cend() != it; ++it)
+		{
+			const std::string::value_type &c = *it;
+
+			if (' ' == c)
+			{
+				encoded << '+';
+			}
+			else if (std::isalnum(c) || isUrlAllowed(c) )
+			{
+				encoded << c;
+			}
+			else
+			{
+				encoded << '%' << std::setw(2) << (int) ( (unsigned char) c);
+			}
+		}
+
+		return encoded.str();
+	}
+
+	std::string urlDecode(const std::string &str)
+	{
+		std::string decoded;
+
+		std::string::value_type ch[3] = {0};
+
+		for (auto it = str.cbegin(); str.cend() != it; ++it)
+		{
+			const std::string::value_type &c = *it;
+
+			if ('%' == c)
+			{
+				++it;
+
+				if (str.cend() == it)
+				{
+					break;
+				}
+
+				ch[0] = *it;
+
+				++it;
+
+				if (str.cend() == it)
+				{
+					break;
+				}
+
+				ch[1] = *it;
+
+				decoded.push_back(strtoul(ch, nullptr, 16) );
+			}
+			else if ('+' == c)
+			{
+				decoded.push_back(' ');
+			}
+			else
+			{
+				decoded.push_back(c);
+			}
+		}
+
+		return decoded;
 	}
 };

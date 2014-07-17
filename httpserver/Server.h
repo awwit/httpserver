@@ -45,7 +45,7 @@ namespace HttpServer
 		int threadRequestProc(Socket) const;
 		int transferFilePart(const Socket &, const std::chrono::milliseconds &, const std::string &, const time_t, const size_t, const std::string &, const std::string &, const std::string &, const bool) const;
 		int transferFile(const Socket &, const std::chrono::milliseconds &, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &, const bool) const;
-		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &, const size_t, const size_t) const;
+		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &) const;
 
 		bool includeConfigFile(const std::string &, std::string &, const size_t);
 		bool loadConfig();

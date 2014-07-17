@@ -18,10 +18,8 @@ namespace HttpServer
 	}
 
 	FileIncoming::FileIncoming(FileIncoming &&file)
-		: file_name(file.file_name), file_type(file.file_type), file_size(file.file_size)
+		: file_name(std::move(file.file_name) ), file_type(std::move(file.file_type) ), file_size(file.file_size)
 	{
-		file.file_name.clear();
-		file.file_type.clear();
 		file.file_size = 0;
 	}
 
