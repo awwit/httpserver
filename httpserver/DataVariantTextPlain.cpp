@@ -21,7 +21,7 @@ namespace HttpServer
 	{
 		if (str.length() )
 		{
-			for (size_t var_pos = 0, var_end; std::string::npos != var_pos; var_pos = var_end)
+			for (size_t var_pos = 0, var_end = 0; std::string::npos != var_end; var_pos = var_end + 1)
 			{
 				// Поиск следующего параметра
 				var_end = str.find('&', var_pos);
@@ -29,34 +29,26 @@ namespace HttpServer
 				// Поиск значения параметра
 				size_t delimiter = str.find('=', var_pos);
 
-				if (std::string::npos == delimiter || delimiter > var_end)
+				if (delimiter >= var_end)
 				{
-					return false;
+					// Получить имя параметра
+					std::string var_name = str.substr(var_pos, std::string::npos != var_end ? var_end - var_pos : std::string::npos);
+
+					// Сохранить параметр с пустым значением
+					data.emplace(std::move(var_name), "");
 				}
-
-				// Получить имя параметра
-				std::string var_name = str.substr(var_pos, delimiter - var_pos);
-
-				++delimiter;
-
-				std::string var_value;
-
-				// Если последний параметр
-				if (std::string::npos == var_end)
+				else
 				{
-					var_value = str.substr(delimiter);
-				}
-				else // Если не последний параметр
-				{
-					var_value = str.substr(delimiter, var_end - delimiter);
-				}
+					// Получить имя параметра
+					std::string var_name = str.substr(var_pos, delimiter - var_pos);
 
-				// Сохранить параметр и значение
-				data.emplace(std::move(var_name), std::move(var_value) );
+					++delimiter;
 
-				if (std::string::npos != var_end)
-				{
-					++var_end;
+					// Получить значение параметра
+					std::string var_value = str.substr(delimiter, std::string::npos != var_end ? var_end - delimiter : std::string::npos);
+
+					// Сохранить параметр и значение
+					data.emplace(std::move(var_name), std::move(var_value) );
 				}
 			}
 

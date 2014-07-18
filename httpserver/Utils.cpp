@@ -120,7 +120,7 @@ namespace Utils
 	{
 		for (size_t i = 0; i < count; ++i)
 		{
-			map.emplace(raw[i].key ? raw[i].key : "", raw[i].value);
+			map.emplace(raw[i].key ? raw[i].key : "", raw[i].value ? raw[i].value : "");
 		}
 	}
 
@@ -128,7 +128,7 @@ namespace Utils
 	{
 		for (size_t i = 0; i < count; ++i)
 		{
-			map.emplace(raw[i].key, raw[i].value);
+			map.emplace(raw[i].key ? raw[i].key : "", raw[i].value ? raw[i].value : "");
 		}
 	}
 
@@ -136,7 +136,7 @@ namespace Utils
 	{
 		for (size_t i = 0; i < count; ++i)
 		{
-			map.emplace(raw[i].key, raw[i].value);
+			map.emplace(raw[i].key ? raw[i].key : "", raw[i].value ? raw[i].value : "");
 		}
 	}
 
@@ -144,7 +144,7 @@ namespace Utils
 	{
 		for (size_t i = 0; i < count; ++i)
 		{
-			map.emplace(raw[i].key, HttpServer::FileIncoming(raw[i].file_name, raw[i].file_type, raw[i].file_size) );
+			map.emplace(raw[i].key ? raw[i].key : "", HttpServer::FileIncoming(raw[i].file_name, raw[i].file_type, raw[i].file_size) );
 		}
 	}
 

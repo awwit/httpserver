@@ -357,11 +357,11 @@ namespace HttpServer
 	/**
 	 * Парсинг переданных параметров (URI)
 	 */
-	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &map, const std::string &uriParams) const
+	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &params, const std::string &uriParams) const
 	{
 		if (uriParams.length() )
 		{
-			for (size_t var_pos = 0, var_end; std::string::npos != var_pos; var_pos = var_end)
+			for (size_t var_pos = 0, var_end = 0; std::string::npos != var_end; var_pos = var_end + 1)
 			{
 				// Поиск следующего параметра
 				var_end = uriParams.find('&', var_pos);
@@ -369,34 +369,26 @@ namespace HttpServer
 				// Поиск значения параметра
 				size_t delimiter = uriParams.find('=', var_pos);
 
-				if (std::string::npos == delimiter || delimiter > var_end)
+				if (delimiter >= var_end)
 				{
-					return false;
+					// Получить имя параметра
+					std::string var_name = Utils::urlDecode(uriParams.substr(var_pos, std::string::npos != var_end ? var_end - var_pos : std::string::npos) );
+
+					// Сохранить параметр с пустым значением
+					params.emplace(std::move(var_name), "");
 				}
-
-				// Получить имя параметра
-				std::string var_name = uriParams.substr(var_pos, delimiter - var_pos);
-
-				++delimiter;
-
-				std::string var_value;
-
-				// Если последний параметр
-				if (std::string::npos == var_end)
+				else
 				{
-					var_value = Utils::urlDecode(uriParams.substr(delimiter) );
-				}
-				else // Если не последний параметр
-				{
-					var_value = Utils::urlDecode(uriParams.substr(delimiter, var_end - delimiter) );
-				}
+					// Получить имя параметра
+					std::string var_name = Utils::urlDecode(uriParams.substr(var_pos, delimiter - var_pos) );
 
-				// Сохранить параметр и значение
-				map.emplace(std::move(var_name), std::move(var_value) );
+					++delimiter;
 
-				if (std::string::npos != var_end)
-				{
-					++var_end;
+					// Получить значение параметра
+					std::string var_value = Utils::urlDecode(uriParams.substr(delimiter, std::string::npos != var_end ? var_end - delimiter : std::string::npos) );
+
+					// Сохранить параметр и значение
+					params.emplace(std::move(var_name), std::move(var_value) );
 				}
 			}
 
@@ -420,7 +412,7 @@ namespace HttpServer
 		{
 			const std::string &status = it->second;
 
-			std::string headers("HTTP/1.1 " + std::to_string(statusCode) + status + "\r\n\r\n");
+			std::string headers("HTTP/1.1 " + std::to_string(statusCode) + ' ' + status + "\r\n\r\n");
 
 			clientSocket.nonblock_send(headers, timeout);
 		}

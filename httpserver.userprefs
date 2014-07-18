@@ -1,9 +1,9 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="httpserver/DataVariantTextPlain.cpp">
+  <MonoDevelop.Ide.Workbench ActiveDocument="httpserver/Server.cpp">
     <Files>
-      <File FileName="httpserver/Server.cpp" Line="382" Column="27" />
-      <File FileName="httpserver/Server.h" Line="20" Column="14" />
+      <File FileName="httpserver/Server.cpp" Line="370" Column="53" />
+      <File FileName="httpserver/Server.h" Line="1" Column="1" />
       <File FileName="httpserver/Main.cpp" Line="1" Column="1" />
       <File FileName="httpserver/Main.h" Line="1" Column="1" />
       <File FileName="httpserver/DataVariantMultipartFormData.h" Line="1" Column="1" />
@@ -13,25 +13,17 @@
       <File FileName="httpserver/Event.cpp" Line="1" Column="1" />
       <File FileName="httpserver/DataVariantAbstract.h" Line="1" Column="1" />
       <File FileName="httpserver/DataVariantFormUrlencoded.h" Line="1" Column="1" />
-      <File FileName="httpserver/DataVariantFormUrlencoded.cpp" Line="41" Column="5" />
+      <File FileName="httpserver/DataVariantFormUrlencoded.cpp" Line="39" Column="46" />
       <File FileName="httpserver/ServerApplicationSettings.h" Line="1" Column="1" />
       <File FileName="httpserver/ServerApplicationsTree.h" Line="1" Column="1" />
       <File FileName="httpserver/ServerApplicationsTree.cpp" Line="1" Column="1" />
-      <File FileName="httpserver/Module.h" Line="1" Column="1" />
-      <File FileName="httpserver/Event.h" Line="1" Column="1" />
       <File FileName="httpserver/System.h" Line="1" Column="1" />
       <File FileName="httpserver/DataVariantTextPlain.h" Line="1" Column="1" />
-      <File FileName="httpserver/DataVariantTextPlain.cpp" Line="33" Column="6" />
-      <File FileName="httpserver/SignalsHandles.cpp" Line="1" Column="1" />
-      <File FileName="httpserver/SignalsHandles.h" Line="1" Column="1" />
+      <File FileName="httpserver/DataVariantTextPlain.cpp" Line="25" Column="5" />
       <File FileName="httpserver/System.cpp" Line="1" Column="1" />
-      <File FileName="httpserver/Socket.cpp" Line="1" Column="1" />
       <File FileName="httpserver/Utils.h" Line="1" Column="1" />
-      <File FileName="httpserver/Utils.cpp" Line="320" Column="3" />
-      <File FileName="httpserver/Socket.h" Line="1" Column="1" />
-      <File FileName="httpserver/FileIncoming.h" Line="1" Column="1" />
-      <File FileName="httpserver/RawData.h" Line="1" Column="1" />
-      <File FileName="httpserver/FileIncoming.cpp" Line="1" Column="1" />
+      <File FileName="httpserver/Utils.cpp" Line="1" Column="1" />
+      <File FileName="httpserver/Socket.cpp" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
