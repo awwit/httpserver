@@ -146,7 +146,7 @@ namespace HttpServer
 		{
 			if (nullptr != l.second->app_sets)
 			{
-				set.insert(l.second->app_sets);
+				set.emplace(l.second->app_sets);
 			}
 
 			l.second->collectApplicationSettings(set);

@@ -578,21 +578,14 @@ namespace HttpServer
 						// Получить имя (или адрес)
 						const std::string host = it_host->second.substr(0, delimiter);
 
-					/*	size_t port = 80;
-
 						// Получить номер порта
-						if (std::string::npos != delimiter)
-						{
-							port = std::stoull(it_host->second.substr(delimiter + 1) );
-						}*/
-
-						// TODO: application check port
+						const int port = (std::string::npos != delimiter) ? std::stoi(it_host->second.substr(delimiter + 1) ) : 80;
 
 						// Поиск настроек приложения по имени
 						ServerApplicationSettings *app_sets = apps_tree.find(host);
 
 						// Если приложение найдено
-						if (app_sets)
+						if (app_sets && app_sets->port == port)
 						{
 							// Определить вариант данных запроса (заодно проверить, есть ли данные)
 							auto it = incoming_headers.find("Content-Type");
@@ -616,14 +609,14 @@ namespace HttpServer
 									data_variant_name = header_value.substr(0, delimiter);
 									Utils::trim(data_variant_name);
 
-									for (size_t str_param_cur = delimiter + 1, str_param_end; std::string::npos != str_param_cur; str_param_cur = str_param_end)
+									for (size_t str_param_cur = delimiter + 1, str_param_end = 0; std::string::npos != str_param_end; str_param_cur = str_param_end + 1)
 									{
 										str_param_end = header_value.find(';', str_param_cur);
 										delimiter = header_value.find('=', str_param_cur);
 
-										if (std::string::npos == delimiter || delimiter > str_param_end)
+										if (delimiter >= str_param_end)
 										{
-											std::string param_name = (std::string::npos == str_param_end) ? header_value.substr(str_param_cur) : header_value.substr(str_param_cur, str_param_end - str_param_cur);
+											std::string param_name = header_value.substr(str_param_cur, std::string::npos != str_param_end ? str_param_end - str_param_cur : std::string::npos);
 											Utils::trim(param_name);
 											content_params.emplace(std::move(param_name), "");
 										}
@@ -634,15 +627,10 @@ namespace HttpServer
 
 											++delimiter;
 
-											std::string param_value = (std::string::npos == str_param_end) ? header_value.substr(delimiter) : header_value.substr(delimiter, str_param_end - delimiter);
+											std::string param_value = header_value.substr(delimiter, std::string::npos != str_param_end ? str_param_end - delimiter : std::string::npos);
 											Utils::trim(param_value);
 
 											content_params.emplace(std::move(param_name), std::move(param_value) );
-										}
-
-										if (std::string::npos != str_param_end)
-										{
-											++str_param_end;
 										}
 									}
 								}
@@ -683,7 +671,7 @@ namespace HttpServer
 										// Разобрать данные на составляющие
 										if (false == data_variant->parse(clientSocket, timeout, str_buf.substr(headers_end + 2), left_bytes, content_params, incoming_data, incoming_files) )
 										{
-											for (auto it : incoming_files)
+											for (auto &it : incoming_files)
 											{
 												remove(it.second.getName().c_str() );
 											}
@@ -849,6 +837,9 @@ namespace HttpServer
 		return app_exit_code;
 	}
 
+	/**
+	 * Цикл обработки очереди запросов
+	 */
 	int Server::cycleQueue(std::queue<Socket> &sockets)
 	{
 		auto it_option = settings.find("threads_max_count");
@@ -945,7 +936,7 @@ namespace HttpServer
 	{
 		std::ifstream file(fileName);
 
-		if (false == file.good() || false == file.is_open() )
+		if ( ! file)
 		{
 			file.close();
 
@@ -1137,119 +1128,141 @@ namespace HttpServer
 						names.emplace_back(std::move(name) );
 					}
 
-					auto it_root_dir = app.find("root_dir");
+					auto it_port = app.find("listen");
 
-					if (app.end() != it_root_dir && it_root_dir->second.length() )
+					if (app.end() != it_port)
 					{
-						auto it_module = app.find("server_module");
+						auto it_root_dir = app.find("root_dir");
 
-						if (app.end() != it_module)
+						if (app.end() != it_root_dir && it_root_dir->second.length() )
 						{
-							Module module(it_module->second);
+							auto it_module = app.find("server_module");
 
-							if (module.is_open() )
+							if (app.end() != it_module)
 							{
-								void *addr = nullptr;
+								Module module(it_module->second);
 
-								if (module.find("application_call", &addr) )
+								if (module.is_open() )
 								{
-									std::function<int(server_request *, server_response *)> app_call = reinterpret_cast<int(*)(server_request *, server_response *)>(addr);
+									void *addr = nullptr;
 
-									if (app_call)
+									if (module.find("application_call", &addr) )
 									{
-										if (module.find("application_clear", &addr) )
+										std::function<int(server_request *, server_response *)> app_call = reinterpret_cast<int(*)(server_request *, server_response *)>(addr);
+
+										if (app_call)
 										{
-											std::function<void(Utils::raw_pair [], const size_t)> app_clear = reinterpret_cast<void(*)(Utils::raw_pair [], const size_t)>(addr);
-
-											std::function<bool()> app_init = std::function<bool()>();
-
-											if (module.find("application_init", &addr) )
+											if (module.find("application_clear", &addr) )
 											{
-												app_init = reinterpret_cast<bool(*)()>(addr);
-											}
+												std::function<void(Utils::raw_pair [], const size_t)> app_clear = reinterpret_cast<void(*)(Utils::raw_pair [], const size_t)>(addr);
 
-											std::function<void()> app_final = std::function<void()>();
+												std::function<bool()> app_init = std::function<bool()>();
 
-											if (module.find("application_final", &addr) )
-											{
-												app_final = reinterpret_cast<void(*)()>(addr);
-											}
-
-											bool success = true;
-
-											try
-											{
-												if (app_init)
+												if (module.find("application_init", &addr) )
 												{
-													success = app_init();
-												}
-											}
-											catch (...)
-											{
-												success = false;
-											}
-
-											if (success)
-											{
-												auto it_temp_dir = app.find("temp_dir");
-
-												const std::string temp_dir = app.end() != it_temp_dir ? it_temp_dir->second : default_temp_dir;
-
-												auto it_request_max_size = app.find("request_max_size");
-
-												const size_t request_max_size = app.end() != it_request_max_size ? std::stoull(it_request_max_size->second) : default_request_max_size;
-
-												// Если путь к директории заканчивается слешем, то убираем его
-												if ('/' == it_root_dir->second.back() )
-												{
-													it_root_dir->second.pop_back();
+													app_init = reinterpret_cast<bool(*)()>(addr);
 												}
 
-												ServerApplicationSettings *sets = new ServerApplicationSettings {
-													it_root_dir->second,
-													temp_dir,
-													request_max_size,
-													app_call,
-													app_clear,
-													app_init,
-													app_final
-												};
+												std::function<void()> app_final = std::function<void()>();
 
-												if (names.empty() )
+												if (module.find("application_final", &addr) )
 												{
-													apps_tree.addApplication(app_name, sets);
+													app_final = reinterpret_cast<void(*)()>(addr);
 												}
-												else
+
+												bool success = true;
+
+												try
 												{
-													for (size_t i = 0; i < names.size(); ++i)
+													if (app_init)
 													{
-														apps_tree.addApplication(names[i], sets);
+														success = app_init();
 													}
 												}
-											} // end success
-										} // end if module find
-									} // end if app_call
-								} // end module find
+												catch (...)
+												{
+													success = false;
+												}
 
-								bool is_exists = false;
+												if (success)
+												{
+													auto it_temp_dir = app.find("temp_dir");
 
-								for (size_t i = 0; i < modules.size(); ++i)
-								{
-									if (modules[i] == module)
+													const std::string temp_dir = app.end() != it_temp_dir ? it_temp_dir->second : default_temp_dir;
+
+													auto it_request_max_size = app.find("request_max_size");
+
+													const size_t request_max_size = app.end() != it_request_max_size ? std::stoull(it_request_max_size->second) : default_request_max_size;
+
+													// Если путь к директории заканчивается слешем, то убираем его
+													if ('/' == it_root_dir->second.back() )
+													{
+														it_root_dir->second.pop_back();
+													}
+
+													ServerApplicationSettings *sets = new ServerApplicationSettings {
+														std::stoi(it_port->second.c_str() ),
+														it_root_dir->second,
+														temp_dir,
+														request_max_size,
+														app_call,
+														app_clear,
+														app_init,
+														app_final
+													};
+
+													if (names.empty() )
+													{
+														apps_tree.addApplication(app_name, sets);
+													}
+													else
+													{
+														for (size_t i = 0; i < names.size(); ++i)
+														{
+															apps_tree.addApplication(names[i], sets);
+														}
+													}
+												} // end success
+											} // end if module find
+										} // end if app_call
+									} // end module find
+
+									bool is_exists = false;
+
+									for (size_t i = 0; i < modules.size(); ++i)
 									{
-										is_exists = true;
-										break;
+										if (modules[i] == module)
+										{
+											is_exists = true;
+											break;
+										}
 									}
-								}
 
-								if (false == is_exists)
-								{
-									modules.emplace_back(std::move(module) );
-								}
-							} // end module.is_open()
-						} // end find module name
-					} // end find document_root_dir
+									if (false == is_exists)
+									{
+										modules.emplace_back(std::move(module) );
+									}
+								} // end module.is_open()
+							} // end find server_module
+							else
+							{
+								std::cout << "Error: application parameter 'server_module' is not specified;" << std::endl;
+							}
+						} // end find root_dir
+						else
+						{
+							std::cout << "Error: application parameter 'root_dir' is not specified;" << std::endl;
+						}
+					} // end find listen
+					else
+					{
+						std::cout << "Error: application port is not set;" << std::endl;
+					}
 				} // end find server_name
+				else
+				{
+					std::cout << "Error: application parameter 'server_name' is not specified;" << std::endl;
+				}
 			} // end foreach applications
 		} // end check apllications.size()
 
@@ -1263,12 +1276,6 @@ namespace HttpServer
 
 	bool Server::init()
 	{
-	/*	AllocConsole();
-		SetConsoleTitle(L"My Http Server");
-
-		this->hOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-		this->hInput = GetStdHandle(STD_INPUT_HANDLE); */
-
 		if (0 == Socket::Startup() )
 		{
 			addDataVariant(new DataVariantFormUrlencoded() );
@@ -1312,7 +1319,7 @@ namespace HttpServer
 			std::unordered_set<ServerApplicationSettings *> set;
 			apps_tree.collectApplicationSettings(set);
 
-			for (auto s : set)
+			for (auto &s : set)
 			{
 				try
 				{
@@ -1347,8 +1354,6 @@ namespace HttpServer
 		{
 			settings.clear();
 		}
-
-	//	FreeConsole();
 	}
 
 	int Server::help() const
@@ -1358,6 +1363,45 @@ namespace HttpServer
 		return EXIT_SUCCESS;
 	}
 
+	void Server::accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const
+	{
+		::fd_set readset;
+		FD_ZERO(&readset);
+
+		for (auto &sock : server_sockets)
+		{
+			FD_SET(sock.get_handle(), &readset);
+		}
+
+		if (0 < ::select(max_val + 1, &readset, nullptr, nullptr, nullptr) )
+		{
+			for (auto &sock : server_sockets)
+			{
+				if (FD_ISSET(sock.get_handle(), &readset) )
+				{
+					System::native_socket_type client_socket = ~0;
+
+					do
+					{
+					#ifdef WIN32
+						client_socket = ::accept(sock.get_handle(), static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
+					#elif POSIX
+						client_socket = ::accept(sock.get_handle(), static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
+					#else
+						#error "Undefine platform"
+					#endif
+
+						if (~0 != client_socket)
+						{
+							sockets.emplace_back(Socket(client_socket) );
+						}
+					}
+					while (~0 != client_socket);
+				}
+			}
+		}
+	}
+
 	int Server::run()
 	{
 		if (false == init() )
@@ -1365,32 +1409,65 @@ namespace HttpServer
 			return 1;
 		}
 
-		auto it_option = settings.find("listen");
+		// Applications settings list
+		std::unordered_set<ServerApplicationSettings *> applications;
 
-		if (settings.end() == it_option)
+		// Get full applications settings list
+		apps_tree.collectApplicationSettings(applications);
+
+		System::native_socket_type max_val = 0;
+
+		// Bind ports set
+		std::unordered_set<int> ports;
+
+		// Open applications sockets
+		for (auto &app : applications)
 		{
-			std::cout << "Error: configuration missing port listen;" << std::endl;
+			const int port = app->port;
+
+			// Only unique ports
+			if (ports.end() == ports.find(port) )
+			{
+				Socket sock;
+
+				if (~0 != sock.open() )
+				{
+					if (~0 != sock.bind(port) )
+					{
+						if (0 == sock.listen() )
+						{
+							if (max_val < sock.get_handle() )
+							{
+								max_val = sock.get_handle();
+							}
+
+							sock.nonblock(true);
+
+							server_sockets.emplace_back(std::move(sock) );
+
+							ports.emplace(port);
+						}
+						else
+						{
+							std::cout << "Error: cannot listen socket " << port << "; errno " << errno << ";" << std::endl;
+						}
+					}
+					else
+					{
+						std::cout << "Error: cannot bind socket " << port << "; errno " << errno << ";" << std::endl;
+					}
+				}
+				else
+				{
+					std::cout << "Error: cannot open socket; errno " << errno << ";" << std::endl;
+				}
+			}
+		}
+
+		if (server_sockets.empty() )
+		{
+			std::cout << "Error: do not open any socket;" << std::endl;
 			return 2;
-		}
-
-		const int port = std::stoi(it_option->second);
-
-		if (-1 == server_socket.open() )
-		{
-			std::cout << "Error: cannot open socket; errno " << errno << ";" << std::endl;
-			return 3;
-		}
-
-		if (-1 == server_socket.bind(port) )
-		{
-			std::cout << "Error: cannot bind socket " << port << "; errno " << errno << ";" << std::endl;
-			return 4;
-		}
-
-		if (0 != server_socket.listen() )
-		{
-			std::cout << "Error: cannot listen socket " << port << "; errno " << errno << ";" << std::endl;
-			return 5;
 		}
 
 		std::cout << "Log: start server cycle;" << std::endl << std::endl;
@@ -1406,26 +1483,31 @@ namespace HttpServer
 		std::function<int(Server &, std::queue<Socket> &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
 		std::thread threadQueue(serverCycleQueue, std::ref(*this), std::ref(sockets) );
 
-		Socket client_socket;
+		std::vector<Socket> client_sockets;
 
 		while (process_flag)
 		{
 			eventNotFullQueue->wait();
 
-			client_socket = server_socket.accept();
+			this->accept(client_sockets, max_val);
 
-			if (client_socket.is_open() )
+			for (Socket &sock : client_sockets)
 			{
-				client_socket.nonblock(true);
-				sockets.emplace(std::move(client_socket) );
-
-				if (sockets.size() <= queue_max_length)
+				if (sock.is_open() )
 				{
-					eventNotFullQueue->reset();
-				}
+					sock.nonblock(true);
+					sockets.emplace(std::move(sock) );
 
-				eventProcessQueue->notify();
+					if (sockets.size() <= queue_max_length)
+					{
+						eventNotFullQueue->reset();
+					}
+
+					eventProcessQueue->notify();
+				}
 			}
+
+			client_sockets.clear();
 		}
 
 		eventProcessQueue->notify();
@@ -1441,7 +1523,16 @@ namespace HttpServer
 	void Server::stopProcess()
 	{
 		process_flag = false;
-		server_socket.close();
+
+		if (server_sockets.size() )
+		{
+			for (Socket &s : server_sockets)
+			{
+				s.close();
+			}
+
+			server_sockets.clear();
+		}
 
 		if (eventNotFullQueue)
 		{
@@ -1469,18 +1560,16 @@ namespace HttpServer
 		// Записать идентификатор текущего процесса в файл
 		file << std::to_string(System::getProcessId() ) << std::flush;
 
-		process_flag = true;
-		restart_flag = false;
-
 		int code = EXIT_FAILURE;
 
-		while (process_flag || restart_flag)
+		do
 		{
 			process_flag = false;
 			restart_flag = false;
 
 			code = run();
 		}
+		while (process_flag || restart_flag);
 
 		file.close();
 
@@ -1503,7 +1592,7 @@ namespace HttpServer
 
 			if (file.gcount() )
 			{
-				pid = std::stol(str_pid);
+				pid = std::stoull(str_pid);
 			}
 		}
 
