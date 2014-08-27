@@ -11,6 +11,7 @@
 #include "ServerResponse.h"
 
 #include <iostream>
+#include <iomanip>
 #include <map>
 #include <thread>
 #include <fstream>
@@ -1356,9 +1357,13 @@ namespace HttpServer
 		}
 	}
 
-	int Server::help() const
+	int Server::help(const int argc, const char *argv[]) const
 	{
-		std::cout << "You call help command" << std::endl;
+		std::cout << "Available arguments:" << std::endl
+			<< std::setw(4) << ' ' << "--start" << '\t' << "Start http server" << std::endl
+			<< std::setw(4) << ' ' << "--restart" << '\t' << "Restart http server" << std::endl
+			<< std::setw(4) << ' ' << "--kill" << '\t' << "Shutdown http server" << std::endl
+			<< std::setw(4) << ' ' << "--help" << '\t' << "This help" << std::endl << std::endl;
 
 		return EXIT_SUCCESS;
 	}
@@ -1540,7 +1545,7 @@ namespace HttpServer
 		}
 	}
 
-	int Server::start()
+	int Server::start(const int argc, const char *argv[])
 	{
 		std::string pid_file_name = "httpserver.pid";
 
@@ -1601,7 +1606,7 @@ namespace HttpServer
 		return pid;
 	}
 
-	int Server::restart() const
+	int Server::restart(const int argc, const char *argv[]) const
 	{
 		const System::native_processid_type pid = getPidFromFile();
 
@@ -1613,7 +1618,7 @@ namespace HttpServer
 		return EXIT_FAILURE;
 	}
 
-	int Server::terminate() const
+	int Server::terminate(const int argc, const char *argv[]) const
 	{
 		const System::native_processid_type pid = getPidFromFile();
 

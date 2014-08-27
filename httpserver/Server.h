@@ -72,9 +72,9 @@ namespace HttpServer
 			restart_flag = true;
 		}
 
-		int help() const;
-		int start();
-		int restart() const;
-		int terminate() const;
+		int help(const int argc, const char *argv[]) const;
+		int start(const int argc, const char *argv[]);
+		int restart(const int argc, const char *argv[]) const;
+		int terminate(const int argc, const char *argv[]) const;
 	};
 };

@@ -8,7 +8,7 @@
 
 int main(const int argc, const char *argv[])
 {
-	const std::unordered_map<std::string, std::function<int(HttpServer::Server &)> > commands {
+	const std::unordered_map<std::string, std::function<int(HttpServer::Server *, const int, const char *[])> > commands {
 		{"--help", std::mem_fn(&HttpServer::Server::help)},
 		{"--start", std::mem_fn(&HttpServer::Server::start)},
 		{"--restart", std::mem_fn(&HttpServer::Server::restart)},
@@ -17,7 +17,7 @@ int main(const int argc, const char *argv[])
 
 	int exitcode = EXIT_FAILURE;
 
-	if (2 == argc)
+	if (1 < argc)
 	{
 		auto command = commands.find(argv[1]);
 
@@ -27,7 +27,7 @@ int main(const int argc, const char *argv[])
 
 			if (bindSignalsHandles(&server) )
 			{
-				exitcode = command->second(server);
+				exitcode = command->second(&server, argc, argv);
 
 			#ifdef WIN32
 				System::sendSignal(GetCurrentProcessId(), SIGINT);
@@ -37,7 +37,7 @@ int main(const int argc, const char *argv[])
 		}
 		else
 		{
-			std::cout << "Unknown command" << std::endl;
+			std::cout << "Unknown command, see --help" << std::endl;
 		}
 	}
 	else if (1 == argc)
@@ -46,7 +46,7 @@ int main(const int argc, const char *argv[])
 	}
 	else
 	{
-		std::cout << "Arguments failure" << std::endl;
+		std::cout << "Arguments failure, see --help command" << std::endl;
 	}
 
 	return exitcode;
