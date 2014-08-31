@@ -2,6 +2,7 @@
 
 #ifdef WIN32
 	#include <Windows.h>
+	extern char myWndClassName[];
 #elif POSIX
 	#include <csignal>
 	#include <sys/sysinfo.h>
@@ -12,7 +13,11 @@
 #endif
 
 #ifndef SIGUSR1
-	#define SIGUSR1 10
+	#define SIGUSR1 1010
+#endif
+
+#ifndef SIGUSR2
+	#define SIGUSR2 1012
 #endif
 
 #include <string>

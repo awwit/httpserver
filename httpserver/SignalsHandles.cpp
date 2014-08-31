@@ -26,11 +26,17 @@ void handlerSigUsr1(int sig)
 	}
 }
 
-#ifdef WIN32
+void handlerSigUsr2(int sig)
+{
+	if (globalServerPtr)
+	{
+		globalServerPtr->setUpdateModule();
+		globalServerPtr->unsetProcess();
+		globalServerPtr->setProcessQueue();
+	}
+}
 
-#ifndef SIGUSR1
-	#define SIGUSR1 10
-#endif
+#ifdef WIN32
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -58,6 +64,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
+		case SIGUSR2:
+		{
+			handlerSigUsr2(message);
+			break;
+		}
+
 		default:
 		{
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -69,7 +81,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 WPARAM mainMessageLoop(HINSTANCE hInstance, HttpServer::Event *pCreatedWindow)
 {
-	HWND hWnd = CreateWindow(wndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
+	HWND hWnd = CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
 
 	pCreatedWindow->notify();
 
@@ -108,7 +120,7 @@ int bindSignalsHandles(HttpServer::Server *server)
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = hInstance;
-	wcex.lpszClassName = wndClassName;
+	wcex.lpszClassName = myWndClassName;
 
 	if (0 == RegisterClassEx(&wcex) )
 	{
@@ -120,8 +132,6 @@ int bindSignalsHandles(HttpServer::Server *server)
 	threadMessageLoop = std::thread(mainMessageLoop, hInstance, &createdWindow);
 
 	createdWindow.wait();
-
-	return 1;
 
 #elif POSIX
 
@@ -136,8 +146,11 @@ int bindSignalsHandles(HttpServer::Server *server)
 	act.sa_handler = handlerSigUsr1;
 	sigaction(SIGUSR1, &act, nullptr);
 
-	return 1;
+	act.sa_handler = handlerSigUsr2;
+	sigaction(SIGUSR2, &act, nullptr);
 #else
 	#error "Undefine platform"
 #endif
+
+	return 1;
 }

@@ -7,7 +7,7 @@
 	#include <thread>
 
 	extern std::thread threadMessageLoop;
-	extern char wndClassName[];
+	extern char myWndClassName[];
 #endif
 
 #include <signal.h>

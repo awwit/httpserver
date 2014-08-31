@@ -12,6 +12,7 @@
 #include "Socket.h"
 #include "DataVariantAbstract.h"
 #include "ServerApplicationsTree.h"
+#include "ServerApplicationDefaultSettings.h"
 #include "Module.h"
 #include "Event.h"
 
@@ -33,6 +34,7 @@ namespace HttpServer
 
 		Event *eventNotFullQueue;
 		Event *eventProcessQueue;
+		Event *eventUpdateModule;
 
 		// Флаг, означающий - активированы ли главные циклы сервера
 		// (с помощью этого флага можно деактивировать циклы, чтобы завершить работу сервера)
@@ -49,14 +51,18 @@ namespace HttpServer
 
 		void accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const;
 
-		bool includeConfigFile(const std::string &, std::string &, const size_t);
 		bool loadConfig();
+			bool includeConfigFile(const std::string &, std::string &, const size_t);
+			bool addApplication(const std::unordered_map<std::string, std::string> &, const ServerApplicationDefaultSettings &);
 
 		bool init();
 		int run();
 		void clear();
 
 		System::native_processid_type getPidFromFile() const;
+
+		void updateModules();
+			bool updateModule(Module &, std::unordered_set<ServerApplicationSettings *> &, const size_t);
 
 	private:
 		void addDataVariant(DataVariantAbstract *);
@@ -67,14 +73,36 @@ namespace HttpServer
 
 		void stopProcess();
 
+		inline void unsetProcess()
+		{
+			process_flag = false;
+		}
+
 		inline void setRestart()
 		{
 			restart_flag = true;
 		}
 
-		int help(const int argc, const char *argv[]) const;
-		int start(const int argc, const char *argv[]);
-		int restart(const int argc, const char *argv[]) const;
-		int terminate(const int argc, const char *argv[]) const;
+		inline void setUpdateModule()
+		{
+			if (eventUpdateModule)
+			{
+				eventUpdateModule->notify();
+			}
+		}
+
+		inline void setProcessQueue()
+		{
+			if (eventProcessQueue)
+			{
+				eventProcessQueue->notify();
+			}
+		}
+
+		int command_help(const int argc, const char *argv[]) const;
+		int command_start(const int argc, const char *argv[]);
+		int command_restart(const int argc, const char *argv[]) const;
+		int command_terminate(const int argc, const char *argv[]) const;
+		int command_update_module(const int argc, const char *argv[]) const;
 	};
 };

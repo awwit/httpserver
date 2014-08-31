@@ -24,25 +24,10 @@ namespace HttpServer
 	#endif
 
 	public:
-		Module(): lib_handle(nullptr)
-		{
-			
-		}
-
-		Module(const std::string &libPath): lib_handle(nullptr)
-		{
-			open(libPath);
-		}
-
-		Module(const Module &module) : lib_handle(module.lib_handle)
-		{
-			
-		}
-
-		Module(Module &&module) : lib_handle(module.lib_handle)
-		{
-			module.lib_handle = nullptr;
-		}
+		Module();
+		Module(const std::string &libPath);
+		Module(const Module &module);
+		Module(Module &&module);
 
 		~Module() = default;
 
@@ -51,84 +36,23 @@ namespace HttpServer
 			return nullptr != lib_handle;
 		}
 
-		inline bool open(const std::string &libPath)
-		{
-		#ifdef WIN32
-			lib_handle = ::LoadLibrary(libPath.c_str() );
-		#elif POSIX
-			lib_handle = ::dlopen(libPath.c_str(), RTLD_NOW);
-		#else
-			#error "Undefine platform"
-		#endif
+		bool open(const std::string &libPath);
+		void close();
 
-			return (nullptr != lib_handle);
-		}
-
-		inline void close()
-		{
-			if (lib_handle)
-			{
-			#ifdef WIN32
-				::FreeLibrary(lib_handle);
-			#elif POSIX
-				::dlclose(lib_handle);
-			#else
-				#error "Undefine platform"
-			#endif
-
-				lib_handle = nullptr;
-			}
-		}
-
-		inline bool find(const std::string &symbolName, void **addr) const
-		{
-			if (lib_handle)
-			{
-			#ifdef WIN32
-				*addr = ::GetProcAddress(lib_handle, symbolName.c_str() );
-
-				return nullptr != *addr;
-			#elif POSIX
-				::dlerror();
-
-				*addr = ::dlsym(lib_handle, symbolName.c_str() );
-
-				char *error = ::dlerror();
-
-				return nullptr == error;
-			#else
-				#error "Undefine platform"
-			#endif
-			}
-
-			return false;
-		}
-
-		inline bool find(const char *symbolName, void **addr) const
-		{
-			if (lib_handle)
-			{
-			#ifdef WIN32
-				*addr = ::GetProcAddress(lib_handle, symbolName);
-
-				return nullptr != *addr;
-			#elif POSIX
-				*addr = ::dlsym(lib_handle, symbolName);
-
-				char *error = ::dlerror();
-
-				return nullptr == error;
-			#else
-				#error "Undefine platform"
-			#endif
-			}
-
-			return false;
-		}
+		bool find(const std::string &symbolName, void *(**addr)(void *) ) const;
+		bool find(const char *symbolName, void *(**addr)(void *) ) const;
 
 		inline bool operator ==(const Module &module) const
 		{
 			return lib_handle == module.lib_handle;
 		}
+
+		inline bool operator !=(const Module &module) const
+		{
+			return lib_handle != module.lib_handle;
+		}
+
+		Module &operator =(const Module &);
+		Module &operator =(Module &&);
 	};
 };

@@ -14,7 +14,7 @@ namespace HttpServer
 		bool manualy;
 
 	public:
-		Event(const bool = false, const bool = false);
+		Event(const bool _signaled = false, const bool _manualy = false);
 		~Event() = default;
 
 	public:

@@ -20,9 +20,16 @@ namespace System
 
 		if (process_id == ed.process_id && GetConsoleWindow() != hWnd)
 		{
-			ed.hWnd = hWnd;
+			char class_name[65] = {0};
 
-			return false;
+			GetClassName(hWnd, class_name, 64);
+
+			if (0 == strcmp(class_name, myWndClassName) )
+			{
+				ed.hWnd = hWnd;
+
+				return false;
+			}
 		}
 
 		return true;

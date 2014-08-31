@@ -5,7 +5,7 @@
 #ifdef WIN32
 	#include <thread>
 	std::thread threadMessageLoop;
-	char wndClassName[] = "WndClassNameConstant";
+	char myWndClassName[] = "WndClassNameConstant";
 #endif
 
 HttpServer::Server *globalServerPtr = nullptr;

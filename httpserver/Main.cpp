@@ -9,10 +9,11 @@
 int main(const int argc, const char *argv[])
 {
 	const std::unordered_map<std::string, std::function<int(HttpServer::Server *, const int, const char *[])> > commands {
-		{"--help", std::mem_fn(&HttpServer::Server::help)},
-		{"--start", std::mem_fn(&HttpServer::Server::start)},
-		{"--restart", std::mem_fn(&HttpServer::Server::restart)},
-		{"--kill", std::mem_fn(&HttpServer::Server::terminate)}
+		{"--help", std::mem_fn(&HttpServer::Server::command_help)},
+		{"--start", std::mem_fn(&HttpServer::Server::command_start)},
+		{"--restart", std::mem_fn(&HttpServer::Server::command_restart)},
+		{"--kill", std::mem_fn(&HttpServer::Server::command_terminate)},
+		{"--update-module", std::mem_fn(&HttpServer::Server::command_update_module)}
 	};
 
 	int exitcode = EXIT_FAILURE;

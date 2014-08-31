@@ -49,6 +49,7 @@
     <Compile Include="DataVariantTextPlain.cpp" />
     <Compile Include="SignalsHandles.cpp" />
     <Compile Include="System.cpp" />
+    <Compile Include="Module.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Event.h" />
@@ -69,6 +70,7 @@
     <None Include="RawData.h" />
     <None Include="DataVariantTextPlain.h" />
     <None Include="SignalsHandles.h" />
+    <None Include="ServerApplicationDefaultSettings.h" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
