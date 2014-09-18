@@ -110,28 +110,24 @@ namespace HttpServer
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
-		::fd_set readset;
-		FD_ZERO(&readset);
-		FD_SET(socket_handle, &readset);
+		WSAPOLLFD event = {0};
 
-		if (0 < ::select(socket_handle + 1, &readset, nullptr, nullptr, nullptr) )
+		event.fd = socket_handle;
+		event.events = POLLRDNORM;
+
+		if (1 == ::WSAPoll(&event, 1, ~0) && event.revents | POLLRDNORM)
 		{
-			if (FD_ISSET(socket_handle, &readset) )
-			{
-				client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
-			}
+			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
 	#elif POSIX
-		::fd_set readset;
-		FD_ZERO(&readset);
-		FD_SET(socket_handle, &readset);
+		struct ::pollfd event = {0};
 
-		if (0 < ::select(socket_handle + 1, &readset, nullptr, nullptr, nullptr) )
+		event.fd = socket_handle;
+		event.events = POLLIN;
+
+		if (1 == ::poll(&event, 1, ~0) && event.revents | POLLIN)
 		{
-			if (FD_ISSET(socket_handle, &readset) )
-			{
-				client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
-			}
+			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
 	#else
 		#error "Undefine platform"
@@ -143,34 +139,24 @@ namespace HttpServer
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
-		::fd_set readset;
-		FD_ZERO(&readset);
-		FD_SET(socket_handle, &readset);
+		WSAPOLLFD event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLRDNORM;
 
-		if (0 < ::select(socket_handle + 1, &readset, nullptr, nullptr, &timeout) )
+		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLRDNORM)
 		{
-			if (FD_ISSET(socket_handle, &readset) )
-			{
-				client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
-			}
+			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
 	#elif POSIX
-		::fd_set readset;
-		FD_ZERO(&readset);
-		FD_SET(socket_handle, &readset);
+		struct ::pollfd event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLIN;
 
-		if (0 < ::select(socket_handle + 1, &readset, nullptr, nullptr, &timeout) )
+		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLIN)
 		{
-			if (FD_ISSET(socket_handle, &readset) )
-			{
-				client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
-			}
+			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
 	#else
 		#error "Undefine platform"
@@ -231,43 +217,31 @@ namespace HttpServer
 
 	size_t Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeWait) const
 	{
+		size_t recv_len = ~0;
 	#ifdef WIN32
-		::fd_set readset;
-		FD_ZERO(&readset);
-		FD_SET(socket_handle, &readset);
+		WSAPOLLFD event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLRDNORM;
 
-		if (0 < ::select(socket_handle + 1, &readset, nullptr, nullptr, &timeout) )
+		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLRDNORM)
 		{
-			if (FD_ISSET(socket_handle, &readset) )
-			{
-				return ::recv(socket_handle, buf.data(), buf.size(), 0);
-			}
+			recv_len = ::recv(socket_handle, buf.data(), buf.size(), 0);
 		}
-
-		return std::numeric_limits<size_t>::max();
 	#elif POSIX
-		::fd_set readset;
-		FD_ZERO(&readset);
-		FD_SET(socket_handle, &readset);
+		struct ::pollfd event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLIN;
 
-		if (0 < ::select(socket_handle + 1, &readset, nullptr, nullptr, &timeout) )
+		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLIN)
 		{
-			if (FD_ISSET(socket_handle, &readset) )
-			{
-				return ::recv(socket_handle, buf.data(), buf.size(), MSG_NOSIGNAL);
-			}
+			recv_len = ::recv(socket_handle, buf.data(), buf.size(), MSG_NOSIGNAL);
 		}
-
-		return std::numeric_limits<size_t>::max();
 	#else
 		#error "Undefine platform"
 	#endif
+		return recv_len;
 	}
 
 	size_t Socket::send(const std::string &buf) const
@@ -294,84 +268,60 @@ namespace HttpServer
 
 	size_t Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeWait) const
 	{
+		size_t send_len = ~0;
 	#ifdef WIN32
-		::fd_set writeset;
-		FD_ZERO(&writeset);
-		FD_SET(socket_handle, &writeset);
+		WSAPOLLFD event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLWRNORM;
 
-		if (0 < ::select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLWRNORM)
 		{
-			if (FD_ISSET(socket_handle, &writeset) )
-			{
-				return ::send(socket_handle, buf.data(), buf.length(), 0);
-			}
+			send_len = ::send(socket_handle, buf.data(), buf.length(), 0);
 		}
-
-		return std::numeric_limits<size_t>::max();
 	#elif POSIX
-		::fd_set writeset;
-		FD_ZERO(&writeset);
-		FD_SET(socket_handle, &writeset);
+		struct ::pollfd event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLOUT;
 
-		if (0 < ::select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLOUT)
 		{
-			if (FD_ISSET(socket_handle, &writeset) )
-			{
-				return ::send(socket_handle, buf.data(), buf.length(), MSG_NOSIGNAL);
-			}
+			send_len = ::send(socket_handle, buf.data(), buf.length(), MSG_NOSIGNAL);
 		}
-
-		return std::numeric_limits<size_t>::max();
 	#else
 		#error "Undefine platform"
 	#endif
+		return send_len;
 	}
 
 	size_t Socket::nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeWait) const
 	{
+		size_t send_len = ~0;
 	#ifdef WIN32
-		::fd_set writeset;
-		FD_ZERO(&writeset);
-		FD_SET(socket_handle, &writeset);
+		WSAPOLLFD event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLWRNORM;
 
-		if (0 < ::select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLWRNORM)
 		{
-			if (FD_ISSET(socket_handle, &writeset) )
-			{
-				return ::send(socket_handle, buf.data(), length, 0);
-			}
+			send_len = ::send(socket_handle, buf.data(), length, 0);
 		}
-
-		return std::numeric_limits<size_t>::max();
 	#elif POSIX
-		::fd_set writeset;
-		FD_ZERO(&writeset);
-		FD_SET(socket_handle, &writeset);
+		struct ::pollfd event = {0};
 
-		long seconds = timeWait.count() / 1000;
-		::timeval timeout {seconds, (timeWait.count() - seconds * 1000) * 1000};
+		event.fd = socket_handle;
+		event.events = POLLOUT;
 
-		if (0 < ::select(socket_handle + 1, nullptr, &writeset, nullptr, &timeout) )
+		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLOUT)
 		{
-			if (FD_ISSET(socket_handle, &writeset) )
-			{
-				return ::send(socket_handle, buf.data(), length, MSG_WAITALL | MSG_NOSIGNAL);
-			}
+			send_len = ::send(socket_handle, buf.data(), length, MSG_WAITALL | MSG_NOSIGNAL);
 		}
-
-		return std::numeric_limits<size_t>::max();
 	#else
 		#error "Undefine platform"
 	#endif
+		return send_len;
 	}
 
 	Socket &Socket::operator=(const Socket s)

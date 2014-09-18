@@ -1661,7 +1661,7 @@ namespace HttpServer
 		}
 	}
 
-	void Server::accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const
+/*	void Server::accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const
 	{
 		::fd_set readset;
 		FD_ZERO(&readset);
@@ -1698,7 +1698,7 @@ namespace HttpServer
 				}
 			}
 		}
-	}
+	}*/
 
 	int Server::run()
 	{
@@ -1712,10 +1712,10 @@ namespace HttpServer
 		// Get full applications settings list
 		apps_tree.collectApplicationSettings(applications);
 
-		System::native_socket_type max_val = 0;
-
 		// Bind ports set
 		std::unordered_set<int> ports;
+
+		std::vector<Socket> server_sockets;
 
 		// Open applications sockets
 		for (auto &app : applications)
@@ -1733,11 +1733,6 @@ namespace HttpServer
 					{
 						if (0 == sock.listen() )
 						{
-							if (max_val < sock.get_handle() )
-							{
-								max_val = sock.get_handle();
-							}
-
 							sock.nonblock(true);
 
 							server_sockets.emplace_back(std::move(sock) );
@@ -1767,6 +1762,13 @@ namespace HttpServer
 			return 2;
 		}
 
+		sockets_list.create(server_sockets.size() );
+
+		for (auto &sock : server_sockets)
+		{
+			sockets_list.addSocket(sock);
+		}
+
 		std::cout << "Log: start server cycle;" << std::endl << std::endl;
 
 		const size_t queue_max_length = 1024;
@@ -1787,33 +1789,46 @@ namespace HttpServer
 		// Cycle receiving new connections
 		do
 		{
-			this->accept(client_sockets, max_val);
-
-			for (Socket &sock : client_sockets)
+			if (sockets_list.accept(client_sockets) )
 			{
-				if (sock.is_open() )
+				for (Socket &sock : client_sockets)
 				{
-					sock.nonblock(true);
-					sockets.emplace(std::move(sock) );
-
-					if (sockets.size() <= queue_max_length)
+					if (sock.is_open() )
 					{
-						eventNotFullQueue->reset();
+						sock.nonblock(true);
+						sockets.emplace(std::move(sock) );
+
+						if (sockets.size() <= queue_max_length)
+						{
+							eventNotFullQueue->reset();
+						}
+
+						eventProcessQueue->notify();
 					}
-
-					eventProcessQueue->notify();
 				}
+
+				client_sockets.clear();
+
+				eventNotFullQueue->wait();
 			}
-
-			client_sockets.clear();
-
-			eventNotFullQueue->wait();
 		}
 		while (process_flag || eventUpdateModule->notifed() );
 
 		eventProcessQueue->notify();
 
 		threadQueue.join();
+
+		sockets_list.destroy();
+
+		if (server_sockets.size() )
+		{
+			for (Socket &s : server_sockets)
+			{
+				s.close();
+			}
+
+			server_sockets.clear();
+		}
 
 		clear();
 
@@ -1825,16 +1840,6 @@ namespace HttpServer
 	void Server::stopProcess()
 	{
 		process_flag = false;
-
-		if (server_sockets.size() )
-		{
-			for (Socket &s : server_sockets)
-			{
-				s.close();
-			}
-
-			server_sockets.clear();
-		}
 
 		if (eventNotFullQueue)
 		{

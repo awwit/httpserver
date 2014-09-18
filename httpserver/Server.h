@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <csignal>
 
-#include "Socket.h"
+#include "SocketList.h"
 #include "DataVariantAbstract.h"
 #include "ServerApplicationsTree.h"
 #include "ServerApplicationDefaultSettings.h"
@@ -30,7 +30,7 @@ namespace HttpServer
 
 		ServerApplicationsTree apps_tree;
 
-		std::vector<Socket> server_sockets;
+		SocketList sockets_list;
 
 		Event *eventNotFullQueue;
 		Event *eventProcessQueue;
@@ -49,7 +49,7 @@ namespace HttpServer
 		int transferFile(const Socket &, const std::chrono::milliseconds &, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &, const bool) const;
 		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &) const;
 
-		void accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const;
+	//	void accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const;
 
 		bool loadConfig();
 			bool includeConfigFile(const std::string &, std::string &, const size_t);

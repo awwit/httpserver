@@ -1,6 +1,8 @@
 ﻿
 #include "Module.h"
 
+#include <iostream>
+
 namespace HttpServer
 {
 	Module::Module(): lib_handle(nullptr)
@@ -40,6 +42,9 @@ namespace HttpServer
 
 		if (nullptr == lib_handle)
 		{
+		#ifdef POSIX
+			std::cout << dlerror() << std::endl;
+		#endif
 			return false;
 		}
 
