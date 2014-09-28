@@ -112,7 +112,7 @@ namespace HttpServer
 				return false;
 			}
 
-			for (size_t i = 0; i < count; ++i)
+			for (size_t i = 0; i < poll_events.size(); ++i)
 			{
 				WSAPOLLFD &event = poll_events[i];
 
