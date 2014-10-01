@@ -3,25 +3,25 @@
 
 namespace HttpServer
 {
-	int Socket::Startup()
+	bool Socket::Startup()
 	{
 	#ifdef WIN32
 		unsigned short version = MAKEWORD(2, 2);
 		::WSADATA wsaData = {0};
-		return ::WSAStartup(version, &wsaData);
+		return 0 == ::WSAStartup(version, &wsaData);
 	#elif POSIX
-		return 0;
+		return true;
 	#else
 		#error "Undefine platform"
 	#endif
 	}
 
-	int Socket::Cleanup()
+	bool Socket::Cleanup()
 	{
 	#ifdef WIN32
-		return ::WSACleanup();
+		return 0 == ::WSACleanup();
 	#elif POSIX
-		return 0;
+		return true;
 	#else
 		#error "Undefine platform"
 	#endif

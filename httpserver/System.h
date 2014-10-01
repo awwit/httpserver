@@ -42,19 +42,6 @@ namespace System
 	#error "Undefine platform"
 #endif
 
-	inline size_t getProcessorsCount()
-	{
-	#ifdef WIN32
-		::SYSTEM_INFO si = {0};
-		::GetSystemInfo(&si);
-		return si.dwNumberOfProcessors;
-	#elif POSIX
-		return ::get_nprocs();
-	#else
-		#error "Undefine platform"
-	#endif
-	}
-
 	inline native_processid_type getProcessId()
 	{
 	#ifdef WIN32

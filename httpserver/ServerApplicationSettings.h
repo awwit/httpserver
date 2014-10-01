@@ -11,7 +11,7 @@ namespace HttpServer
 {
 	struct ServerApplicationSettings
 	{
-		int port;
+		long int port;
 		std::string root_dir;
 		std::string temp_dir;
 		size_t request_max_size;

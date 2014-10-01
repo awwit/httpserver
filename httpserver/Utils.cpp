@@ -191,7 +191,12 @@ namespace Utils
 			{"Jan", 0}, {"Feb", 1}, {"Mar", 2}, {"Apr", 3}, {"May", 4}, {"Jun", 5}, {"Jul", 6}, {"Aug", 7}, {"Sep", 8}, {"Oct", 9}, {"Nov", 10}, {"Dec", 11}
 		};
 
-		const size_t str_mon_length = 32;
+		if (strTime.length() > 64)
+		{
+			return (time_t) ~0;
+		}
+
+		const size_t str_mon_length = 64;
 		char *s_mon = new char[str_mon_length];
 		::memset(s_mon, 0, str_mon_length);
 
@@ -199,9 +204,9 @@ namespace Utils
 
 		// Parse RFC 822
 	#ifdef WIN32
-		if (std::numeric_limits<int>::max() != ::sscanf_s(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon, str_mon_length, &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
+		if (~0 != ::sscanf_s(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon, str_mon_length, &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
 	#else
-		if (std::numeric_limits<int>::max() != ::sscanf(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon, &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
+		if (~0 != ::sscanf(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon, &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
 	#endif
 		{
 			tc.tm_year -= 1900;

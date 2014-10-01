@@ -87,13 +87,13 @@ namespace HttpServer
 
 				if (false == range_begin_str.empty() )
 				{
-					const size_t range_begin = std::stoull(range_begin_str) * range_unit;
+					const size_t range_begin = std::strtoull(range_begin_str.c_str(), nullptr, 10) * range_unit;
 
 					if (range_begin < fileSize)
 					{
 						if (false == range_end_str.empty() )
 						{
-							size_t range_end = std::stoull(range_end_str) * range_unit;
+							size_t range_end = std::strtoull(range_end_str.c_str(), nullptr, 10) * range_unit;
 
 							if (range_end >= range_begin)
 							{
@@ -125,7 +125,7 @@ namespace HttpServer
 				}
 				else if (false == range_end_str.empty() ) // if range_begin_str empty
 				{
-					size_t range_end = std::stoull(range_end_str) * range_unit;
+					size_t range_end = std::strtoull(range_end_str.c_str(), nullptr, 10) * range_unit;
 
 					const size_t length = range_end < fileSize ? fileSize - range_end : fileSize;
 
@@ -580,7 +580,7 @@ namespace HttpServer
 						const std::string host = it_host->second.substr(0, delimiter);
 
 						// Получить номер порта
-						const int port = (std::string::npos != delimiter) ? std::stoi(it_host->second.substr(delimiter + 1) ) : 80;
+						const int port = (std::string::npos != delimiter) ? std::strtol(it_host->second.substr(delimiter + 1).c_str(), nullptr, 10) : 80;
 
 						// Поиск настроек приложения по имени
 						ServerApplicationSettings *app_sets = apps_tree.find(host);
@@ -655,7 +655,7 @@ namespace HttpServer
 
 									if (incoming_headers.end() != it_len)
 									{
-										data_length = std::stoull(it_len->second);
+										data_length = std::strtoull(it_len->second.c_str(), nullptr, 10);
 									}
 
 									// Если размер запроса не превышает лимит (если лимит был установлен)
@@ -849,12 +849,19 @@ namespace HttpServer
 
 		if (settings.end() != it_option)
 		{
-			threads_max_count = std::stoul(it_option->second);
+			threads_max_count = std::strtoull(it_option->second.c_str(), nullptr, 10);
 		}
 
 		if (0 == threads_max_count)
 		{
-			threads_max_count = System::getProcessorsCount();
+			threads_max_count = std::thread::hardware_concurrency();
+
+			if (0 == threads_max_count)
+			{
+				threads_max_count = 1;
+			}
+
+			threads_max_count *= 2;
 		}
 
 		std::function<int(Server *, Socket)> serverThreadRequestProc = std::mem_fn(&Server::threadRequestProc);
@@ -1126,7 +1133,7 @@ namespace HttpServer
 
 		auto it_request_max_size = app.find("request_max_size");
 
-		const size_t request_max_size = app.end() != it_request_max_size ? std::stoull(it_request_max_size->second) : defaults.request_max_size;
+		const size_t request_max_size = app.end() != it_request_max_size ? std::strtoull(it_request_max_size->second.c_str(), nullptr, 10) : defaults.request_max_size;
 
 		auto it_module_update = app.find("server_module_update");
 
@@ -1167,7 +1174,7 @@ namespace HttpServer
 
 		// Create application settings struct
 		ServerApplicationSettings *sets = new ServerApplicationSettings {
-			std::stoi(it_port->second.c_str() ),
+			std::strtol(it_port->second.c_str(), nullptr, 10),
 			root_dir,
 			temp_dir,
 			request_max_size,
@@ -1319,7 +1326,7 @@ namespace HttpServer
 
 			auto it_default_request_max_size = settings.find("request_max_size");
 
-			const size_t default_request_max_size = settings.end() != it_default_request_max_size ? std::stoull(it_default_request_max_size->second) : 0;
+			const size_t default_request_max_size = settings.end() != it_default_request_max_size ? std::strtoull(it_default_request_max_size->second.c_str(), nullptr, 10) : 0;
 
 			ServerApplicationDefaultSettings defaults {
 				default_temp_dir,
@@ -1575,13 +1582,13 @@ namespace HttpServer
 
 	bool Server::init()
 	{
-		if (0 == Socket::Startup() )
+		if (Socket::Startup() && loadConfig() )
 		{
 			addDataVariant(new DataVariantFormUrlencoded() );
 			addDataVariant(new DataVariantMultipartFormData() );
 			addDataVariant(new DataVariantTextPlain() );
 
-			return loadConfig();
+			return true;
 		}
 
 		return false;
@@ -1660,45 +1667,6 @@ namespace HttpServer
 			settings.clear();
 		}
 	}
-
-/*	void Server::accept(std::vector<Socket> &sockets, const System::native_socket_type max_val) const
-	{
-		::fd_set readset;
-		FD_ZERO(&readset);
-
-		for (auto &sock : server_sockets)
-		{
-			FD_SET(sock.get_handle(), &readset);
-		}
-
-		if (0 < ::select(max_val + 1, &readset, nullptr, nullptr, nullptr) )
-		{
-			for (auto &sock : server_sockets)
-			{
-				if (FD_ISSET(sock.get_handle(), &readset) )
-				{
-					System::native_socket_type client_socket = ~0;
-
-					do
-					{
-					#ifdef WIN32
-						client_socket = ::accept(sock.get_handle(), static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
-					#elif POSIX
-						client_socket = ::accept(sock.get_handle(), static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
-					#else
-						#error "Undefine platform"
-					#endif
-
-						if (~0 != client_socket)
-						{
-							sockets.emplace_back(Socket(client_socket) );
-						}
-					}
-					while (~0 != client_socket);
-				}
-			}
-		}
-	}*/
 
 	int Server::run()
 	{
@@ -1901,7 +1869,7 @@ namespace HttpServer
 
 			if (file.gcount() )
 			{
-				pid = std::stoull(str_pid);
+				pid = std::strtoull(str_pid, nullptr, 10);
 			}
 		}
 

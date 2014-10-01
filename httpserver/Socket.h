@@ -33,8 +33,8 @@ namespace HttpServer
 		System::native_socket_type socket_handle;
 
 	public:
-		int static Startup();
-		int static Cleanup();
+		bool static Startup();
+		bool static Cleanup();
 
 	public:
 		Socket();
