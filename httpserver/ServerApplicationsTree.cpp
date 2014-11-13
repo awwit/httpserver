@@ -27,7 +27,7 @@ namespace HttpServer
 
 			ServerApplicationsTree *sub;
 
-			if (list.end() != it)
+            if (list.cend() != it)
 			{
 				sub = it->second;
 			}
@@ -93,7 +93,7 @@ namespace HttpServer
 
 			auto it = list.find(part);
 
-			if (list.end() == it)
+            if (list.cend() == it)
 			{
 				it = list.find("*");
 

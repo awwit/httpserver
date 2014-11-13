@@ -68,19 +68,20 @@ namespace HttpServer
 		if (is_created() )
 		{
 		#ifdef WIN32
-			WSAPOLLFD event = {0};
-
-			event.fd = sock.get_handle();
-			event.events = POLLRDNORM;
+            WSAPOLLFD event = {
+                sock.get_handle(),
+                POLLRDNORM,
+                0
+            };
 
 			poll_events.emplace_back(event);
 
 			return true;
 		#elif POSIX
-			struct ::epoll_event event = {0};
-
-			event.data.fd = sock.get_handle();
-			event.events = EPOLLIN | EPOLLET;
+            struct ::epoll_event event = {
+                EPOLLIN | EPOLLET,
+                reinterpret_cast<void *>(sock.get_handle() )
+            };
 
 			size_t result = ::epoll_ctl(obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
 

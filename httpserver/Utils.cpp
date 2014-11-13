@@ -200,7 +200,7 @@ namespace Utils
 		char *s_mon = new char[str_mon_length];
 		::memset(s_mon, 0, str_mon_length);
 
-		struct ::tm tc = {0};
+        struct ::tm tc = {0};
 
 		// Parse RFC 822
 	#ifdef WIN32
@@ -213,13 +213,15 @@ namespace Utils
 
 			auto it_mon = map_months.find(s_mon);
 
-			if (map_months.end() != it_mon)
+            if (map_months.cend() != it_mon)
 			{
 				tc.tm_mon = it_mon->second;
 			}
 		}
 
 		delete[] s_mon;
+
+        tc.tm_isdst = -1;
 
 		return ::mktime(&tc);
 	}

@@ -95,7 +95,7 @@ namespace System
 			stUtc.wYear - 1900,
 			0,
 			0,
-			0
+            -1
 		};
 
 		*fileTime = ::mktime(&tm_time);

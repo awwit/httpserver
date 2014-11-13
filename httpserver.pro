@@ -1,0 +1,52 @@
+TEMPLATE = app
+CONFIG += console
+CONFIG -= app_bundle
+CONFIG -= qt
+
+DEFINES += POSIX
+
+QMAKE_CXXFLAGS += -std=c++11
+
+LIBS += -ldl -pthread
+
+SOURCES += \
+	httpserver/Main.cpp \
+	httpserver/DataVariantFormUrlencoded.cpp \
+	httpserver/DataVariantMultipartFormData.cpp \
+	httpserver/DataVariantTextPlain.cpp \
+	httpserver/Event.cpp \
+	httpserver/FileIncoming.cpp \
+	httpserver/Module.cpp \
+	httpserver/Server.cpp \
+	httpserver/ServerApplicationsTree.cpp \
+	httpserver/SignalsHandles.cpp \
+	httpserver/Socket.cpp \
+	httpserver/SocketList.cpp \
+	httpserver/System.cpp \
+	httpserver/Utils.cpp
+
+include(deployment.pri)
+qtcAddDeployment()
+
+HEADERS += \
+	httpserver/DataVariantAbstract.h \
+	httpserver/DataVariantFormUrlencoded.h \
+	httpserver/DataVariantMultipartFormData.h \
+	httpserver/DataVariantTextPlain.h \
+	httpserver/Event.h \
+	httpserver/FileIncoming.h \
+	httpserver/Main.h \
+	httpserver/Module.h \
+	httpserver/RawData.h \
+	httpserver/Server.h \
+	httpserver/ServerApplicationDefaultSettings.h \
+	httpserver/ServerApplicationSettings.h \
+	httpserver/ServerApplicationsTree.h \
+	httpserver/ServerRequest.h \
+	httpserver/ServerResponse.h \
+	httpserver/SignalsHandles.h \
+	httpserver/Socket.h \
+	httpserver/SocketList.h \
+	httpserver/System.h \
+	httpserver/Utils.h
+

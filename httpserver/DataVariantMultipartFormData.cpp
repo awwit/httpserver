@@ -67,7 +67,7 @@ namespace HttpServer
 		// Проверить есть ли в параметрах разделитель блоков данных
 		auto it = params.find("boundary");
 
-		if (params.end() == it)
+        if (params.cend() == it)
 		{
 			return false;
 		}
@@ -182,7 +182,7 @@ namespace HttpServer
 				auto it = headers.find("Content-Disposition");
 
 				// Если заголовок определён
-				if (headers.end() != it)
+                if (headers.cend() != it)
 				{
 					// Разобрать значение заголовка данных на параметры
 					std::unordered_map<std::string, std::string> header_params;
@@ -249,17 +249,17 @@ namespace HttpServer
 						// Поиск имени блока данных
 						auto it_name = header_params.find("name");
 
-						if (header_params.end() != it_name)
+                        if (header_params.cend() != it_name)
 						{
 							// Если данные пришли из файла
 							auto it_filename = header_params.find("filename");
 
-							if (header_params.end() != it_filename)
+                            if (header_params.cend() != it_filename)
 							{
 								// Найти тип файла
 								auto it_filetype = headers.find("Content-Type");
 
-								if (headers.end() != it_filetype)
+                                if (headers.cend() != it_filetype)
 								{
 									// Сгенерировать уникальное имя
 									std::string tmp_name = System::getTempDir() + Utils::getUniqueName();

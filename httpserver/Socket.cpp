@@ -81,10 +81,12 @@ namespace HttpServer
 
 	int Socket::bind(const int port) const
 	{
-		::sockaddr_in sock_addr = {0};
-		sock_addr.sin_family = AF_INET;
-		sock_addr.sin_port = htons(port);
-		sock_addr.sin_addr.s_addr = ::htonl(INADDR_ANY);
+        ::sockaddr_in sock_addr = {
+            AF_INET,
+            htons(port),
+            ::htonl(INADDR_ANY),
+            0
+        };
 
 		return ::bind(socket_handle, reinterpret_cast<sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
 	}
@@ -110,20 +112,22 @@ namespace HttpServer
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
-		WSAPOLLFD event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLRDNORM;
+        WSAPOLLFD event = {
+            socket_handle,
+            POLLRDNORM,
+            0
+        };
 
 		if (1 == ::WSAPoll(&event, 1, ~0) && event.revents | POLLRDNORM)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
 	#elif POSIX
-		struct ::pollfd event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLIN;
+        struct ::pollfd event = {
+            socket_handle,
+            POLLIN,
+            0
+        };
 
 		if (1 == ::poll(&event, 1, ~0) && event.revents | POLLIN)
 		{
@@ -139,20 +143,22 @@ namespace HttpServer
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
-		WSAPOLLFD event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLRDNORM;
+        WSAPOLLFD event = {
+            socket_handle,
+            POLLRDNORM,
+            0
+        };
 
 		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLRDNORM)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
 	#elif POSIX
-		struct ::pollfd event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLIN;
+        struct ::pollfd event = {
+            socket_handle,
+            POLLIN,
+            0
+        };
 
 		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLIN)
 		{
@@ -219,20 +225,22 @@ namespace HttpServer
 	{
 		size_t recv_len = ~0;
 	#ifdef WIN32
-		WSAPOLLFD event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLRDNORM;
+        WSAPOLLFD event = {
+            socket_handle,
+            POLLRDNORM,
+            0
+        };
 
 		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLRDNORM)
-		{
+        {
 			recv_len = ::recv(socket_handle, buf.data(), buf.size(), 0);
 		}
 	#elif POSIX
-		struct ::pollfd event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLIN;
+        struct ::pollfd event = {
+            socket_handle,
+            POLLIN,
+            0
+        };
 
 		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLIN)
 		{
@@ -270,20 +278,22 @@ namespace HttpServer
 	{
 		size_t send_len = ~0;
 	#ifdef WIN32
-		WSAPOLLFD event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLWRNORM;
+        WSAPOLLFD event = {
+            socket_handle,
+            POLLWRNORM,
+            0
+        };
 
 		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLWRNORM)
 		{
 			send_len = ::send(socket_handle, buf.data(), buf.length(), 0);
 		}
 	#elif POSIX
-		struct ::pollfd event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLOUT;
+        struct ::pollfd event = {
+            socket_handle,
+            POLLOUT,
+            0
+        };
 
 		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLOUT)
 		{
@@ -299,20 +309,22 @@ namespace HttpServer
 	{
 		size_t send_len = ~0;
 	#ifdef WIN32
-		WSAPOLLFD event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLWRNORM;
+        WSAPOLLFD event = {
+            socket_handle,
+            POLLWRNORM,
+            0
+        };
 
 		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLWRNORM)
 		{
 			send_len = ::send(socket_handle, buf.data(), length, 0);
 		}
 	#elif POSIX
-		struct ::pollfd event = {0};
-
-		event.fd = socket_handle;
-		event.events = POLLOUT;
+        struct ::pollfd event = {
+            socket_handle,
+            POLLOUT,
+            0
+        };
 
 		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLOUT)
 		{

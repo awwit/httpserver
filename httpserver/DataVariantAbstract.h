@@ -22,7 +22,7 @@ namespace HttpServer
 		/**
 		 * virtual destructor
 		 */
-		virtual ~DataVariantAbstract() {};
+        virtual ~DataVariantAbstract() = default;
 
 		/**
 		 * @param const Socket & - сокет, откуда можно достать остальные данные

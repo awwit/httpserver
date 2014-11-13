@@ -53,7 +53,7 @@ namespace HttpServer
 
 		auto it_unit = ranges_units.find(range_unit_name);
 
-		if (ranges_units.cend() == it_unit)
+        if (ranges_units.cend() == it_unit)
 		{
 			// HTTP 416
 			std::string headers("HTTP/1.1 416 Requested Range Not Satisfiable\r\n");
@@ -181,7 +181,7 @@ namespace HttpServer
 
 		auto it_mime = mimes_types.find(file_ext);
 
-		std::string file_mime_type = mimes_types.end() != it_mime ? it_mime->second : "application/octet-stream";
+        std::string file_mime_type = mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
 
 		std::string headers("HTTP/1.1 206 Partial Content\r\n");
 		headers += "Content-Type: " + file_mime_type + "\r\n"
@@ -192,7 +192,7 @@ namespace HttpServer
 			+ connectionHeader + dateHeader + "\r\n";
 
 		// Отправить заголовки
-		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
+        if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
 		{
 			file.close();
 
@@ -205,7 +205,7 @@ namespace HttpServer
 			{
 				const size_t length = std::get<1>(range);
 
-				std::vector<std::string::value_type> buf(length < 512 * 1024 ? length : 512 *1024);
+                std::vector<std::string::value_type> buf(length < 512 * 1024 ? length : 512 * 1024);
 
 				file.seekg(std::get<0>(range), file.beg);
 
@@ -270,7 +270,7 @@ namespace HttpServer
 		auto it_modified = inHeaders.find("If-Modified-Since");
 
 		// Если найден заголовок проверки изменения файла (проверить, изменялся ли файл)
-		if (inHeaders.end() != it_modified)
+        if (inHeaders.cend() != it_modified)
 		{
 			const time_t time_in_request = Utils::stringTimeToTimestamp(it_modified->second);
 
@@ -289,7 +289,7 @@ namespace HttpServer
 		auto it_range = inHeaders.find("Range");
 
 		// Range transfer
-		if (inHeaders.end() != it_range)
+        if (inHeaders.cend() != it_range)
 		{
 			return transferFilePart(clientSocket, timeout, fileName, file_time, file_size, it_range->second, connectionHeader, date_header, headersOnly);
 		}
@@ -401,7 +401,7 @@ namespace HttpServer
 
 	void Server::sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode) const
 	{
-		const std::unordered_map<size_t, std::string> statuses {
+        static const std::unordered_map<size_t, std::string> statuses {
 			{400, "Bad Request"},
 			{404, "Not Found"},
 			{413, "Request Entity Too Large"}
@@ -571,7 +571,7 @@ namespace HttpServer
 					auto it_host = incoming_headers.find("Host");
 
 					// Если имя задано - продолжить обработку запроса
-					if (incoming_headers.end() != it_host)
+                    if (incoming_headers.cend() != it_host)
 					{
 						// Поиск разделителя, за которым помещается номер порта (сокета), если указан
 						size_t delimiter = it_host->second.find(':');
@@ -591,7 +591,7 @@ namespace HttpServer
 							// Определить вариант данных запроса (заодно проверить, есть ли данные)
 							auto it = incoming_headers.find("Content-Type");
 
-							if (incoming_headers.end() != it)
+                            if (incoming_headers.cend() != it)
 							{
 								// Параметры
 								std::unordered_map<std::string, std::string> content_params;
@@ -653,7 +653,7 @@ namespace HttpServer
 
 									auto it_len = incoming_headers.find("Content-Length");
 
-									if (incoming_headers.end() != it_len)
+                                    if (incoming_headers.cend() != it_len)
 									{
 										data_length = std::strtoull(it_len->second.c_str(), nullptr, 10);
 									}
@@ -701,12 +701,12 @@ namespace HttpServer
 							Utils::raw_pair *raw_pair_data = nullptr;
 							Utils::raw_fileinfo *raw_fileinfo_files = nullptr;
 
-							stlUnorderedMultimapToRawPairs(&raw_pair_params, incoming_params);
-							stlUnorderedMapToRawPairs(&raw_pair_headers, incoming_headers);
-							stlUnorderedMultimapToRawPairs(&raw_pair_data, incoming_data);
-							filesIncomingToRawFilesInfo(&raw_fileinfo_files, incoming_files);
+                            Utils::stlUnorderedMultimapToRawPairs(&raw_pair_params, incoming_params);
+                            Utils::stlUnorderedMapToRawPairs(&raw_pair_headers, incoming_headers);
+                            Utils::stlUnorderedMultimapToRawPairs(&raw_pair_data, incoming_data);
+                            Utils::filesIncomingToRawFilesInfo(&raw_fileinfo_files, incoming_files);
 
-							server_request request {
+                            server_request request {
 								clientSocket.get_handle(),
 								method.c_str(),
 								uri_reference.c_str(),
@@ -721,7 +721,7 @@ namespace HttpServer
 								raw_fileinfo_files
 							};
 
-							server_response response {
+                            server_response response {
 								clientSocket.get_handle(), 0, nullptr
 							};
 
@@ -738,7 +738,7 @@ namespace HttpServer
 
 							if (EXIT_SUCCESS == app_exit_code)
 							{
-								rawPairsToStlMap(outgoing_headers, response.headers, response.headers_count);
+                                Utils::rawPairsToStlMap(outgoing_headers, response.headers, response.headers_count);
 							}
 
 							try
@@ -747,10 +747,10 @@ namespace HttpServer
 							}
 							catch (...) {}
 
-							destroyRawPairs(raw_pair_params, incoming_params.size() );
-							destroyRawPairs(raw_pair_headers, incoming_headers.size() );
-							destroyRawPairs(raw_pair_data, incoming_data.size() );
-							destroyRawFilesInfo(raw_fileinfo_files, incoming_files.size() );
+                            Utils::destroyRawPairs(raw_pair_params, incoming_params.size() );
+                            Utils::destroyRawPairs(raw_pair_headers, incoming_headers.size() );
+                            Utils::destroyRawPairs(raw_pair_data, incoming_data.size() );
+                            Utils::destroyRawFilesInfo(raw_fileinfo_files, incoming_files.size() );
 						}
 						else
 						{
@@ -789,7 +789,7 @@ namespace HttpServer
 				auto it_in_connection = incoming_headers.find("Connection");
 				auto it_out_connection = outgoing_headers.find("Connection");
 
-				if (incoming_headers.end() != it_in_connection && outgoing_headers.end() != it_out_connection)
+                if (incoming_headers.cend() != it_in_connection && outgoing_headers.cend() != it_out_connection)
 				{
 					std::locale loc;
 
@@ -817,7 +817,7 @@ namespace HttpServer
 
 				auto it_x_sendfile = outgoing_headers.find("X-Sendfile");
 
-				if (outgoing_headers.end() != it_x_sendfile)
+                if (outgoing_headers.cend() != it_x_sendfile)
 				{
 					const std::string connection_header = connection_keep_alive ? "Connection: keep-alive\r\n" : "Connection: close\r\n";
 
@@ -847,7 +847,7 @@ namespace HttpServer
 
 		size_t threads_max_count = 0;
 
-		if (settings.end() != it_option)
+        if (settings.cend() != it_option)
 		{
 			threads_max_count = std::strtoull(it_option->second.c_str(), nullptr, 10);
 		}
@@ -1005,7 +1005,7 @@ namespace HttpServer
 	{
 		auto it_name = app.find("server_name");
 
-		if (app.end() == it_name)
+        if (app.cend() == it_name)
 		{
 			std::cout << "Error: application parameter 'server_name' is not specified;" << std::endl;
 			return false;
@@ -1037,7 +1037,7 @@ namespace HttpServer
 
 		auto it_port = app.find("listen");
 
-		if (app.end() == it_port)
+        if (app.cend() == it_port)
 		{
 			std::cout << "Error: application port is not set;" << std::endl;
 			return false;
@@ -1045,7 +1045,7 @@ namespace HttpServer
 
 		auto it_root_dir = app.find("root_dir");
 
-		if (app.end() == it_root_dir || it_root_dir->second.empty() )
+        if (app.cend() == it_root_dir || it_root_dir->second.empty() )
 		{
 			std::cout << "Error: application parameter 'root_dir' is not specified;" << std::endl;
 			return false;
@@ -1053,7 +1053,7 @@ namespace HttpServer
 
 		auto it_module = app.find("server_module");
 
-		if (app.end() == it_module)
+        if (app.cend() == it_module)
 		{
 			std::cout << "Error: application parameter 'server_module' is not specified;" << std::endl;
 			return false;
@@ -1129,15 +1129,15 @@ namespace HttpServer
 
 		auto it_temp_dir = app.find("temp_dir");
 
-		const std::string temp_dir = app.end() != it_temp_dir ? it_temp_dir->second : defaults.temp_dir;
+        const std::string temp_dir = app.cend() != it_temp_dir ? it_temp_dir->second : defaults.temp_dir;
 
 		auto it_request_max_size = app.find("request_max_size");
 
-		const size_t request_max_size = app.end() != it_request_max_size ? std::strtoull(it_request_max_size->second.c_str(), nullptr, 10) : defaults.request_max_size;
+        const size_t request_max_size = app.cend() != it_request_max_size ? std::strtoull(it_request_max_size->second.c_str(), nullptr, 10) : defaults.request_max_size;
 
 		auto it_module_update = app.find("server_module_update");
 
-		const std::string module_update = app.end() != it_module_update ? it_module_update->second : "";
+        const std::string module_update = app.cend() != it_module_update ? it_module_update->second : "";
 
 		// Calculate module index
 		size_t module_index = ~0;
@@ -1322,11 +1322,11 @@ namespace HttpServer
 		{
 			auto it_default_temp_dir = settings.find("default_temp_dir");
 
-			const std::string default_temp_dir = settings.end() != it_default_temp_dir ? it_default_temp_dir->second : System::getTempDir();
+            const std::string default_temp_dir = settings.cend() != it_default_temp_dir ? it_default_temp_dir->second : System::getTempDir();
 
 			auto it_default_request_max_size = settings.find("request_max_size");
 
-			const size_t default_request_max_size = settings.end() != it_default_request_max_size ? std::strtoull(it_default_request_max_size->second.c_str(), nullptr, 10) : 0;
+            const size_t default_request_max_size = settings.cend() != it_default_request_max_size ? std::strtoull(it_default_request_max_size->second.c_str(), nullptr, 10) : 0;
 
 			ServerApplicationDefaultSettings defaults {
 				default_temp_dir,
@@ -1691,7 +1691,7 @@ namespace HttpServer
 			const int port = app->port;
 
 			// Only unique ports
-			if (ports.end() == ports.find(port) )
+            if (ports.cend() == ports.find(port) )
 			{
 				Socket sock;
 

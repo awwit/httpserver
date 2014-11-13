@@ -22,7 +22,7 @@ int main(const int argc, const char *argv[])
 	{
 		auto command = commands.find(argv[1]);
 
-		if (commands.end() != command)
+        if (commands.cend() != command)
 		{
 			HttpServer::Server server;
 
