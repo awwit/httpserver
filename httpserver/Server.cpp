@@ -318,7 +318,7 @@ namespace HttpServer
 
 		auto it_mime = mimes_types.find(file_ext);
 
-		std::string file_mime_type = mimes_types.end() != it_mime ? it_mime->second : "application/octet-stream";
+        std::string file_mime_type = mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
 
 		std::string headers("HTTP/1.1 200 OK\r\n");
 		headers += "Content-Type: " + file_mime_type + "\r\n"
@@ -838,16 +838,57 @@ namespace HttpServer
 		return app_exit_code;
 	}
 
+	void Server::threadRequestCycle(std::queue<Socket> &sockets) const
+	{
+		while (true)
+		{
+			Socket clientSocket;
+
+			this->eventThreadCycle->wait();
+
+			if (false == process_flag)
+			{
+				break;
+			}
+
+			this->sockets_queue_mtx.lock();
+
+			if (sockets.size() )
+			{
+				clientSocket = std::move(sockets.front() );
+				sockets.pop();
+			}
+
+			if (sockets.empty() )
+			{
+				this->eventThreadCycle->reset();
+
+				this->eventNotFullQueue->notify();
+			}
+
+			this->sockets_queue_mtx.unlock();
+
+			if (clientSocket.is_open() )
+			{
+				++this->threads_working_count;
+
+				this->threadRequestProc(clientSocket);
+
+				--this->threads_working_count;
+			}
+		}
+	}
+
 	/**
 	 * Цикл обработки очереди запросов
 	 */
 	int Server::cycleQueue(std::queue<Socket> &sockets)
 	{
-		auto it_option = settings.find("threads_max_count");
+		auto it_option = this->settings.find("threads_max_count");
 
 		size_t threads_max_count = 0;
 
-        if (settings.cend() != it_option)
+		if (this->settings.cend() != it_option)
 		{
 			threads_max_count = std::strtoull(it_option->second.c_str(), nullptr, 10);
 		}
@@ -864,7 +905,10 @@ namespace HttpServer
 			threads_max_count *= 2;
 		}
 
-		std::function<int(Server *, Socket)> serverThreadRequestProc = std::mem_fn(&Server::threadRequestProc);
+		this->threads_working_count = 0;
+		this->eventThreadCycle = new Event(false, true);
+
+		std::function<void(Server *, std::queue<Socket> &)> serverThreadRequestCycle = std::mem_fn(&Server::threadRequestCycle);
 
 		std::vector<std::thread> active_threads;
 		active_threads.reserve(threads_max_count);
@@ -872,7 +916,7 @@ namespace HttpServer
 		// For update applications modules
 		do
 		{
-			if (eventUpdateModule->notifed() )
+			if (this->eventUpdateModule->notifed() )
 			{
 				updateModules();
 			}
@@ -880,51 +924,20 @@ namespace HttpServer
 			// Cycle creation threads applications requests
 			do
 			{
-				if (threads_max_count <= active_threads.size() )
+				while (this->threads_working_count == active_threads.size() && active_threads.size() < threads_max_count && sockets.empty() == false)
 				{
-					size_t i = 0;
-
-					while (false == System::isDoneThread(active_threads[i].native_handle() ) )
-					{
-						if (++i == active_threads.size() )
-						{
-							std::this_thread::yield();
-							i = 0;
-						}
-					}
+					active_threads.emplace_back(serverThreadRequestCycle, this, std::ref(sockets) );
 				}
 
-				for (size_t i = 0; i != active_threads.size();)
-				{
-					auto th = active_threads.begin() + i;
+				this->eventThreadCycle->notify();
 
-					if (System::isDoneThread(th->native_handle() ) )
-					{
-						th->join();
-						active_threads.erase(th);
-					}
-					else
-					{
-						++i;
-					}
-				}
-
-				while (active_threads.size() <= threads_max_count && sockets.empty() == false)
-				{
-					active_threads.emplace_back(serverThreadRequestProc, this, std::move(sockets.front() ) );
-					sockets.pop();
-				}
-
-				if (false == eventNotFullQueue->notifed() )
-				{
-					eventNotFullQueue->notify();
-				}
-
-				eventProcessQueue->wait();
+				this->eventProcessQueue->wait();
 			}
-			while (process_flag);
+			while (this->process_flag);
 
 			// Data clear
+
+			this->eventThreadCycle->notify();
 
 			if (false == active_threads.empty() )
 			{
@@ -937,9 +950,21 @@ namespace HttpServer
 				active_threads.clear();
 			}
 
-			eventNotFullQueue->notify();
+			this->eventNotFullQueue->notify();
 		}
-		while (eventUpdateModule->notifed() );
+		while (this->eventUpdateModule->notifed() );
+
+		if (false == this->server_sockets.empty() )
+		{
+			for (Socket &s : this->server_sockets)
+			{
+				s.close();
+			}
+
+			this->server_sockets.clear();
+		}
+
+		delete this->eventThreadCycle;
 
 		return 0;
 	}
@@ -1678,12 +1703,10 @@ namespace HttpServer
 		// Applications settings list
 		std::unordered_set<ServerApplicationSettings *> applications;
 		// Get full applications settings list
-		apps_tree.collectApplicationSettings(applications);
+		this->apps_tree.collectApplicationSettings(applications);
 
 		// Bind ports set
 		std::unordered_set<int> ports;
-
-		std::vector<Socket> server_sockets;
 
 		// Open applications sockets
 		for (auto &app : applications)
@@ -1703,7 +1726,7 @@ namespace HttpServer
 						{
 							sock.nonblock(true);
 
-							server_sockets.emplace_back(std::move(sock) );
+							this->server_sockets.emplace_back(std::move(sock) );
 
 							ports.emplace(port);
 						}
@@ -1724,15 +1747,17 @@ namespace HttpServer
 			}
 		}
 
-		if (server_sockets.empty() )
+		if (this->server_sockets.empty() )
 		{
 			std::cout << "Error: do not open any socket;" << std::endl;
 			return 2;
 		}
 
-		sockets_list.create(server_sockets.size() );
+		SocketList sockets_list;
 
-		for (auto &sock : server_sockets)
+		sockets_list.create(this->server_sockets.size() );
+
+		for (auto &sock : this->server_sockets)
 		{
 			sockets_list.addSocket(sock);
 		}
@@ -1740,13 +1765,13 @@ namespace HttpServer
 		std::cout << "Log: start server cycle;" << std::endl << std::endl;
 
 		const size_t queue_max_length = 1024;
-		eventNotFullQueue = new Event(true, true);
-		eventProcessQueue = new Event();
-		eventUpdateModule = new Event(false, true);
+		this->eventNotFullQueue = new Event(true, true);
+		this->eventProcessQueue = new Event();
+		this->eventUpdateModule = new Event(false, true);
 
 		std::queue<Socket> sockets;
 
-		process_flag = true;
+		this->process_flag = true;
 
 		std::function<int(Server *, std::queue<Socket> &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
 
@@ -1759,44 +1784,38 @@ namespace HttpServer
 		{
 			if (sockets_list.accept(client_sockets) )
 			{
+				this->sockets_queue_mtx.lock();
+
 				for (Socket &sock : client_sockets)
 				{
 					if (sock.is_open() )
 					{
 						sock.nonblock(true);
 						sockets.emplace(std::move(sock) );
-
-						if (sockets.size() <= queue_max_length)
-						{
-							eventNotFullQueue->reset();
-						}
-
-						eventProcessQueue->notify();
 					}
+				}
+
+				this->sockets_queue_mtx.unlock();
+
+				this->eventProcessQueue->notify();
+
+				if (sockets.size() >= queue_max_length)
+				{
+					this->eventNotFullQueue->reset();
 				}
 
 				client_sockets.clear();
 
-				eventNotFullQueue->wait();
+				this->eventNotFullQueue->wait();
 			}
 		}
-		while (process_flag || eventUpdateModule->notifed() );
+		while (this->process_flag || this->eventUpdateModule->notifed() );
 
-		eventProcessQueue->notify();
+		this->eventProcessQueue->notify();
 
 		threadQueue.join();
 
 		sockets_list.destroy();
-
-		if (server_sockets.size() )
-		{
-			for (Socket &s : server_sockets)
-			{
-				s.close();
-			}
-
-			server_sockets.clear();
-		}
 
 		clear();
 

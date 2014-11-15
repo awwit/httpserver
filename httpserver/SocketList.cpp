@@ -138,7 +138,7 @@ namespace HttpServer
 		#elif POSIX
 			size_t count = ::epoll_wait(obj_list, epoll_events.data(), epoll_events.size(), ~0);
 
-			if ( (size_t)~0 == count)
+            if (std::numeric_limits<size_t>::max() == count)
 			{
 				return false;
 			}

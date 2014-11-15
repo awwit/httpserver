@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <csignal>
+#include <atomic>
 
 #include "SocketList.h"
 #include "DataVariantAbstract.h"
@@ -30,11 +31,15 @@ namespace HttpServer
 
 		ServerApplicationsTree apps_tree;
 
-		SocketList sockets_list;
+		std::vector<Socket> server_sockets;
 
 		Event *eventNotFullQueue;
 		Event *eventProcessQueue;
 		Event *eventUpdateModule;
+        Event *eventThreadCycle;
+
+        mutable std::atomic_size_t threads_working_count;
+        mutable std::mutex sockets_queue_mtx;
 
 		// Флаг, означающий - активированы ли главные циклы сервера
 		// (с помощью этого флага можно деактивировать циклы, чтобы завершить работу сервера)
@@ -44,7 +49,8 @@ namespace HttpServer
 	protected:
 		int cycleQueue(std::queue<Socket> &);
 		void sendStatus(const Socket &, const std::chrono::milliseconds &, const size_t) const;
-		int threadRequestProc(Socket) const;
+        int threadRequestProc(Socket) const;
+        void threadRequestCycle(std::queue<Socket> &) const;
 		int transferFilePart(const Socket &, const std::chrono::milliseconds &, const std::string &, const time_t, const size_t, const std::string &, const std::string &, const std::string &, const bool) const;
 		int transferFile(const Socket &, const std::chrono::milliseconds &, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &, const bool) const;
 		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &) const;

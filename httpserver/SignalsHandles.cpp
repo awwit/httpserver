@@ -115,9 +115,10 @@ int bindSignalsHandles(HttpServer::Server *server)
 
 	HINSTANCE hInstance = GetModuleHandle(nullptr);
 
-	WNDCLASSEX wcex = {0};
+	WNDCLASSEX wcex = {
+		sizeof(WNDCLASSEX)
+	};
 
-	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = hInstance;
 	wcex.lpszClassName = myWndClassName;
