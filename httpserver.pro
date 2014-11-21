@@ -23,7 +23,8 @@ SOURCES += \
 	httpserver/Socket.cpp \
 	httpserver/SocketList.cpp \
 	httpserver/System.cpp \
-	httpserver/Utils.cpp
+	httpserver/Utils.cpp \
+    httpserver/ConfigParser.cpp
 
 include(deployment.pri)
 qtcAddDeployment()
@@ -48,5 +49,6 @@ HEADERS += \
 	httpserver/Socket.h \
 	httpserver/SocketList.h \
 	httpserver/System.h \
-	httpserver/Utils.h
+	httpserver/Utils.h \
+    httpserver/ConfigParser.h
 

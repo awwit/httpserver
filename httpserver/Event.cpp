@@ -29,6 +29,21 @@ namespace HttpServer
 		cv.notify_all();
 	}
 
+	void Event::notify(const size_t threadsCount)
+	{
+		if (threadsCount)
+		{
+			std::unique_lock<std::mutex> lck(mtx);
+
+			signaled = true;
+
+			for (size_t i = 0; i < threadsCount; ++i)
+			{
+				cv.notify_one();
+			}
+		}
+	}
+
 	void Event::reset()
 	{
 		std::unique_lock<std::mutex> lck(mtx);

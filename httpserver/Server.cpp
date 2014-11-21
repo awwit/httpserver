@@ -9,6 +9,7 @@
 #include "FileIncoming.h"
 #include "ServerRequest.h"
 #include "ServerResponse.h"
+#include "ConfigParser.h"
 
 #include <iostream>
 #include <iomanip>
@@ -179,9 +180,9 @@ namespace HttpServer
 		std::locale loc;
 		Utils::tolower(file_ext, loc);
 
-		auto it_mime = mimes_types.find(file_ext);
+		auto it_mime = this->mimes_types.find(file_ext);
 
-        std::string file_mime_type = mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
+		std::string file_mime_type = this->mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
 
 		std::string headers("HTTP/1.1 206 Partial Content\r\n");
 		headers += "Content-Type: " + file_mime_type + "\r\n"
@@ -291,7 +292,7 @@ namespace HttpServer
 		// Range transfer
         if (inHeaders.cend() != it_range)
 		{
-			return transferFilePart(clientSocket, timeout, fileName, file_time, file_size, it_range->second, connectionHeader, date_header, headersOnly);
+			return this->transferFilePart(clientSocket, timeout, fileName, file_time, file_size, it_range->second, connectionHeader, date_header, headersOnly);
 		}
 
 		// File transfer
@@ -316,9 +317,9 @@ namespace HttpServer
 		std::locale loc;
 		Utils::tolower(file_ext, loc);
 
-		auto it_mime = mimes_types.find(file_ext);
+		auto it_mime = this->mimes_types.find(file_ext);
 
-        std::string file_mime_type = mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
+		std::string file_mime_type = this->mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
 
 		std::string headers("HTTP/1.1 200 OK\r\n");
 		headers += "Content-Type: " + file_mime_type + "\r\n"
@@ -532,7 +533,7 @@ namespace HttpServer
 						if (false == parseIncomingVars(incoming_params, str_buf.substr(params_pos + 1, uri_end) ) )
 						{
 							// HTTP 400 Bad Request
-							sendStatus(clientSocket, timeout, 400);
+							this->sendStatus(clientSocket, timeout, 400);
 							break;
 						}
 					}
@@ -583,7 +584,7 @@ namespace HttpServer
 						const int port = (std::string::npos != delimiter) ? std::strtol(it_host->second.substr(delimiter + 1).c_str(), nullptr, 10) : 80;
 
 						// Поиск настроек приложения по имени
-						ServerApplicationSettings *app_sets = apps_tree.find(host);
+						ServerApplicationSettings *app_sets = this->apps_tree.find(host);
 
 						// Если приложение найдено
 						if (app_sets && app_sets->port == port)
@@ -641,10 +642,10 @@ namespace HttpServer
 								}
 
 								// Поиск варианта данных по имени типа
-								auto variant = variants.find(data_variant_name);
+								auto variant = this->variants.find(data_variant_name);
 
 								// Если сервер поддерживает формат полученных данных
-								if (variants.end() != variant)
+								if (this->variants.cend() != variant)
 								{
 									DataVariantAbstract *data_variant = variant->second;
 
@@ -678,7 +679,7 @@ namespace HttpServer
 											}
 
 											// HTTP 400 Bad Request
-											sendStatus(clientSocket, timeout, 400);
+											this->sendStatus(clientSocket, timeout, 400);
 
 											break;
 										}
@@ -686,13 +687,13 @@ namespace HttpServer
 									else
 									{
 										// HTTP 413 Request Entity Too Large
-										sendStatus(clientSocket, timeout, 413);
+										this->sendStatus(clientSocket, timeout, 413);
 									}
 								}
 								else
 								{
 									// HTTP 400 Bad Request
-									sendStatus(clientSocket, timeout, 400);
+									this->sendStatus(clientSocket, timeout, 400);
 								}
 							}
 
@@ -755,25 +756,25 @@ namespace HttpServer
 						else
 						{
 							// HTTP 404 Not Found
-							sendStatus(clientSocket, timeout, 404);
+							this->sendStatus(clientSocket, timeout, 404);
 						}
 					}
 					else
 					{
 						// HTTP 400 Bad Request
-						sendStatus(clientSocket, timeout, 400);
+						this->sendStatus(clientSocket, timeout, 400);
 					}
 				}
 				else
 				{
 					// HTTP 400 Bad Request
-					sendStatus(clientSocket, timeout, 400);
+					this->sendStatus(clientSocket, timeout, 400);
 				}
 			}
 			else // Если запрос пустой
 			{
 				// HTTP 400 Bad Request
-				sendStatus(clientSocket, timeout, 400);
+				this->sendStatus(clientSocket, timeout, 400);
 				break;
 			}
 
@@ -823,7 +824,7 @@ namespace HttpServer
 
 					const bool headers_only = ("head" == method);
 
-					transferFile(clientSocket, timeout, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header, headers_only);
+					this->transferFile(clientSocket, timeout, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header, headers_only);
 				}
 			}
 		}
@@ -846,7 +847,7 @@ namespace HttpServer
 
 			this->eventThreadCycle->wait();
 
-			if (false == process_flag)
+			if (false == this->process_flag)
 			{
 				break;
 			}
@@ -929,7 +930,14 @@ namespace HttpServer
 					active_threads.emplace_back(serverThreadRequestCycle, this, std::ref(sockets) );
 				}
 
-				this->eventThreadCycle->notify();
+				size_t notify_count = active_threads.size() - this->threads_working_count;
+
+				if (notify_count > sockets.size() )
+				{
+					notify_count = sockets.size();
+				}
+
+				this->eventThreadCycle->notify(notify_count);
 
 				this->eventProcessQueue->wait();
 			}
@@ -976,400 +984,7 @@ namespace HttpServer
 
 	void Server::addDataVariant(DataVariantAbstract *postVariant)
 	{
-		variants.emplace(postVariant->getName(), postVariant);
-	}
-
-	/**
-	 * Config - include file
-	 */
-	bool Server::includeConfigFile(const std::string &fileName, std::string &strBuf, const std::size_t offset = 0)
-	{
-		std::ifstream file(fileName);
-
-		if ( ! file)
-		{
-			file.close();
-
-			std::cout << "Error: " << fileName << " - cannot be open;" << std::endl;
-
-			return false;
-		}
-
-		file.seekg(0, std::ifstream::end);
-		std::streamsize file_size = file.tellg();
-		file.seekg(0, std::ifstream::beg);
-
-		std::streamsize file_size_max = 2048 * 1024;
-
-		if (file_size_max < file_size)
-		{
-			file.close();
-
-			std::cout << "Error: " << fileName << " - is too large; max include file size = " << file_size_max << " bytes;" << std::endl;
-
-			return false;
-		}
-
-		if (file_size)
-		{
-			std::vector<std::string::value_type> buf(file_size);
-			file.read(reinterpret_cast<char *>(buf.data() ), file_size);
-
-			strBuf.insert(strBuf.begin() + offset, buf.cbegin(), buf.cend() );
-		}
-
-		file.close();
-
-		return true;
-	}
-
-	/**
-	 * Config - add application
-	 */
-	bool Server::addApplication(const std::unordered_map<std::string, std::string> &app, const ServerApplicationDefaultSettings &defaults)
-	{
-		auto it_name = app.find("server_name");
-
-        if (app.cend() == it_name)
-		{
-			std::cout << "Error: application parameter 'server_name' is not specified;" << std::endl;
-			return false;
-		}
-
-		std::vector<std::string> names;
-
-		std::string whitespace(" \t\n\v\f\r");
-
-		const std::string &app_name = it_name->second;
-	
-		size_t delimiter = app_name.find_first_of(whitespace);
-
-		if (delimiter)
-		{
-			size_t cur_pos = 0;
-
-			while (std::string::npos != delimiter)
-			{
-				std::string name = app_name.substr(cur_pos, delimiter - cur_pos);
-				names.emplace_back(std::move(name) );
-				cur_pos = app_name.find_first_not_of(whitespace, delimiter + 1);
-				delimiter = app_name.find_first_of(whitespace, cur_pos);
-			}
-
-			std::string name = app_name.substr(cur_pos);
-			names.emplace_back(std::move(name) );
-		}
-
-		auto it_port = app.find("listen");
-
-        if (app.cend() == it_port)
-		{
-			std::cout << "Error: application port is not set;" << std::endl;
-			return false;
-		}
-
-		auto it_root_dir = app.find("root_dir");
-
-        if (app.cend() == it_root_dir || it_root_dir->second.empty() )
-		{
-			std::cout << "Error: application parameter 'root_dir' is not specified;" << std::endl;
-			return false;
-		}
-
-		auto it_module = app.find("server_module");
-
-        if (app.cend() == it_module)
-		{
-			std::cout << "Error: application parameter 'server_module' is not specified;" << std::endl;
-			return false;
-		}
-
-		// TODO: get module realpath
-
-		Module module(it_module->second);
-
-		if (false == module.is_open() )
-		{
-			std::cout << "Error: module '" << it_module->second << "' cannot be open;" << std::endl;
-			return false;
-		}
-
-		void *(*addr)(void *) = nullptr;
-
-		if (false == module.find("application_call", &addr) )
-		{
-			std::cout << "Error: function 'application_call' not found in module '" << it_module->second << "';" << std::endl;
-			return false;
-		}
-
-		std::function<int(server_request *, server_response *)> app_call = reinterpret_cast<int(*)(server_request *, server_response *)>(addr);
-
-		if ( ! app_call)
-		{
-			std::cout << "Error: invalid function 'application_call' in module '" << it_module->second << "';" << std::endl;
-			return false;
-		}
-
-		if (false == module.find("application_clear", &addr) )
-		{
-			std::cout << "Error: function 'application_clear' not found in module '" << it_module->second << "';" << std::endl;
-			return false;
-		}
-
-		std::function<void(Utils::raw_pair [], const size_t)> app_clear = reinterpret_cast<void(*)(Utils::raw_pair [], const size_t)>(addr);
-
-		std::function<bool()> app_init = std::function<bool()>();
-
-		if (module.find("application_init", &addr) )
-		{
-			app_init = reinterpret_cast<bool(*)()>(addr);
-		}
-
-		std::function<void()> app_final = std::function<void()>();
-
-		if (module.find("application_final", &addr) )
-		{
-			app_final = reinterpret_cast<void(*)()>(addr);
-		}
-
-		bool success = true;
-
-		try
-		{
-			if (app_init)
-			{
-				success = app_init();
-			}
-		}
-		catch (...)
-		{
-			success = false;
-		}
-
-		if (false == success)
-		{
-			std::cout << "Warning: error when initializing application '" << it_module->second << "';" << std::endl;
-			return false;
-		}
-
-		auto it_temp_dir = app.find("temp_dir");
-
-        const std::string temp_dir = app.cend() != it_temp_dir ? it_temp_dir->second : defaults.temp_dir;
-
-		auto it_request_max_size = app.find("request_max_size");
-
-        const size_t request_max_size = app.cend() != it_request_max_size ? std::strtoull(it_request_max_size->second.c_str(), nullptr, 10) : defaults.request_max_size;
-
-		auto it_module_update = app.find("server_module_update");
-
-        const std::string module_update = app.cend() != it_module_update ? it_module_update->second : "";
-
-		// Calculate module index
-		size_t module_index = ~0;
-
-		for (size_t i = 0; i < modules.size(); ++i)
-		{
-			if (modules[i] == module)
-			{
-				module_index = i;
-				break;
-			}
-		}
-
-		if ( (size_t)~0 == module_index)
-		{
-			module_index = modules.size();
-			modules.emplace_back(std::move(module) );
-		}
-
-		std::string root_dir = it_root_dir->second;
-
-	#ifdef WIN32
-		if ('\\' == root_dir.back() )
-		{
-			root_dir.pop_back();
-		}
-	#endif
-
-		// Remove back slash from root_dir
-		if ('/' == root_dir.back() )
-		{
-			root_dir.pop_back();
-		}
-
-		// Create application settings struct
-		ServerApplicationSettings *sets = new ServerApplicationSettings {
-			std::strtol(it_port->second.c_str(), nullptr, 10),
-			root_dir,
-			temp_dir,
-			request_max_size,
-			module_index,
-			it_module->second,
-			module_update,
-			app_call,
-			app_clear,
-			app_init,
-			app_final
-		};
-
-		// Add application names in tree
-		if (names.empty() )
-		{
-			apps_tree.addApplication(app_name, sets);
-		}
-		else
-		{
-			for (size_t i = 0; i < names.size(); ++i)
-			{
-				apps_tree.addApplication(names[i], sets);
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Config - parse
-	 */
-	bool Server::loadConfig()
-	{
-		std::string file_name("main.conf");
-		std::string str_buf;
-
-		if (false == includeConfigFile(file_name, str_buf) )
-		{
-			return false;
-		}
-
-		std::vector<std::unordered_map<std::string, std::string> > applications;
-
-		std::string whitespace(" \t\n\v\f\r");
-
-		size_t cur_pos = 0;
-		size_t end_pos = str_buf.find(';', cur_pos);
-		size_t block_pos = 0;
-
-		while (std::string::npos != end_pos)
-		{
-			block_pos = str_buf.find('{', cur_pos);
-
-			if (end_pos < block_pos)
-			{
-				cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-				size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
-
-				if (delimiter < end_pos)
-				{
-					std::string param_name = str_buf.substr(cur_pos, delimiter - cur_pos);
-					Utils::trim(param_name);
-
-					std::string param_value = str_buf.substr(delimiter + 1, end_pos - delimiter - 1);
-					Utils::trim(param_value);
-
-					if ("include" == param_name)
-					{
-						includeConfigFile(param_value, str_buf, end_pos + 1);
-					}
-					else
-					{
-						settings.emplace(std::move(param_name), std::move(param_value) );
-					}
-				}
-
-				cur_pos = end_pos + 1;
-			}
-			else if (std::string::npos != block_pos)
-			{
-				std::string block_type_name = str_buf.substr(cur_pos, block_pos - cur_pos);
-				Utils::trim(block_type_name);
-
-				cur_pos = block_pos + 1;
-
-				if ("server" == block_type_name)
-				{
-					std::unordered_map<std::string, std::string> app;
-
-					end_pos = str_buf.find(';', cur_pos);
-					size_t block_end = str_buf.find('}', cur_pos);
-
-					while (block_end > end_pos)
-					{
-						cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-						size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
-
-						if (delimiter < end_pos)
-						{
-							std::string param_name = str_buf.substr(cur_pos, delimiter - cur_pos);
-							Utils::trim(param_name);
-
-							std::string param_value = str_buf.substr(delimiter + 1, end_pos - delimiter - 1);
-							Utils::trim(param_value);
-
-							if ("include" == param_name)
-							{
-								cur_pos = end_pos + 1;
-								includeConfigFile(param_value, str_buf, cur_pos);
-								block_end = str_buf.find('}', cur_pos);
-							}
-							else
-							{
-								app.emplace(std::move(param_name), std::move(param_value) );
-							}
-						}
-
-						cur_pos = end_pos + 1;
-
-						end_pos = str_buf.find(';', cur_pos);
-					}
-
-					applications.emplace_back(std::move(app) );
-
-					cur_pos = block_end + 1;
-				}
-				else
-				{
-					std::cout << "Warning: " << block_type_name << " - unknown block type;" << std::endl;
-				}
-			}
-
-			end_pos = str_buf.find(';', cur_pos);
-		}
-
-		mimes_types["html"] = "text/html";
-		mimes_types["js"] = "text/javascript";
-		mimes_types["css"] = "text/css";
-		mimes_types["png"] = "image/png";
-		mimes_types["jpg"] = "image/jpeg";
-		mimes_types["webm"] = "video/webm";
-		mimes_types["mp4"] = "video/mp4";
-
-		if (applications.size() )
-		{
-			auto it_default_temp_dir = settings.find("default_temp_dir");
-
-            const std::string default_temp_dir = settings.cend() != it_default_temp_dir ? it_default_temp_dir->second : System::getTempDir();
-
-			auto it_default_request_max_size = settings.find("request_max_size");
-
-            const size_t default_request_max_size = settings.cend() != it_default_request_max_size ? std::strtoull(it_default_request_max_size->second.c_str(), nullptr, 10) : 0;
-
-			ServerApplicationDefaultSettings defaults {
-				default_temp_dir,
-				default_request_max_size
-			};
-
-			for (auto &app : applications)
-			{
-				addApplication(app, defaults);
-			}
-		}
-
-		if (apps_tree.empty() )
-		{
-			std::cout << "Notice: server does not contain applications;" << std::endl;
-		}
-
-		return true;
+		this->variants.emplace(postVariant->getName(), postVariant);
 	}
 
 	bool Server::updateModule(Module &module, std::unordered_set<ServerApplicationSettings *> &applications, const size_t moduleIndex)
@@ -1562,7 +1177,7 @@ namespace HttpServer
 		// Applications settings list
 		std::unordered_set<ServerApplicationSettings *> applications;
 		// Get full applications settings list
-		apps_tree.collectApplicationSettings(applications);
+		this->apps_tree.collectApplicationSettings(applications);
 
 		std::unordered_set<size_t> updated;
 
@@ -1583,13 +1198,13 @@ namespace HttpServer
 						size_t module_size_cur = 0;
 						time_t module_time_cur = 0;
 
-						Module &module = modules[module_index];
+						Module &module = this->modules[module_index];
 
 						if (System::getFileSizeAndTimeGmt(app->server_module, &module_size_cur, &module_time_cur) )
 						{
 							if (module_size_cur != module_size_new || module_time_cur < module_time_new)
 							{
-								updateModule(module, applications, module_index);
+								this->updateModule(module, applications, module_index);
 							}
 						}
 					}
@@ -1601,17 +1216,19 @@ namespace HttpServer
 
 		std::cout << "Notice: applications modules have been updated;" << std::endl;
 
-		process_flag = true;
-		eventUpdateModule->reset();
+		this->process_flag = true;
+		this->eventUpdateModule->reset();
 	}
 
 	bool Server::init()
 	{
-		if (Socket::Startup() && loadConfig() )
+		ConfigParser conf_parser;
+
+		if (Socket::Startup() && conf_parser.loadConfig("main.conf", this->settings, this->mimes_types, this->modules, this->apps_tree) )
 		{
-			addDataVariant(new DataVariantFormUrlencoded() );
-			addDataVariant(new DataVariantMultipartFormData() );
-			addDataVariant(new DataVariantTextPlain() );
+			this->addDataVariant(new DataVariantFormUrlencoded() );
+			this->addDataVariant(new DataVariantMultipartFormData() );
+			this->addDataVariant(new DataVariantTextPlain() );
 
 			return true;
 		}
@@ -1623,38 +1240,38 @@ namespace HttpServer
 	{
 		Socket::Cleanup();
 
-		if (eventNotFullQueue)
+		if (this->eventNotFullQueue)
 		{
-			delete eventNotFullQueue;
-			eventNotFullQueue = nullptr;
+			delete this->eventNotFullQueue;
+			this->eventNotFullQueue = nullptr;
 		}
 
-		if (eventProcessQueue)
+		if (this->eventProcessQueue)
 		{
-			delete eventProcessQueue;
-			eventProcessQueue = nullptr;
+			delete this->eventProcessQueue;
+			this->eventProcessQueue = nullptr;
 		}
 
-		if (eventUpdateModule)
+		if (this->eventUpdateModule)
 		{
-			delete eventUpdateModule;
-			eventUpdateModule = nullptr;
+			delete this->eventUpdateModule;
+			this->eventUpdateModule = nullptr;
 		}
 
-		if (false == variants.empty() )
+		if (false == this->variants.empty() )
 		{
-			for (auto &variant : variants)
+			for (auto &variant : this->variants)
 			{
 				delete variant.second;
 			}
 
-			variants.clear();
+			this->variants.clear();
 		}
 
-		if (false == apps_tree.empty() )
+		if (false == this->apps_tree.empty() )
 		{
 			std::unordered_set<ServerApplicationSettings *> applications;
-			apps_tree.collectApplicationSettings(applications);
+			this->apps_tree.collectApplicationSettings(applications);
 
 			for (auto &app : applications)
 			{
@@ -1674,22 +1291,22 @@ namespace HttpServer
 			}
 
 			applications.clear();
-			apps_tree.clear();
+			this->apps_tree.clear();
 		}
 
-		if (false == modules.empty() )
+		if (false == this->modules.empty() )
 		{
-			for (auto &module : modules)
+			for (auto &module : this->modules)
 			{
 				module.close();
 			}
 
-			modules.empty();
+			this->modules.empty();
 		}
 
-		if (false == settings.empty() )
+		if (false == this->settings.empty() )
 		{
-			settings.clear();
+			this->settings.clear();
 		}
 	}
 
@@ -1826,14 +1443,14 @@ namespace HttpServer
 
 	void Server::stopProcess()
 	{
-		process_flag = false;
+		this->process_flag = false;
 
-		if (eventNotFullQueue)
+		if (this->eventNotFullQueue)
 		{
-			eventNotFullQueue->notify();
+			this->eventNotFullQueue->notify();
 		}
 
-		setProcessQueue();
+		this->setProcessQueue();
 	}
 
 	int Server::command_start(const int argc, const char *argv[])
@@ -1860,12 +1477,12 @@ namespace HttpServer
 
 		do
 		{
-			process_flag = false;
-			restart_flag = false;
+			this->process_flag = false;
+			this->restart_flag = false;
 
-			code = run();
+			code = this->run();
 		}
-		while (process_flag || restart_flag);
+		while (this->process_flag || this->restart_flag);
 
 		file.close();
 

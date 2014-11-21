@@ -55,10 +55,6 @@ namespace HttpServer
 		int transferFile(const Socket &, const std::chrono::milliseconds &, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &, const bool) const;
 		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &) const;
 
-		bool loadConfig();
-			bool includeConfigFile(const std::string &, std::string &, const size_t);
-			bool addApplication(const std::unordered_map<std::string, std::string> &, const ServerApplicationDefaultSettings &);
-
 		bool init();
 		int run();
 		void clear();
@@ -79,27 +75,27 @@ namespace HttpServer
 
 		inline void unsetProcess()
 		{
-			process_flag = false;
+			this->process_flag = false;
 		}
 
 		inline void setRestart()
 		{
-			restart_flag = true;
+			this->restart_flag = true;
 		}
 
 		inline void setUpdateModule()
 		{
-			if (eventUpdateModule)
+			if (this->eventUpdateModule)
 			{
-				eventUpdateModule->notify();
+				this->eventUpdateModule->notify();
 			}
 		}
 
 		inline void setProcessQueue()
 		{
-			if (eventProcessQueue)
+			if (this->eventProcessQueue)
 			{
-				eventProcessQueue->notify();
+				this->eventProcessQueue->notify();
 			}
 		}
 

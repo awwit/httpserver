@@ -20,6 +20,7 @@ namespace HttpServer
 	public:
 		void wait();
 		void notify();
+		void notify(const size_t);
 		void reset();
 
 		bool notifed();
