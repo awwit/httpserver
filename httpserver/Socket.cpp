@@ -118,7 +118,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, ~0) && event.revents | POLLRDNORM)
+        if (1 == ::WSAPoll(&event, 1, ~0) && event.revents & POLLRDNORM)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
@@ -129,7 +129,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::poll(&event, 1, ~0) && event.revents | POLLIN)
+        if (1 == ::poll(&event, 1, ~0) && event.revents & POLLIN)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
@@ -149,7 +149,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLRDNORM)
+        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLRDNORM)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
@@ -160,7 +160,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLIN)
+        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLIN)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
@@ -231,7 +231,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLRDNORM)
+        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLRDNORM)
         {
 			recv_len = ::recv(socket_handle, buf.data(), buf.size(), 0);
 		}
@@ -242,7 +242,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLIN)
+        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLIN)
 		{
 			recv_len = ::recv(socket_handle, buf.data(), buf.size(), MSG_NOSIGNAL);
 		}
@@ -284,7 +284,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLWRNORM)
+        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLWRNORM)
 		{
 			send_len = ::send(socket_handle, buf.data(), buf.length(), 0);
 		}
@@ -295,7 +295,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLOUT)
+        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLOUT)
 		{
 			send_len = ::send(socket_handle, buf.data(), buf.length(), MSG_NOSIGNAL);
 		}
@@ -315,7 +315,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents | POLLWRNORM)
+        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLWRNORM)
 		{
 			send_len = ::send(socket_handle, buf.data(), length, 0);
 		}
@@ -326,7 +326,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents | POLLOUT)
+        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLOUT)
 		{
 			send_len = ::send(socket_handle, buf.data(), length, MSG_WAITALL | MSG_NOSIGNAL);
 		}

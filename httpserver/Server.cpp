@@ -429,14 +429,16 @@ namespace HttpServer
 
 		bool connection_upgrade = false;
 		bool connection_keep_alive;
+		size_t keep_alive_count = 100;
+
+		const size_t buf_len = 4096;
+		std::vector<std::string::value_type> buf(buf_len);
+
+		std::string str_buf;
 
 		do
 		{
 			app_exit_code = EXIT_FAILURE;
-
-			const size_t buf_len = 4096;
-			std::vector<std::string::value_type> buf(buf_len);
-			std::string str_buf;
 
 			std::unordered_map<std::string, std::string> incoming_headers;
 			std::unordered_multimap<std::string, std::string> incoming_params;
@@ -449,11 +451,13 @@ namespace HttpServer
 			std::string version;
 			std::string uri_reference;
 
-			// Получить данные запроса от клиента
+			// Подготовить параметры для получения данных
 			std::chrono::milliseconds timeout(5000);
-			const size_t recv_len = clientSocket.nonblock_recv(buf, timeout);
 
-			if (std::numeric_limits<size_t>::max() == recv_len)
+			// Получить данные запроса от клиента
+			const size_t recv_size = clientSocket.nonblock_recv(buf, timeout);
+
+			if (std::numeric_limits<size_t>::max() == recv_size && str_buf.empty() )
 			{
 			#ifdef DEBUG
 				#ifdef WIN32
@@ -464,10 +468,14 @@ namespace HttpServer
 			#endif
 				break;
 			}
-			else if (recv_len) // Если данные были получены
-			{
-				str_buf.assign(buf.cbegin(), buf.cbegin() + recv_len);
 
+			if (recv_size) // Если данные были получены
+			{
+				str_buf.append(buf.cbegin(), buf.cbegin() + recv_size);
+			}
+
+			if (false == str_buf.empty() )
+			{
 				// Поиск конца заголовков (пустая строка)
 				size_t headers_end = str_buf.find("\r\n\r\n");
 
@@ -568,6 +576,8 @@ namespace HttpServer
 						str_cur = str_end + 2;
 					}
 
+					str_buf.erase(str_buf.begin(), str_buf.begin() + headers_end + 2);
+
 					// Получить доменное имя (или адрес) назначения запроса
 					auto it_host = incoming_headers.find("Host");
 
@@ -665,13 +675,22 @@ namespace HttpServer
 										// Сколько осталось получить данных
 										size_t left_bytes = 0;
 
-										if (data_length)
+										std::string data_buf;
+
+										if (data_length >= str_buf.length() )
 										{
-											left_bytes = data_length - (recv_len - (headers_end + 2) );
+											left_bytes = data_length - str_buf.length();
+
+											data_buf.swap(str_buf);
+										}
+										else
+										{
+											data_buf.assign(str_buf.cbegin(), str_buf.cbegin() + data_length);
+											str_buf.erase(str_buf.begin(), str_buf.begin() + data_length);
 										}
 
 										// Разобрать данные на составляющие
-										if (false == data_variant->parse(clientSocket, timeout, str_buf.substr(headers_end + 2), left_bytes, content_params, incoming_data, incoming_files) )
+										if (false == data_variant->parse(clientSocket, timeout, data_buf, left_bytes, content_params, incoming_data, incoming_files) )
 										{
 											for (auto &it : incoming_files)
 											{
@@ -683,17 +702,26 @@ namespace HttpServer
 
 											break;
 										}
+
+										if (false == data_buf.empty() )
+										{
+											str_buf.swap(data_buf);
+										}
 									}
 									else
 									{
 										// HTTP 413 Request Entity Too Large
 										this->sendStatus(clientSocket, timeout, 413);
+
+										break;
 									}
 								}
 								else
 								{
 									// HTTP 400 Bad Request
 									this->sendStatus(clientSocket, timeout, 400);
+
+									break;
 								}
 							}
 
@@ -775,6 +803,7 @@ namespace HttpServer
 			{
 				// HTTP 400 Bad Request
 				this->sendStatus(clientSocket, timeout, 400);
+
 				break;
 			}
 
@@ -804,7 +833,9 @@ namespace HttpServer
 					{
 						if ("keep-alive" == connection_out)
 						{
-							connection_keep_alive = true;
+							--keep_alive_count;
+
+							connection_keep_alive = (0 < keep_alive_count);
 						}
 					}
 					else if ("upgrade" == connection_in)
@@ -820,7 +851,7 @@ namespace HttpServer
 
                 if (outgoing_headers.cend() != it_x_sendfile)
 				{
-					const std::string connection_header = connection_keep_alive ? "Connection: keep-alive\r\n" : "Connection: close\r\n";
+					const std::string connection_header = connection_keep_alive ? "Connection: Keep-Alive\r\nKeep-Alive: timeout=5; max=" + std::to_string(keep_alive_count) + "\r\n" : "Connection: Close\r\n";
 
 					const bool headers_only = ("head" == method);
 

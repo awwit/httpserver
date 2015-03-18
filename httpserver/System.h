@@ -3,6 +3,24 @@
 #ifdef WIN32
 	#include <Windows.h>
 	extern char myWndClassName[];
+
+    #ifdef SIGTERM
+        #undef SIGTERM
+        #define SIGTERM (WM_USER + 15)
+    #endif
+
+    #ifdef SIGINT
+        #undef SIGINT
+        #define SIGINT (WM_USER + 2)
+    #endif
+
+    #ifndef SIGUSR1
+        #define SIGUSR1 (WM_USER + 10)
+    #endif
+
+    #ifndef SIGUSR2
+        #define SIGUSR2 (WM_USER + 12)
+    #endif
 #elif POSIX
 	#include <csignal>
 	#include <sys/sysinfo.h>
@@ -12,14 +30,7 @@
 	#error "Undefine platform"
 #endif
 
-#ifndef SIGUSR1
-	#define SIGUSR1 1010
-#endif
-
-#ifndef SIGUSR2
-	#define SIGUSR2 1012
-#endif
-
+#include <vector>
 #include <string>
 #include <ctime>
 #include <thread>
@@ -66,16 +77,7 @@ namespace System
 	#endif
 	}
 
-	inline std::string getTempDir()
-	{
-	#ifdef WIN32
-		return std::string("C:/Temp/"); // FIXME: Windows temp dir
-	#elif POSIX
-		return std::string("/tmp/");
-	#else
-		#error "Undefine platform"
-	#endif
-	}
+	std::string getTempDir();
 
 	bool getFileSizeAndTimeGmt(const std::string &, size_t *, time_t *);
 };

@@ -26,16 +26,19 @@ namespace HttpServer
 		inline bool is_created() const
 		{
 		#ifdef WIN32
-			return INVALID_HANDLE_VALUE != obj_list;
+			return INVALID_HANDLE_VALUE != this->obj_list;
 		#elif POSIX
-			return (size_t)~0 != obj_list;
+			return std::numeric_limits<size_t>::max() != this->obj_list;
 		#else
 			#error "Undefine platform"
 		#endif
 		}
 
 		bool addSocket(const Socket &);
+		bool removeSocket(const Socket &);
 
 		bool accept(std::vector<Socket> &sockets) const;
+
+		bool recv(std::vector<Socket> &sockets, std::vector<Socket> &errors) const;
 	};
 };

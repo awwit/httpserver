@@ -57,7 +57,7 @@ namespace HttpServer
 	(
 		const Socket &sock,
 		const std::chrono::milliseconds &timeout,
-		const std::string &str,
+		std::string &str,
 		const size_t leftBytes,
 		const std::unordered_map<std::string, std::string> &params,
 		std::unordered_multimap<std::string, std::string> &data,
@@ -82,7 +82,6 @@ namespace HttpServer
 
 		// Создание буферов
 		std::vector<std::string::value_type> buf(buf_len);
-		std::string str_buf = str;
 
 		size_t str_cur;			// Текущая позиция в буфере
 
@@ -90,18 +89,18 @@ namespace HttpServer
 		size_t read_len = 0;	// Прочитано байт из сокета всего
 
 		// Поиск разделителя блока данных
-		str_cur = str_buf.find(block_delimiter);
+		str_cur = str.find(block_delimiter);
 
 		if (std::string::npos == str_cur)
 		{
 			// Получить следующий кусок данных
-			if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+			if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 			{
 				return false;
 			}
 
 			// Поиск разделителя блока данных
-			str_cur = str_buf.find(block_delimiter);
+			str_cur = str.find(block_delimiter);
 
 			if (std::string::npos == str_cur)
 			{
@@ -122,19 +121,19 @@ namespace HttpServer
 			bool is_block_valid = true;
 
 			// Поиск конца заголовков блока данных
-			size_t headers_end = str_buf.find("\r\n\r\n", str_cur);
+			size_t headers_end = str.find("\r\n\r\n", str_cur);
 
 			// Если конец не был найден, то
 			if (std::string::npos == headers_end)
 			{
 				// Получить следующий кусок данных
-				if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+				if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 				{
 					return false;
 				}
 
 				// Провести повторный поиск
-				headers_end = str_buf.find("\r\n\r\n", str_cur);
+				headers_end = str.find("\r\n\r\n", str_cur);
 
 				// Если снова не найдено, то данные некорректны
 				if (std::string::npos == headers_end)
@@ -148,24 +147,24 @@ namespace HttpServer
 				// Разобрать заголовки блока данных
 				std::unordered_map<std::string, std::string> headers;
 
-				for (size_t line_end = str_buf.find("\r\n", str_cur); str_cur < headers_end; line_end = str_buf.find("\r\n", str_cur) )
+				for (size_t line_end = str.find("\r\n", str_cur); str_cur < headers_end; line_end = str.find("\r\n", str_cur) )
 				{
-					size_t delimiter = str_buf.find(':', str_cur);
+					size_t delimiter = str.find(':', str_cur);
 
 					if (std::string::npos == delimiter || delimiter > line_end)
 					{
-						std::string header_name = str_buf.substr(str_cur, line_end - str_cur);
+						std::string header_name = str.substr(str_cur, line_end - str_cur);
 						Utils::trim(header_name);
 						headers.emplace(std::move(header_name), "");
 					}
 					else
 					{
-						std::string header_name = str_buf.substr(str_cur, delimiter - str_cur);
+						std::string header_name = str.substr(str_cur, delimiter - str_cur);
 						Utils::trim(header_name);
 
 						++delimiter;
 
-						std::string header_value = str_buf.substr(delimiter, line_end - delimiter);
+						std::string header_value = str.substr(delimiter, line_end - delimiter);
 						Utils::trim(header_value);
 
 						headers.emplace(std::move(header_name), std::move(header_value) );
@@ -271,31 +270,33 @@ namespace HttpServer
 									if (file.is_open() )
 									{
 										// Смещение данных в буфере в начало
-										str_buf.assign(str_buf.cbegin() + str_cur, str_buf.cend() );
+//										str.assign(str.cbegin() + str_cur, str.cend() );
+										str.erase(str.begin(), str.begin() + str_cur);
 
 										// Поиск конца блока данных
-										size_t delimiter = str_buf.find(block_delimiter);
+										size_t delimiter = str.find(block_delimiter);
 
 										// Пока конец блока данных не найден
 										while (std::string::npos == delimiter)
 										{
 											// Добавить данные к значению
-											file.write(str_buf.data(), str_buf.length() - data_end.length() );
+											file.write(str.data(), str.length() - data_end.length() );
 
-											str_buf.assign(str_buf.cend() - data_end.length(), str_buf.cend() );
+//											str.assign(str.cend() - data_end.length(), str.cend() );
+											str.erase(str.begin(), str.end() - data_end.length() );
 
 											// Получить следующий кусок данных
-											if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+											if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 											{
 												return false;
 											}
 
 											// Поиск конца блока данных
-											delimiter = str_buf.find(block_delimiter);
+											delimiter = str.find(block_delimiter);
 										}
 
 										// Добавить последнюю часть данных к значению
-										file.write(str_buf.data(), delimiter);
+										file.write(str.data(), delimiter);
 
 										// Добавить данные в список
 										files.emplace(it_name->second, FileIncoming(std::move(tmp_name), it_filetype->second, file.tellp() ) );
@@ -303,7 +304,7 @@ namespace HttpServer
 										file.close();
 
 										// Если найден конец данных
-										if (str_buf.find(data_end, delimiter) == delimiter)
+										if (str.find(data_end, delimiter) == delimiter)
 										{
 											is_find_data_end = true;
 										}
@@ -325,37 +326,39 @@ namespace HttpServer
 								std::string value;
 
 								// Смещение данных в буфере в начало
-								str_buf.assign(str_buf.cbegin() + str_cur, str_buf.cend() );
+//								str.assign(str.cbegin() + str_cur, str.cend() );
+								str.erase(str.begin(), str.begin() + str_cur);
 
 								// Поиск конца блока данных
-								size_t delimiter = str_buf.find(block_delimiter);
+								size_t delimiter = str.find(block_delimiter);
 
 								// Пока конец блока данных не найден
 								while (std::string::npos == delimiter)
 								{
 									// Добавить данные к значению
-									value.append(str_buf.cbegin(), str_buf.cend() - data_end.length() );
+									value.append(str.cbegin(), str.cend() - data_end.length() );
 
-									str_buf.assign(str_buf.cend() - data_end.length(), str_buf.cend() );
+//									str.assign(str.cend() - data_end.length(), str.cend() );
+									str.erase(str.begin(), str.end() - data_end.length() );
 
 									// Получить следующий кусок данных
-									if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+									if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 									{
 										return false;
 									}
 
 									// Поиск конца блока данных
-									delimiter = str_buf.find(block_delimiter);
+									delimiter = str.find(block_delimiter);
 								}
 
 								// Добавить последнюю часть данных к значению
-								value.append(str_buf.cbegin(), str_buf.cbegin() + delimiter);
+								value.append(str.cbegin(), str.cbegin() + delimiter);
 
 								// Добавить данные в список
 								data.emplace(it_name->second, std::move(value) );
 
 								// Если найден конец данных
-								if (str_buf.find(data_end, delimiter) == delimiter)
+								if (str.find(data_end, delimiter) == delimiter)
 								{
 									is_find_data_end = true;
 								}
@@ -383,29 +386,34 @@ namespace HttpServer
 			if (false == is_block_valid)
 			{
 				// то блок данных пропускаем (ищем следующий блок)
-				str_cur = str_buf.find(block_delimiter, str_cur);
+				str_cur = str.find(block_delimiter, str_cur);
 
 				while (std::string::npos == str_cur)
 				{
-					str_buf.assign(str_buf.cend() - data_end.length(), str_buf.cend() );
+//					str.assign(str.cend() - data_end.length(), str.cend() );
+					str.erase(str.begin(), str.end() - data_end.length() );
 
 					// Получить следующий кусок данных
-					if (false == append(sock, timeout, buf, str_buf, data_end, leftBytes, recv_len, read_len) )
+					if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 					{
 						return false;
 					}
 
-					str_cur = str_buf.find(block_delimiter);
+					str_cur = str.find(block_delimiter);
 				}
 
 				// Если найден конец данных
-				if (str_buf.find(data_end, str_cur) == str_cur)
+				if (str.find(data_end, str_cur) == str_cur)
 				{
 					is_find_data_end = true;
 				}
 
 				str_cur += block_delimiter.length() + 2;
 			}
+
+			str.erase(str.begin(), str.begin() + str_cur);
+
+			str_cur = 0;
 		}
 		while (false == is_find_data_end);
 

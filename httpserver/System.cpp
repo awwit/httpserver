@@ -10,7 +10,7 @@ namespace System
 		::HWND hWnd;
 	};
 
-	BOOL WINAPI EnumProc(::HWND hWnd, ::LPARAM lParam)
+    ::BOOL WINAPI EnumProc(::HWND hWnd, ::LPARAM lParam)
 	{
 		EnumData &ed = *reinterpret_cast<EnumData *>(lParam);
 
@@ -18,13 +18,13 @@ namespace System
 
 		::GetWindowThreadProcessId(hWnd, &process_id);
 
-		if (process_id == ed.process_id && GetConsoleWindow() != hWnd)
+        if (process_id == ed.process_id && ::GetConsoleWindow() != hWnd)
 		{
 			char class_name[65] = {0};
 
-			GetClassName(hWnd, class_name, 64);
+            ::GetClassName(hWnd, class_name, 64);
 
-			if (0 == strcmp(class_name, myWndClassName) )
+            if (0 == ::strcmp(class_name, myWndClassName) )
 			{
 				ed.hWnd = hWnd;
 
@@ -51,6 +51,35 @@ namespace System
 		return 0 != ::PostMessage(ed.hWnd, signal, 0, 0);
 	#elif POSIX
 		return 0 == ::kill(pid, signal);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	std::string getTempDir()
+	{
+	#ifdef WIN32
+		std::vector<std::string::value_type> buf(MAX_PATH + 1);
+
+        size_t len = ::GetTempPath(MAX_PATH + 1, buf.data() );
+
+		return std::string(buf.cbegin(), buf.cbegin() + len);
+	#elif POSIX
+        const char *buf = ::getenv("TMPDIR");
+
+		if (nullptr == buf)
+		{
+			return std::string("/tmp/");
+		}
+
+		std::string str(buf);
+
+		if ('/' != str.back() )
+		{
+			str.push_back('/');
+		}
+
+		return str;
 	#else
 		#error "Undefine platform"
 	#endif
