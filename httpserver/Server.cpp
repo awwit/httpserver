@@ -226,7 +226,7 @@ namespace HttpServer
 
 					send_size_left -= send_size;
 				}
-				while (false == file.eof() && std::numeric_limits<size_t>::max() != send_size && send_size_left);
+				while (false == file.eof() && false == file.fail() && std::numeric_limits<size_t>::max() != send_size && send_size_left);
 			}
 		}
 
@@ -348,7 +348,7 @@ namespace HttpServer
 				file.read(reinterpret_cast<char *>(buf.data() ), buf.size() );
 				send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
 			}
-            while (false == file.eof() && false == file.fail() && std::numeric_limits<size_t>::max() != send_size);
+			while (false == file.eof() && false == file.fail() && std::numeric_limits<size_t>::max() != send_size);
 		}
 
 		file.close();
