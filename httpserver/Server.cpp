@@ -340,6 +340,10 @@ namespace HttpServer
 		if (false == headersOnly && file_size)
 		{
 			std::vector<std::string::value_type> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
+		//	buf.assign(headers.cbegin(), headers.cend() );
+
+		//	file.read(reinterpret_cast<char *>(buf.data() + headers.length() ), buf.size() - headers.length() );
+		//	size_t send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
 
 			size_t send_size;
 
@@ -452,7 +456,7 @@ namespace HttpServer
 			std::string uri_reference;
 
 			// Подготовить параметры для получения данных
-			std::chrono::milliseconds timeout(5000);
+			std::chrono::milliseconds timeout(500);
 
 			// Получить данные запроса от клиента
 			const size_t recv_size = clientSocket.nonblock_recv(buf, timeout);
@@ -863,6 +867,9 @@ namespace HttpServer
 
 		if (false == connection_upgrade)
 		{
+			// TODO: wait for send all data to client
+			clientSocket.nonblock_send_sync();
+
 			clientSocket.shutdown();
 			clientSocket.close();
 		}
@@ -1439,6 +1446,7 @@ namespace HttpServer
 					if (sock.is_open() )
 					{
 						sock.nonblock(true);
+						sock.tcp_nodelay(true);
 						sockets.emplace(std::move(sock) );
 					}
 				}

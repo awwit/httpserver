@@ -22,9 +22,37 @@ namespace HttpServer
 		}
 	}
 
-	void Event::notify()
+	bool Event::wait_for(const std::chrono::milliseconds &ms)
 	{
 		std::unique_lock<std::mutex> lck(mtx);
+
+		auto status = cv.wait_for(lck, ms);
+
+		if (false == manualy)
+		{
+			signaled = false;
+		}
+
+		return std::cv_status::timeout == status;
+	}
+
+	bool Event::wait_until(const std::chrono::high_resolution_clock::time_point &tp)
+	{
+		std::unique_lock<std::mutex> lck(mtx);
+
+		auto status = cv.wait_until(lck, tp);
+
+		if (false == manualy)
+		{
+			signaled = false;
+		}
+
+		return std::cv_status::timeout == status;
+	}
+
+	void Event::notify()
+	{
+	//	std::unique_lock<std::mutex> lck(mtx);
 		signaled = true;
 		cv.notify_all();
 	}
@@ -33,7 +61,7 @@ namespace HttpServer
 	{
 		if (threadsCount)
 		{
-			std::unique_lock<std::mutex> lck(mtx);
+		//	std::unique_lock<std::mutex> lck(mtx);
 
 			signaled = true;
 
@@ -46,14 +74,14 @@ namespace HttpServer
 
 	void Event::reset()
 	{
-		std::unique_lock<std::mutex> lck(mtx);
+	//	std::unique_lock<std::mutex> lck(mtx);
 
 		signaled = false;
 	}
 
 	bool Event::notifed()
 	{
-		std::unique_lock<std::mutex> lck(mtx);
+	//	std::unique_lock<std::mutex> lck(mtx);
 
 		return signaled;
 	}

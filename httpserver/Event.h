@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 namespace HttpServer
 {
@@ -10,7 +11,7 @@ namespace HttpServer
 	private:
 		std::mutex mtx;
 		std::condition_variable cv;
-		bool signaled;
+		std::atomic<bool> signaled;
 		bool manualy;
 
 	public:
@@ -19,8 +20,12 @@ namespace HttpServer
 
 	public:
 		void wait();
+		bool wait_for(const std::chrono::milliseconds &);
+		bool wait_until(const std::chrono::high_resolution_clock::time_point &);
+
 		void notify();
 		void notify(const size_t);
+
 		void reset();
 
 		bool notifed();

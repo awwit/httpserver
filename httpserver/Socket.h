@@ -10,6 +10,7 @@
 	#include <sys/epoll.h>
 	#include <poll.h>
 	#include <netinet/in.h>
+	#include <netinet/tcp.h>
 	#include <unistd.h>
 	#include <fcntl.h>
 #else
@@ -69,6 +70,7 @@ namespace HttpServer
 
 		bool nonblock(const bool = true) const;
 	//	bool is_nonblock() const;
+		bool tcp_nodelay(const bool = true) const;
 
 		size_t recv(std::vector<std::string::value_type> &) const;
 		size_t nonblock_recv(std::vector<std::string::value_type> &, const std::chrono::milliseconds &) const;
@@ -79,11 +81,16 @@ namespace HttpServer
 		size_t nonblock_send(const std::string &, const std::chrono::milliseconds &) const;
 		size_t nonblock_send(const std::vector<std::string::value_type> &, const size_t, const std::chrono::milliseconds &) const;
 
+		void nonblock_send_sync() const;
+
 		inline System::native_socket_type get_handle() const
 		{
 			return socket_handle;
 		}
 
 		Socket &operator =(const Socket);
+
+		bool operator ==(const Socket &sock) const;
+		bool operator !=(const Socket &sock) const;
 	};
 };

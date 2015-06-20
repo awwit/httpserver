@@ -210,6 +210,19 @@ namespace HttpServer
 	#endif
 	}*/
 
+	bool Socket::tcp_nodelay(const bool nodelay) const
+	{
+	#ifdef WIN32
+		int flags = nodelay ? 1 : 0;
+		return 0 == setsockopt(socket_handle, IPPROTO_TCP, TCP_NODELAY, (char *)&flags, sizeof(flags) );
+	#elif POSIX
+		int flags = nodelay ? 1 : 0;
+		return 0 == setsockopt(socket_handle, IPPROTO_TCP, TCP_NODELAY, (char *)&flags, sizeof(flags) );
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	size_t Socket::recv(std::vector<std::string::value_type> &buf) const
 	{
 	#ifdef WIN32
@@ -328,7 +341,7 @@ namespace HttpServer
 
         if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLOUT)
 		{
-			send_len = ::send(socket_handle, buf.data(), length, MSG_WAITALL | MSG_NOSIGNAL);
+			send_len = ::send(socket_handle, buf.data(), length, MSG_NOSIGNAL);
 		}
 	#else
 		#error "Undefine platform"
@@ -336,9 +349,42 @@ namespace HttpServer
 		return send_len;
 	}
 
+	void Socket::nonblock_send_sync() const
+	{
+	#ifdef WIN32
+		WSAPOLLFD event = {
+			socket_handle,
+			POLLWRNORM,
+			0
+		};
+
+		::WSAPoll(&event, 1, ~0);
+	#elif POSIX
+		struct ::pollfd event = {
+			socket_handle,
+			POLLOUT,
+			0
+		};
+
+		::poll(&event, 1, ~0);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	Socket &Socket::operator=(const Socket s)
 	{
 		socket_handle = s.socket_handle;
 		return *this;
+	}
+
+	bool Socket::operator ==(const Socket &sock) const
+	{
+		return this->socket_handle == sock.socket_handle;
+	}
+
+	bool Socket::operator !=(const Socket &sock) const
+	{
+		return this->socket_handle != sock.socket_handle;
 	}
 };
