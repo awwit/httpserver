@@ -244,7 +244,7 @@ namespace HttpServer
 		const std::chrono::milliseconds &timeout,
 		const std::string &fileName,
 		const std::unordered_map<std::string, std::string> &inHeaders,
-		const std::map<std::string, std::string> &outHeaders,
+		const std::unordered_map<std::string, std::string> &outHeaders,
 		const std::string &connectionHeader,
 		const bool headersOnly
 	) const
@@ -340,10 +340,6 @@ namespace HttpServer
 		if (false == headersOnly && file_size)
 		{
 			std::vector<std::string::value_type> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
-		//	buf.assign(headers.cbegin(), headers.cend() );
-
-		//	file.read(reinterpret_cast<char *>(buf.data() + headers.length() ), buf.size() - headers.length() );
-		//	size_t send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
 
 			size_t send_size;
 
@@ -449,7 +445,7 @@ namespace HttpServer
 			std::unordered_multimap<std::string, std::string> incoming_data;
 			std::unordered_multimap<std::string, FileIncoming> incoming_files;
 
-			std::map<std::string, std::string> outgoing_headers;
+			std::unordered_map<std::string, std::string> outgoing_headers;
 
 			std::string method;
 			std::string version;
@@ -771,7 +767,7 @@ namespace HttpServer
 
 							if (EXIT_SUCCESS == app_exit_code)
 							{
-                                Utils::rawPairsToStlMap(outgoing_headers, response.headers, response.headers_count);
+								Utils::rawPairsToStl(outgoing_headers, response.headers, response.headers_count);
 							}
 
 							try
@@ -783,7 +779,7 @@ namespace HttpServer
                             Utils::destroyRawPairs(raw_pair_params, incoming_params.size() );
                             Utils::destroyRawPairs(raw_pair_headers, incoming_headers.size() );
                             Utils::destroyRawPairs(raw_pair_data, incoming_data.size() );
-                            Utils::destroyRawFilesInfo(raw_fileinfo_files, incoming_files.size() );
+							Utils::destroyRawFilesInfo(raw_fileinfo_files, incoming_files.size() );
 						}
 						else
 						{
@@ -867,7 +863,7 @@ namespace HttpServer
 
 		if (false == connection_upgrade)
 		{
-			// TODO: wait for send all data to client
+			// Wait for send all data to client
 			clientSocket.nonblock_send_sync();
 
 			clientSocket.shutdown();

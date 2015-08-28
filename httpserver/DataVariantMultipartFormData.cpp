@@ -75,7 +75,14 @@ namespace HttpServer
 		// Определить признак начала блока данных
 		std::string block_delimiter("--" + it->second);
 		// Определить признак окончания всех данных
-		const std::string data_end("\r\n--" + it->second + "--\r\n");
+		std::string data_end("--" + it->second + "--\r\n");
+
+		if (0 == str.find(data_end) )
+		{
+			return true;
+		}
+
+		data_end = "\r\n" + data_end;
 
 		// Установить размер буфера данных
 		const size_t buf_len = (leftBytes >= 512 * 1024) ? 512 * 1024 : leftBytes;

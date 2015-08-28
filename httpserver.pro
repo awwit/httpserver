@@ -7,14 +7,14 @@ DEFINES += POSIX
 
 CONFIG(debug, debug|release):DEFINES += DEBUG
 
-QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -std=c++1y
 
 CONFIG(release, debug|release)
 {
 	QMAKE_CFLAGS_RELEASE -= -O
 	QMAKE_CFLAGS_RELEASE -= -O1
-	QMAKE_CFLAGS_RELEASE -= -O2
-	QMAKE_CFLAGS_RELEASE *= -O3
+	QMAKE_CFLAGS_RELEASE *= -O2
+#	QMAKE_CFLAGS_RELEASE *= -O3
 }
 
 LIBS += -ldl -pthread

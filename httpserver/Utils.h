@@ -34,6 +34,34 @@ namespace Utils
 
 	char *stlStringToPChar(const std::string &);
 
+	template<typename T>
+	void stlToRawPairs(Utils::raw_pair *raw[], const T &stl)
+	{
+		if (raw && stl.size() )
+		{
+			raw_pair *arr = new raw_pair[stl.size()];
+
+			*raw = arr;
+
+			size_t i = 0;
+
+			for (auto it = stl.cbegin(); stl.cend() != it; ++it, ++i)
+			{
+				arr[i].key = stlStringToPChar(it->first);
+				arr[i].value = stlStringToPChar(it->second);
+			}
+		}
+	}
+
+	template<typename T>
+	void rawPairsToStl(T &stl, const Utils::raw_pair raw[], const size_t count)
+	{
+		for (size_t i = 0; i < count; ++i)
+		{
+			stl.emplace(raw[i].key ? raw[i].key : "", raw[i].value ? raw[i].value : "");
+		}
+	}
+
 	void stlMapToRawPairs(Utils::raw_pair *[], const std::map<std::string, std::string> &);
 	void stlMultimapToRawPairs(Utils::raw_pair *[], const std::multimap<std::string, std::string> &);
 	void stlUnorderedMapToRawPairs(Utils::raw_pair *[], const std::unordered_map<std::string, std::string> &);

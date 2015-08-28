@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include <memory>
+
 #include <vector>
 #include <queue>
 #include <string>
@@ -52,7 +53,17 @@ namespace HttpServer
         int threadRequestProc(Socket) const;
         void threadRequestCycle(std::queue<Socket> &) const;
 		int transferFilePart(const Socket &, const std::chrono::milliseconds &, const std::string &, const time_t, const size_t, const std::string &, const std::string &, const std::string &, const bool) const;
-		int transferFile(const Socket &, const std::chrono::milliseconds &, const std::string &, const std::unordered_map<std::string, std::string> &, const std::map<std::string, std::string> &, const std::string &, const bool) const;
+
+		int transferFile(
+			const Socket &,
+			const std::chrono::milliseconds &,
+			const std::string &,
+			const std::unordered_map<std::string, std::string> &,
+			const std::unordered_map<std::string, std::string> &,
+			const std::string &,
+			const bool
+		) const;
+
 		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &) const;
 
 		bool init();
