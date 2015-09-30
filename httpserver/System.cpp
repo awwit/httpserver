@@ -61,7 +61,7 @@ namespace System
 	#ifdef WIN32
 		std::vector<std::string::value_type> buf(MAX_PATH + 1);
 
-        size_t len = ::GetTempPath(MAX_PATH + 1, buf.data() );
+		const size_t len = ::GetTempPath(MAX_PATH + 1, buf.data() );
 
 		return std::string(buf.cbegin(), buf.cbegin() + len);
 	#elif POSIX

@@ -1,22 +1,18 @@
 #pragma once
 
-#include <cstddef>
-
-#include <memory>
-
-#include <vector>
-#include <queue>
-#include <string>
-#include <unordered_map>
-#include <csignal>
-#include <atomic>
-
 #include "SocketList.h"
 #include "DataVariantAbstract.h"
 #include "ServerApplicationsTree.h"
 #include "ServerApplicationDefaultSettings.h"
 #include "Module.h"
 #include "Event.h"
+
+#include <cstddef>
+#include <memory>
+#include <vector>
+#include <queue>
+#include <csignal>
+#include <atomic>
 
 namespace HttpServer
 {
@@ -48,23 +44,66 @@ namespace HttpServer
 		sig_atomic_t restart_flag;
 
 	protected:
-		int cycleQueue(std::queue<Socket> &);
-		void sendStatus(const Socket &, const std::chrono::milliseconds &, const size_t) const;
-        int threadRequestProc(Socket) const;
-        void threadRequestCycle(std::queue<Socket> &) const;
-		int transferFilePart(const Socket &, const std::chrono::milliseconds &, const std::string &, const time_t, const size_t, const std::string &, const std::string &, const std::string &, const bool) const;
+		static const int CONNECTION_CLOSED = 0;
+		static const int CONNECTION_KEEP_ALIVE = 1;
+		static const int CONNECTION_UPGRADE = 2;
 
-		int transferFile(
+	protected:
+		int cycleQueue(std::queue<Socket> &);
+
+        int threadRequestProc(Socket) const;
+
+		static bool getRequest(Socket clientSocket, std::vector<std::string::value_type> &buf, std::string &str_buf, struct request_parameters &rp);
+
+		int getRequestHeaders(std::string &str_buf, struct request_parameters &rp) const;
+
+		static void runApplication(Socket clientSocket, const ServerApplicationSettings &appSets, struct request_parameters &rp);
+
+		int getRequestData(Socket clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const;
+
+		const ServerApplicationSettings *getApplicationSettings(const struct request_parameters &rp) const;
+
+		static void getConnectionParams(struct request_parameters &rp);
+
+		void xSendfile(Socket clientSocket, struct request_parameters &rp) const;
+
+		static bool isConnectionKeepAlive(const struct request_parameters &rp);
+		static bool isConnectionUpgrade(const struct request_parameters &rp);
+
+        void threadRequestCycle(std::queue<Socket> &) const;
+
+		std::string getMimeTypeByFileName(const std::string &fileName) const;
+
+		std::vector<std::tuple<size_t, size_t> > getRanges(
+			const std::string &rangeHeader,
+			const size_t posSymEqual,
+			const size_t fileSize,
+			std::string &resultRangeHeader,
+			size_t &contentLength
+		) const;
+
+		int transferFilePart(
 			const Socket &,
 			const std::chrono::milliseconds &,
 			const std::string &,
-			const std::unordered_map<std::string, std::string> &,
-			const std::unordered_map<std::string, std::string> &,
+			const time_t,
+			const size_t,
+			const std::string &,
+			const std::string &,
 			const std::string &,
 			const bool
 		) const;
 
-		bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &) const;
+		int transferFile(
+			const Socket &,
+			const std::string &,
+			const std::string &,
+			const bool,
+			struct request_parameters &rp
+		) const;
+
+		static bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &);
+		static void sendStatus(const Socket &, const std::chrono::milliseconds &, const size_t);
 
 		bool init();
 		int run();
@@ -73,7 +112,7 @@ namespace HttpServer
 		System::native_processid_type getPidFromFile() const;
 
 		void updateModules();
-			bool updateModule(Module &, std::unordered_set<ServerApplicationSettings *> &, const size_t);
+		bool updateModule(Module &, std::unordered_set<ServerApplicationSettings *> &, const size_t);
 
 	private:
 		void addDataVariant(DataVariantAbstract *);

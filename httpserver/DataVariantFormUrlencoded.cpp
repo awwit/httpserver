@@ -13,12 +13,10 @@ namespace HttpServer
 	bool DataVariantFormUrlencoded::parse
 	(
 		const Socket &sock,
-		const std::chrono::milliseconds &timeout,
 		std::string &str,
 		const size_t leftBytes,
-		const std::unordered_map<std::string, std::string> &params,
-		std::unordered_multimap<std::string, std::string> &data,
-		std::unordered_multimap<std::string, FileIncoming> &files
+		std::unordered_map<std::string, std::string> &contentParams,
+		struct request_parameters &rp
 	)
 	{
 		if (str.empty() )
@@ -40,7 +38,7 @@ namespace HttpServer
 				std::string var_name = Utils::urlDecode(str.substr(var_pos, std::string::npos != var_end ? var_end - var_pos : std::string::npos) );
 
 				// Сохранить параметр с пустым значением
-				data.emplace(std::move(var_name), "");
+				rp.incoming_data.emplace(std::move(var_name), "");
 			}
 			else
 			{
@@ -53,7 +51,7 @@ namespace HttpServer
 				std::string var_value = Utils::urlDecode(str.substr(delimiter, std::string::npos != var_end ? var_end - delimiter : std::string::npos) );
 
 				// Сохранить параметр и значение
-				data.emplace(std::move(var_name), std::move(var_value) );
+				rp.incoming_data.emplace(std::move(var_name), std::move(var_value) );
 			}
 		}
 

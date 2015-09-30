@@ -5,7 +5,7 @@ namespace HttpServer
 {
 	ServerApplicationsTree::ServerApplicationsTree(): app_sets(nullptr)
 	{
-		
+
 	}
 
 	ServerApplicationsTree::~ServerApplicationsTree()
@@ -27,7 +27,7 @@ namespace HttpServer
 
 			ServerApplicationsTree *sub;
 
-            if (list.cend() != it)
+			if (list.cend() != it)
 			{
 				sub = it->second;
 			}
@@ -79,7 +79,7 @@ namespace HttpServer
 		addApplication(name_parts, sets);
 	}
 
-	ServerApplicationSettings *ServerApplicationsTree::find(std::vector<std::string> &nameParts) const
+	const ServerApplicationSettings *ServerApplicationsTree::find(std::vector<std::string> &nameParts) const
 	{
 		if (nameParts.empty() )
 		{
@@ -111,7 +111,7 @@ namespace HttpServer
 		}
 	}
 
-	ServerApplicationSettings *ServerApplicationsTree::find(const std::string &name) const
+	const ServerApplicationSettings *ServerApplicationsTree::find(const std::string &name) const
 	{
 		std::vector<std::string> name_parts;
 
@@ -142,14 +142,16 @@ namespace HttpServer
 
 	void ServerApplicationsTree::collectApplicationSettings(std::unordered_set<ServerApplicationSettings *> &set) const
 	{
-		for (auto l : list)
+		for (auto &node : list)
 		{
-			if (nullptr != l.second->app_sets)
+			ServerApplicationsTree *tree = node.second;
+
+			if (nullptr != tree->app_sets)
 			{
-				set.emplace(l.second->app_sets);
+				set.emplace(tree->app_sets);
 			}
 
-			l.second->collectApplicationSettings(set);
+			tree->collectApplicationSettings(set);
 		}
 	}
 

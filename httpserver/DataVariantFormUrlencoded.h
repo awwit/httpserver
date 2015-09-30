@@ -13,12 +13,10 @@ namespace HttpServer
 		virtual bool parse
 		(
 			const Socket &,
-			const std::chrono::milliseconds &,
 			std::string &,
 			const size_t,
-			const std::unordered_map<std::string, std::string> &,
-			std::unordered_multimap<std::string, std::string> &,
-			std::unordered_multimap<std::string, FileIncoming> &
+			std::unordered_map<std::string, std::string> &contentParams,
+			struct request_parameters &rp
 		) override;
 	};
 };

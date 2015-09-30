@@ -26,7 +26,7 @@ namespace HttpServer
 	{
 		std::unique_lock<std::mutex> lck(mtx);
 
-		auto status = cv.wait_for(lck, ms);
+		auto const status = cv.wait_for(lck, ms);
 
 		if (false == manualy)
 		{
@@ -40,7 +40,7 @@ namespace HttpServer
 	{
 		std::unique_lock<std::mutex> lck(mtx);
 
-		auto status = cv.wait_until(lck, tp);
+		auto const status = cv.wait_until(lck, tp);
 
 		if (false == manualy)
 		{

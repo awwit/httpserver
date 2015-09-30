@@ -20,58 +20,47 @@
 
 namespace HttpServer
 {
-	int Server::transferFilePart
-	(
-		const Socket &clientSocket,
-		const std::chrono::milliseconds &timeout,
-		const std::string &fileName,
-		const time_t fileTime,
-		const size_t fileSize,
+	std::string Server::getMimeTypeByFileName(const std::string &fileName) const
+	{
+		const size_t ext_pos = fileName.rfind('.');
+		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
+
+		std::locale loc;
+		Utils::tolower(file_ext, loc);
+
+		auto it_mime = this->mimes_types.find(file_ext);
+
+		return this->mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
+	}
+
+	std::vector<std::tuple<size_t, size_t> > Server::getRanges(
 		const std::string &rangeHeader,
-		const std::string &connectionHeader,
-		const std::string &dateHeader,
-		const bool headersOnly
+		const size_t posSymEqual,
+		const size_t fileSize,
+		std::string &resultRangeHeader,
+		size_t &contentLength
 	) const
 	{
-		size_t delimiter = rangeHeader.find('=');
+		std::vector<std::tuple<size_t, size_t> > ranges;
 
-		if (std::string::npos == delimiter)
-		{
-			// HTTP 400
-			std::string headers("HTTP/1.1 400 Bad Request\r\n");
-			headers += connectionHeader + dateHeader + "\r\n";
+		contentLength = 0;
 
-			clientSocket.nonblock_send(headers, timeout);
+		size_t delimiter = posSymEqual; // rangeHeader.find('=');
 
-			return 0;
-		}
+		const std::string range_unit_name(rangeHeader.cbegin(), rangeHeader.cbegin() + delimiter);
 
-		std::string range_unit_name(rangeHeader.cbegin(), rangeHeader.cbegin() + delimiter);
-
-		const std::unordered_map<std::string, size_t> ranges_units {
+		static const std::unordered_map<std::string, size_t> ranges_units {
 			{"bytes", 1}
 		};
 
 		auto it_unit = ranges_units.find(range_unit_name);
 
-        if (ranges_units.cend() == it_unit)
+		if (ranges_units.cend() == it_unit)
 		{
-			// HTTP 416
-			std::string headers("HTTP/1.1 416 Requested Range Not Satisfiable\r\n");
-			headers += connectionHeader + dateHeader + "\r\n";
-
-			clientSocket.nonblock_send(headers, timeout);
-
-			return 0;
+			return ranges;
 		}
 
-		const size_t range_unit = it_unit->second;
-
-		std::vector<std::tuple<size_t, size_t> > ranges;
-
-		std::string content_range_header("bytes ");
-
-		size_t content_length = 0;
+		const size_t &range_unit = it_unit->second;
 
 		for (size_t str_pos; std::string::npos != delimiter; )
 		{
@@ -105,9 +94,9 @@ namespace HttpServer
 
 								const size_t length = range_end - range_begin + 1;
 
-								content_length += length;
+								contentLength += length;
 
-								content_range_header += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
+								resultRangeHeader += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
 
 								ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
 							}
@@ -116,9 +105,9 @@ namespace HttpServer
 						{
 							const size_t length = fileSize - range_begin;
 
-							content_length += length;
+							contentLength += length;
 
-							content_range_header += std::to_string(range_begin) + '-' + std::to_string(fileSize - 1) + ',';
+							resultRangeHeader += std::to_string(range_begin) + '-' + std::to_string(fileSize - 1) + ',';
 
 							ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
 						}
@@ -134,14 +123,56 @@ namespace HttpServer
 
 					range_end = fileSize - range_begin - 1;
 
-					content_length += length;
+					contentLength += length;
 
-					content_range_header += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
+					resultRangeHeader += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
 
 					ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
 				}
 			}
 		}
+
+		if (false == ranges.empty() )
+		{
+			resultRangeHeader.back() = '/';
+
+			resultRangeHeader = "bytes " + resultRangeHeader + std::to_string(fileSize);
+		}
+
+		return ranges;
+	}
+
+	int Server::transferFilePart
+	(
+		const Socket &clientSocket,
+		const std::chrono::milliseconds &timeout,
+		const std::string &fileName,
+		const time_t fileTime,
+		const size_t fileSize,
+		const std::string &rangeHeader,
+		const std::string &connectionHeader,
+		const std::string &dateHeader,
+		const bool headersOnly
+	) const
+	{
+		const size_t pos_sym_equal = rangeHeader.find('=');
+
+		if (std::string::npos == pos_sym_equal)
+		{
+			// HTTP 400
+			std::string headers("HTTP/1.1 400 Bad Request\r\n");
+			headers += connectionHeader + dateHeader + "\r\n";
+
+			clientSocket.nonblock_send(headers, timeout);
+
+			return 0;
+		}
+
+		std::string content_range_header;
+
+		size_t content_length;
+
+		const std::vector<std::tuple<size_t, size_t> > ranges = this->getRanges(rangeHeader, pos_sym_equal, fileSize, content_range_header, content_length);
 
 		if (0 == content_length)
 		{
@@ -153,10 +184,6 @@ namespace HttpServer
 
 			return 0;
 		}
-
-		content_range_header.back() = '/';
-
-		content_range_header += std::to_string(fileSize);
 
 		// Ranges transfer
 		std::ifstream file(fileName, std::ifstream::binary);
@@ -174,22 +201,14 @@ namespace HttpServer
 			return 0;
 		}
 
-		const size_t ext_pos = fileName.rfind('.');
-		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
-
-		std::locale loc;
-		Utils::tolower(file_ext, loc);
-
-		auto it_mime = this->mimes_types.find(file_ext);
-
-		std::string file_mime_type = this->mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
+		const std::string file_mime_type = this->getMimeTypeByFileName(fileName);
 
 		std::string headers("HTTP/1.1 206 Partial Content\r\n");
 		headers += "Content-Type: " + file_mime_type + "\r\n"
 			+ "Content-Length: " + std::to_string(content_length) + "\r\n"
 			+ "Accept-Ranges: bytes\r\n"
 			+ "Content-Range: " + content_range_header + "\r\n"
-			+ "Last-Modified: " + Utils::getDatetimeStringValue(fileTime, true) + "\r\n"
+			+ "Last-Modified: " + Utils::getDatetimeAsString(fileTime, true) + "\r\n"
 			+ connectionHeader + dateHeader + "\r\n";
 
 		// Отправить заголовки
@@ -208,7 +227,9 @@ namespace HttpServer
 
                 std::vector<std::string::value_type> buf(length < 512 * 1024 ? length : 512 * 1024);
 
-				file.seekg(std::get<0>(range), file.beg);
+				const size_t position = std::get<0>(range);
+
+				file.seekg(position, file.beg);
 
 				size_t send_size_left = length;
 
@@ -232,7 +253,7 @@ namespace HttpServer
 
 		file.close();
 
-		return 0;
+		return 1;
 	}
 
 	/**
@@ -241,16 +262,14 @@ namespace HttpServer
 	int Server::transferFile
 	(
 		const Socket &clientSocket,
-		const std::chrono::milliseconds &timeout,
 		const std::string &fileName,
-		const std::unordered_map<std::string, std::string> &inHeaders,
-		const std::unordered_map<std::string, std::string> &outHeaders,
 		const std::string &connectionHeader,
-		const bool headersOnly
+		const bool headersOnly,
+		struct request_parameters &rp
 	) const
 	{
 		// Get current time in GMT
-		const std::string date_header = "Date: " + Utils::getDatetimeStringValue() + "\r\n";
+		const std::string date_header = "Date: " + Utils::getDatetimeAsString() + "\r\n";
 
 		time_t file_time;
 		size_t file_size;
@@ -262,16 +281,16 @@ namespace HttpServer
 			std::string headers("HTTP/1.1 404 Not Found\r\n");
 			headers += connectionHeader + date_header + "\r\n";
 
-			clientSocket.nonblock_send(headers, timeout);
+			clientSocket.nonblock_send(headers, rp.timeout);
 
 			return 0;
 		}
 
 		// Check for If-Modified header
-		auto it_modified = inHeaders.find("If-Modified-Since");
+		auto it_modified = rp.incoming_headers.find("If-Modified-Since");
 
 		// Если найден заголовок проверки изменения файла (проверить, изменялся ли файл)
-        if (inHeaders.cend() != it_modified)
+		if (rp.incoming_headers.cend() != it_modified)
 		{
 			const time_t time_in_request = Utils::stringTimeToTimestamp(it_modified->second);
 
@@ -281,18 +300,18 @@ namespace HttpServer
 				std::string headers("HTTP/1.1 304 Not Modified\r\n");
 				headers += connectionHeader + date_header + "\r\n";
 
-				clientSocket.nonblock_send(headers, timeout);
+				clientSocket.nonblock_send(headers, rp.timeout);
 
 				return 0;
 			}
 		}
 
-		auto it_range = inHeaders.find("Range");
+		auto it_range = rp.incoming_headers.find("Range");
 
 		// Range transfer
-        if (inHeaders.cend() != it_range)
+		if (rp.incoming_headers.cend() != it_range)
 		{
-			return this->transferFilePart(clientSocket, timeout, fileName, file_time, file_size, it_range->second, connectionHeader, date_header, headersOnly);
+			return this->transferFilePart(clientSocket, rp.timeout, fileName, file_time, file_size, it_range->second, connectionHeader, date_header, headersOnly);
 		}
 
 		// File transfer
@@ -306,30 +325,22 @@ namespace HttpServer
 			std::string headers("HTTP/1.1 500 Internal Server Error\r\n");
 			headers += connectionHeader + date_header + "\r\n";
 
-			clientSocket.nonblock_send(headers, timeout);
+			clientSocket.nonblock_send(headers, rp.timeout);
 
 			return 0;
 		}
 
-		const size_t ext_pos = fileName.rfind('.');
-		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
-
-		std::locale loc;
-		Utils::tolower(file_ext, loc);
-
-		auto it_mime = this->mimes_types.find(file_ext);
-
-		std::string file_mime_type = this->mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
+		const std::string file_mime_type = this->getMimeTypeByFileName(fileName);
 
 		std::string headers("HTTP/1.1 200 OK\r\n");
 		headers += "Content-Type: " + file_mime_type + "\r\n"
 			+ "Content-Length: " + std::to_string(file_size) + "\r\n"
 			+ "Accept-Ranges: bytes\r\n"
-			+ "Last-Modified: " + Utils::getDatetimeStringValue(file_time, true) + "\r\n"
+			+ "Last-Modified: " + Utils::getDatetimeAsString(file_time, true) + "\r\n"
 			+ connectionHeader + date_header + "\r\n";
 
 		// Отправить заголовки
-		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
+		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, rp.timeout) )
 		{
 			file.close();
 
@@ -346,20 +357,20 @@ namespace HttpServer
 			do
 			{
 				file.read(reinterpret_cast<char *>(buf.data() ), buf.size() );
-				send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
+				send_size = clientSocket.nonblock_send(buf, file.gcount(), rp.timeout);
 			}
 			while (false == file.eof() && false == file.fail() && std::numeric_limits<size_t>::max() != send_size);
 		}
 
 		file.close();
 
-		return 0;
+		return 1;
 	}
 
 	/**
 	 * Парсинг переданных параметров (URI)
 	 */
-	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &params, const std::string &uriParams) const
+	bool Server::parseIncomingVars(std::unordered_multimap<std::string, std::string> &params, const std::string &uriParams)
 	{
 		if (uriParams.length() )
 		{
@@ -400,7 +411,7 @@ namespace HttpServer
 		return false;
 	}
 
-	void Server::sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode) const
+	void Server::sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode)
 	{
         static const std::unordered_map<size_t, std::string> statuses {
 			{400, "Bad Request"},
@@ -421,15 +432,13 @@ namespace HttpServer
 	}
 
 	/**
-	 * Метод для обработки запроса (запускается в отдельном потоке)
+	 * Метод для обработки запроса
 	 */
 	int Server::threadRequestProc(Socket clientSocket) const
 	{
-		int app_exit_code;
+		struct request_parameters rp;
 
-		bool connection_upgrade = false;
-		bool connection_keep_alive;
-		size_t keep_alive_count = 100;
+		rp.keep_alive_count = 100;
 
 		const size_t buf_len = 4096;
 		std::vector<std::string::value_type> buf(buf_len);
@@ -438,430 +447,64 @@ namespace HttpServer
 
 		do
 		{
-			app_exit_code = EXIT_FAILURE;
-
-			std::unordered_map<std::string, std::string> incoming_headers;
-			std::unordered_multimap<std::string, std::string> incoming_params;
-			std::unordered_multimap<std::string, std::string> incoming_data;
-			std::unordered_multimap<std::string, FileIncoming> incoming_files;
-
-			std::unordered_map<std::string, std::string> outgoing_headers;
-
-			std::string method;
-			std::string version;
-			std::string uri_reference;
+			rp.app_exit_code = EXIT_FAILURE;
 
 			// Подготовить параметры для получения данных
-			std::chrono::milliseconds timeout(500);
+			rp.timeout = std::chrono::milliseconds(5000);
 
-			// Получить данные запроса от клиента
-			const size_t recv_size = clientSocket.nonblock_recv(buf, timeout);
-
-			if (std::numeric_limits<size_t>::max() == recv_size && str_buf.empty() )
+			if (false == getRequest(clientSocket, buf, str_buf, rp) )
 			{
-			#ifdef DEBUG
-				#ifdef WIN32
-					std::cout << "Error: " << WSAGetLastError() << std::endl;
-				#elif POSIX
-					std::cout << "Error: " << errno << std::endl;
-				#endif
-			#endif
 				break;
 			}
 
-			if (recv_size) // Если данные были получены
+			if (int error_code = getRequestHeaders(str_buf, rp) )
 			{
-				str_buf.append(buf.cbegin(), buf.cbegin() + recv_size);
-			}
-
-			if (false == str_buf.empty() )
-			{
-				// Поиск конца заголовков (пустая строка)
-				size_t headers_end = str_buf.find("\r\n\r\n");
-
-				// Если найден конец заголовков
-				if (std::string::npos != headers_end)
-				{
-					headers_end += 2;
-
-					size_t str_cur = 0;
-					// Поиск конца первого заголовка
-					size_t str_end = str_buf.find("\r\n");
-
-					// Если не найден конец заголовка
-					if (std::string::npos == str_end)
-					{
-						sendStatus(clientSocket, timeout, 400);
-						break;
-					}
-
-					// Установка конца строки (для поиска)
-					str_buf[str_end] = '\0';
-
-					// Разделить метод запроса и параметры запроса
-					size_t delimiter = str_buf.find(' ', str_cur);
-
-					// Получить метод запроса (GET, POST, PUT, DELETE, ...)
-					method = str_buf.substr(str_cur, delimiter - str_cur);
-					// Сохранить метод и параметры запроса
-					incoming_headers[method] = str_buf.substr(delimiter + 1, str_end - delimiter - 1);
-
-					delimiter += 1;
-					// Найти окончание URI
-					size_t uri_end = str_buf.find(' ', delimiter);
-
-					// Если окончание не найдено
-					if (std::string::npos == uri_end)
-					{
-						uri_end = str_end;
-						// то версия протокола HTTP - 0.9
-						version = "0.9";
-					}
-					else // Если окончание найдено
-					{
-						str_buf[uri_end] = '\0';
-						const size_t ver_beg = uri_end + 6; // Пропустить "HTTP/"
-
-						if (ver_beg < str_end)
-						{
-							// Получить версию протокола HTTP
-							version = str_buf.substr(ver_beg, str_end - ver_beg);
-						}
-					}
-
-					// Поиск именованных параметров запросов (переменных ?)
-					size_t params_pos = str_buf.find('?', delimiter);
-
-					// Сохранить полную ссылку URI (без параметров)
-					uri_reference = (std::string::npos == params_pos) ? str_buf.substr(delimiter) : str_buf.substr(delimiter, params_pos - delimiter);
-
-					if (std::string::npos != params_pos)
-					{
-						// Извлекаем параметры запроса из URI
-						if (false == parseIncomingVars(incoming_params, str_buf.substr(params_pos + 1, uri_end) ) )
-						{
-							// HTTP 400 Bad Request
-							this->sendStatus(clientSocket, timeout, 400);
-							break;
-						}
-					}
-
-					// Переход к обработке следующего заголовка
-					str_cur = str_end + 2;
-					// Поиск конца заголовка
-					str_end = str_buf.find("\r\n", str_cur);
-					// Установка конца заголовка
-					str_buf[str_end] = '\0';
-
-					// Цикл извлечения заголовков запроса
-					for (; str_cur != headers_end; str_end = str_buf.find("\r\n", str_cur), str_buf[str_end] = '\0')
-					{
-						// Поиск разделителя названия заголовка и его значения
-						delimiter = str_buf.find(':', str_cur);
-
-						// Если разделитель найден в текущей строке
-						if (delimiter < str_end)
-						{
-							std::string header_name = str_buf.substr(str_cur, delimiter - str_cur);
-							std::string header_value = str_buf.substr(delimiter + 1, str_end - delimiter - 1);
-
-							// Удалить лишние пробелы в начале и в конце строки
-							Utils::trim(header_value);
-
-							// Сохранить заголовок и его значение
-							incoming_headers.emplace(std::move(header_name), std::move(header_value) );
-						}
-
-						// Перейти к следующей строке
-						str_cur = str_end + 2;
-					}
-
-					str_buf.erase(str_buf.begin(), str_buf.begin() + headers_end + 2);
-
-					// Получить доменное имя (или адрес) назначения запроса
-					auto it_host = incoming_headers.find("Host");
-
-					// Если имя задано - продолжить обработку запроса
-                    if (incoming_headers.cend() != it_host)
-					{
-						// Поиск разделителя, за которым помещается номер порта (сокета), если указан
-						size_t delimiter = it_host->second.find(':');
-
-						// Получить имя (или адрес)
-						const std::string host = it_host->second.substr(0, delimiter);
-
-						// Получить номер порта
-						const int port = (std::string::npos != delimiter) ? std::strtol(it_host->second.substr(delimiter + 1).c_str(), nullptr, 10) : 80;
-
-						// Поиск настроек приложения по имени
-						ServerApplicationSettings *app_sets = this->apps_tree.find(host);
-
-						// Если приложение найдено
-						if (app_sets && app_sets->port == port)
-						{
-							// Определить вариант данных запроса (заодно проверить, есть ли данные)
-							auto it = incoming_headers.find("Content-Type");
-
-                            if (incoming_headers.cend() != it)
-							{
-								// Параметры
-								std::unordered_map<std::string, std::string> content_params;
-
-								// Получить значение заголовка
-								std::string &header_value = it->second;
-
-								// Определить, содержит ли тип данных запроса дополнительные параметры
-								delimiter = header_value.find(';');
-
-								std::string data_variant_name;	// Название варианта данных запроса
-
-								// Если есть дополнительные параметры - извлекаем их
-								if (std::string::npos != delimiter)
-								{
-									data_variant_name = header_value.substr(0, delimiter);
-									Utils::trim(data_variant_name);
-
-									for (size_t str_param_cur = delimiter + 1, str_param_end = 0; std::string::npos != str_param_end; str_param_cur = str_param_end + 1)
-									{
-										str_param_end = header_value.find(';', str_param_cur);
-										delimiter = header_value.find('=', str_param_cur);
-
-										if (delimiter >= str_param_end)
-										{
-											std::string param_name = header_value.substr(str_param_cur, std::string::npos != str_param_end ? str_param_end - str_param_cur : std::string::npos);
-											Utils::trim(param_name);
-											content_params.emplace(std::move(param_name), "");
-										}
-										else
-										{
-											std::string param_name = header_value.substr(str_param_cur, delimiter - str_param_cur);
-											Utils::trim(param_name);
-
-											++delimiter;
-
-											std::string param_value = header_value.substr(delimiter, std::string::npos != str_param_end ? str_param_end - delimiter : std::string::npos);
-											Utils::trim(param_value);
-
-											content_params.emplace(std::move(param_name), std::move(param_value) );
-										}
-									}
-								}
-								else
-								{
-									data_variant_name = header_value;
-								}
-
-								// Поиск варианта данных по имени типа
-								auto variant = this->variants.find(data_variant_name);
-
-								// Если сервер поддерживает формат полученных данных
-								if (this->variants.cend() != variant)
-								{
-									DataVariantAbstract *data_variant = variant->second;
-
-									// Получить длину запроса в байтах
-									size_t data_length = 0;
-
-									auto it_len = incoming_headers.find("Content-Length");
-
-                                    if (incoming_headers.cend() != it_len)
-									{
-										data_length = std::strtoull(it_len->second.c_str(), nullptr, 10);
-									}
-
-									// Если размер запроса не превышает лимит (если лимит был установлен)
-									if (data_length <= app_sets->request_max_size || 0 == app_sets->request_max_size)
-									{
-										// Сколько осталось получить данных
-										size_t left_bytes = 0;
-
-										std::string data_buf;
-
-										if (data_length >= str_buf.length() )
-										{
-											left_bytes = data_length - str_buf.length();
-
-											data_buf.swap(str_buf);
-										}
-										else
-										{
-											data_buf.assign(str_buf.cbegin(), str_buf.cbegin() + data_length);
-											str_buf.erase(str_buf.begin(), str_buf.begin() + data_length);
-										}
-
-										// Разобрать данные на составляющие
-										if (false == data_variant->parse(clientSocket, timeout, data_buf, left_bytes, content_params, incoming_data, incoming_files) )
-										{
-											for (auto &it : incoming_files)
-											{
-												remove(it.second.getName().c_str() );
-											}
-
-											// HTTP 400 Bad Request
-											this->sendStatus(clientSocket, timeout, 400);
-
-											break;
-										}
-
-										if (false == data_buf.empty() )
-										{
-											str_buf.swap(data_buf);
-										}
-									}
-									else
-									{
-										// HTTP 413 Request Entity Too Large
-										this->sendStatus(clientSocket, timeout, 413);
-
-										break;
-									}
-								}
-								else
-								{
-									// HTTP 400 Bad Request
-									this->sendStatus(clientSocket, timeout, 400);
-
-									break;
-								}
-							}
-
-							Utils::raw_pair *raw_pair_params = nullptr;
-							Utils::raw_pair *raw_pair_headers = nullptr;
-							Utils::raw_pair *raw_pair_data = nullptr;
-							Utils::raw_fileinfo *raw_fileinfo_files = nullptr;
-
-                            Utils::stlUnorderedMultimapToRawPairs(&raw_pair_params, incoming_params);
-                            Utils::stlUnorderedMapToRawPairs(&raw_pair_headers, incoming_headers);
-                            Utils::stlUnorderedMultimapToRawPairs(&raw_pair_data, incoming_data);
-                            Utils::filesIncomingToRawFilesInfo(&raw_fileinfo_files, incoming_files);
-
-                            server_request request {
-								clientSocket.get_handle(),
-								method.c_str(),
-								uri_reference.c_str(),
-								app_sets->root_dir.c_str(),
-								incoming_params.size(),
-								raw_pair_params,
-								incoming_headers.size(),
-								raw_pair_headers,
-								incoming_data.size(),
-								raw_pair_data,
-								incoming_files.size(),
-								raw_fileinfo_files
-							};
-
-                            server_response response {
-								clientSocket.get_handle(), 0, nullptr
-							};
-
-							// Попытаться
-							try
-							{
-								// Запустить приложение
-								app_exit_code = app_sets->application_call(&request, &response);
-							}
-							catch (...)
-							{
-								app_exit_code = EXIT_FAILURE;
-							}
-
-							if (EXIT_SUCCESS == app_exit_code)
-							{
-								Utils::rawPairsToStl(outgoing_headers, response.headers, response.headers_count);
-							}
-
-							try
-							{
-								app_sets->application_clear(response.headers, response.headers_count);
-							}
-							catch (...) {}
-
-                            Utils::destroyRawPairs(raw_pair_params, incoming_params.size() );
-                            Utils::destroyRawPairs(raw_pair_headers, incoming_headers.size() );
-                            Utils::destroyRawPairs(raw_pair_data, incoming_data.size() );
-							Utils::destroyRawFilesInfo(raw_fileinfo_files, incoming_files.size() );
-						}
-						else
-						{
-							// HTTP 404 Not Found
-							this->sendStatus(clientSocket, timeout, 404);
-						}
-					}
-					else
-					{
-						// HTTP 400 Bad Request
-						this->sendStatus(clientSocket, timeout, 400);
-					}
-				}
-				else
-				{
-					// HTTP 400 Bad Request
-					this->sendStatus(clientSocket, timeout, 400);
-				}
-			}
-			else // Если запрос пустой
-			{
-				// HTTP 400 Bad Request
-				this->sendStatus(clientSocket, timeout, 400);
+				this->sendStatus(clientSocket, rp.timeout, error_code);
 
 				break;
 			}
 
-			for (auto it : incoming_files)
+			const ServerApplicationSettings *app_sets = getApplicationSettings(rp);
+
+			// Если приложение не найдено
+			if (nullptr == app_sets)
+			{
+				// HTTP 404 Not Found
+				this->sendStatus(clientSocket, rp.timeout, 404);
+
+				break;
+			}
+
+			if (int error_code = getRequestData(clientSocket, str_buf, *app_sets, rp) )
+			{
+				this->sendStatus(clientSocket, rp.timeout, error_code);
+
+				break;
+			}
+
+			runApplication(clientSocket, *app_sets, rp);
+
+			for (auto &it : rp.incoming_files)
 			{
 				remove(it.second.getName().c_str() );
 			}
 
-			connection_keep_alive = false;
-
-			if (EXIT_SUCCESS == app_exit_code)
+			if (EXIT_SUCCESS == rp.app_exit_code)
 			{
-				auto it_in_connection = incoming_headers.find("Connection");
-				auto it_out_connection = outgoing_headers.find("Connection");
+				this->getConnectionParams(rp);
 
-                if (incoming_headers.cend() != it_in_connection && outgoing_headers.cend() != it_out_connection)
-				{
-					std::locale loc;
-
-					std::string connection_in = it_in_connection->second;
-					Utils::tolower(connection_in, loc);
-
-					std::string connection_out = it_out_connection->second;
-					Utils::tolower(connection_out, loc);
-
-					if ("keep-alive" == connection_in)
-					{
-						if ("keep-alive" == connection_out)
-						{
-							--keep_alive_count;
-
-							connection_keep_alive = (0 < keep_alive_count);
-						}
-					}
-					else if ("upgrade" == connection_in)
-					{
-						if ("upgrade" == connection_out)
-						{
-							connection_upgrade = true;
-						}
-					}
-				}
-
-				auto it_x_sendfile = outgoing_headers.find("X-Sendfile");
-
-                if (outgoing_headers.cend() != it_x_sendfile)
-				{
-					const std::string connection_header = connection_keep_alive ? "Connection: Keep-Alive\r\nKeep-Alive: timeout=5; max=" + std::to_string(keep_alive_count) + "\r\n" : "Connection: Close\r\n";
-
-					const bool headers_only = ("head" == method);
-
-					this->transferFile(clientSocket, timeout, it_x_sendfile->second, incoming_headers, outgoing_headers, connection_header, headers_only);
-				}
+				this->xSendfile(clientSocket, rp);
 			}
-		}
-		while (connection_keep_alive);
+			else
+			{
+				rp.connection_params = CONNECTION_CLOSED;
+			}
 
-		if (false == connection_upgrade)
+			rp.clear();
+		}
+		while (isConnectionKeepAlive(rp) );
+
+		if (false == isConnectionUpgrade(rp) )
 		{
 			// Wait for send all data to client
 			clientSocket.nonblock_send_sync();
@@ -870,9 +513,431 @@ namespace HttpServer
 			clientSocket.close();
 		}
 
-		return app_exit_code;
+		return rp.app_exit_code;
 	}
 
+	bool Server::getRequest(Socket clientSocket, std::vector<std::string::value_type> &buf, std::string &str_buf, struct request_parameters &rp)
+	{
+		// Получить данные запроса от клиента
+		const size_t recv_size = clientSocket.nonblock_recv(buf, rp.timeout);
+
+		if (std::numeric_limits<size_t>::max() == recv_size && str_buf.empty() )
+		{
+		#ifdef DEBUG
+			#ifdef WIN32
+				std::cout << "Error: " << WSAGetLastError() << std::endl;
+			#elif POSIX
+				std::cout << "Error: " << errno << std::endl;
+			#endif
+		#endif
+			return false;
+		}
+
+		if (recv_size) // Если данные были получены
+		{
+			str_buf.append(buf.cbegin(), buf.cbegin() + recv_size);
+		}
+
+		return true;
+	}
+
+	int Server::getRequestHeaders(std::string &str_buf, struct request_parameters &rp) const
+	{
+		// Если запрос пустой
+		if (str_buf.empty() )
+		{
+			// HTTP 400 Bad Request
+			return 400;
+		}
+
+		// Поиск конца заголовков (пустая строка)
+		size_t headers_end = str_buf.find("\r\n\r\n");
+
+		// Если найден конец заголовков
+		if (std::string::npos == headers_end)
+		{
+			// HTTP 400 Bad Request
+			return 400;
+		}
+
+		headers_end += 2;
+
+		size_t str_cur = 0;
+		// Поиск конца первого заголовка
+		size_t str_end = str_buf.find("\r\n");
+
+		// Если не найден конец заголовка
+		if (std::string::npos == str_end)
+		{
+			// HTTP 400 Bad Request
+			return 400;
+		}
+
+		// Установка конца строки (для поиска)
+		str_buf[str_end] = '\0';
+
+		// Разделить метод запроса и параметры запроса
+		size_t delimiter = str_buf.find(' ', str_cur);
+
+		// Получить метод запроса (GET, POST, PUT, DELETE, ...)
+		rp.method = str_buf.substr(str_cur, delimiter - str_cur);
+		// Сохранить метод и параметры запроса
+		rp.incoming_headers[rp.method] = str_buf.substr(delimiter + 1, str_end - delimiter - 1);
+
+		delimiter += 1;
+		// Найти окончание URI
+		size_t uri_end = str_buf.find(' ', delimiter);
+
+		// Если окончание не найдено
+		if (std::string::npos == uri_end)
+		{
+			uri_end = str_end;
+			// то версия протокола HTTP - 0.9
+			rp.version = "0.9";
+		}
+		else // Если окончание найдено
+		{
+			str_buf[uri_end] = '\0';
+			const size_t ver_beg = uri_end + 6; // Пропустить "HTTP/"
+
+			if (ver_beg < str_end)
+			{
+				// Получить версию протокола HTTP
+				rp.version = str_buf.substr(ver_beg, str_end - ver_beg);
+			}
+		}
+
+		// Поиск именованных параметров запросов (переменных ?)
+		const size_t params_pos = str_buf.find('?', delimiter);
+
+		// Сохранить полную ссылку URI (без параметров)
+		rp.uri_reference = (std::string::npos == params_pos) ? str_buf.substr(delimiter) : str_buf.substr(delimiter, params_pos - delimiter);
+
+		if (std::string::npos != params_pos)
+		{
+			// Извлекаем параметры запроса из URI
+			if (false == parseIncomingVars(rp.incoming_params, str_buf.substr(params_pos + 1, uri_end) ) )
+			{
+				// HTTP 400 Bad Request
+				return 400;
+			}
+		}
+
+		// Переход к обработке следующего заголовка
+		str_cur = str_end + 2;
+		// Поиск конца заголовка
+		str_end = str_buf.find("\r\n", str_cur);
+		// Установка конца заголовка
+		str_buf[str_end] = '\0';
+
+		// Цикл извлечения заголовков запроса
+		for (; str_cur != headers_end; str_end = str_buf.find("\r\n", str_cur), str_buf[str_end] = '\0')
+		{
+			// Поиск разделителя названия заголовка и его значения
+			delimiter = str_buf.find(':', str_cur);
+
+			// Если разделитель найден в текущей строке
+			if (delimiter < str_end)
+			{
+				std::string header_name = str_buf.substr(str_cur, delimiter - str_cur);
+				std::string header_value = str_buf.substr(delimiter + 1, str_end - delimiter - 1);
+
+				// Удалить лишние пробелы в начале и в конце строки
+				Utils::trim(header_value);
+
+				// Сохранить заголовок и его значение
+				rp.incoming_headers.emplace(std::move(header_name), std::move(header_value) );
+			}
+
+			// Перейти к следующей строке
+			str_cur = str_end + 2;
+		}
+
+		str_buf.erase(str_buf.begin(), str_buf.begin() + headers_end + 2);
+
+		return 0;
+	}
+
+	void Server::runApplication(Socket clientSocket, const ServerApplicationSettings &appSets, struct request_parameters &rp)
+	{
+		Utils::raw_pair *raw_pair_params = nullptr;
+		Utils::raw_pair *raw_pair_headers = nullptr;
+		Utils::raw_pair *raw_pair_data = nullptr;
+		Utils::raw_fileinfo *raw_fileinfo_files = nullptr;
+
+		Utils::stlUnorderedMultimapToRawPairs(&raw_pair_params, rp.incoming_params);
+		Utils::stlUnorderedMapToRawPairs(&raw_pair_headers, rp.incoming_headers);
+		Utils::stlUnorderedMultimapToRawPairs(&raw_pair_data, rp.incoming_data);
+		Utils::filesIncomingToRawFilesInfo(&raw_fileinfo_files, rp.incoming_files);
+
+		server_request request {
+			clientSocket.get_handle(),
+			rp.method.c_str(),
+			rp.uri_reference.c_str(),
+			appSets.root_dir.c_str(),
+			rp.incoming_params.size(),
+			raw_pair_params,
+			rp.incoming_headers.size(),
+			raw_pair_headers,
+			rp.incoming_data.size(),
+			raw_pair_data,
+			rp.incoming_files.size(),
+			raw_fileinfo_files
+		};
+
+		server_response response {
+			clientSocket.get_handle(), 0, nullptr
+		};
+
+		// Попытаться
+		try
+		{
+			// Запустить приложение
+			rp.app_exit_code = appSets.application_call(&request, &response);
+		}
+		catch (...)
+		{
+			rp.app_exit_code = EXIT_FAILURE;
+		}
+
+		if (EXIT_SUCCESS == rp.app_exit_code)
+		{
+			Utils::rawPairsToStl(rp.outgoing_headers, response.headers, response.headers_count);
+		}
+
+		// Очистить заголовки сформированные приложением
+		try
+		{
+			appSets.application_clear(response.headers, response.headers_count);
+		}
+		catch (...) {}
+
+		Utils::destroyRawPairs(raw_pair_params, rp.incoming_params.size() );
+		Utils::destroyRawPairs(raw_pair_headers, rp.incoming_headers.size() );
+		Utils::destroyRawPairs(raw_pair_data, rp.incoming_data.size() );
+		Utils::destroyRawFilesInfo(raw_fileinfo_files, rp.incoming_files.size() );
+	}
+
+	int Server::getRequestData(Socket clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const
+	{
+		// Определить вариант данных запроса (заодно проверить, есть ли данные)
+		auto it = rp.incoming_headers.find("Content-Type");
+
+		if (rp.incoming_headers.cend() == it)
+		{
+			return 0;
+		}
+
+		// Параметры
+		std::unordered_map<std::string, std::string> content_params;
+
+		// Получить значение заголовка
+		const std::string &header_value = it->second;
+
+		// Определить, содержит ли тип данных запроса дополнительные параметры
+		size_t delimiter = header_value.find(';');
+
+		std::string data_variant_name;	// Название варианта данных запроса
+
+		// Если есть дополнительные параметры - извлекаем их
+		if (std::string::npos != delimiter)
+		{
+			data_variant_name = header_value.substr(0, delimiter);
+			Utils::trim(data_variant_name);
+
+			for (size_t str_param_cur = delimiter + 1, str_param_end = 0; std::string::npos != str_param_end; str_param_cur = str_param_end + 1)
+			{
+				str_param_end = header_value.find(';', str_param_cur);
+				delimiter = header_value.find('=', str_param_cur);
+
+				if (delimiter >= str_param_end)
+				{
+					std::string param_name = header_value.substr(str_param_cur, std::string::npos != str_param_end ? str_param_end - str_param_cur : std::string::npos);
+					Utils::trim(param_name);
+					content_params.emplace(std::move(param_name), "");
+				}
+				else
+				{
+					std::string param_name = header_value.substr(str_param_cur, delimiter - str_param_cur);
+					Utils::trim(param_name);
+
+					++delimiter;
+
+					std::string param_value = header_value.substr(delimiter, std::string::npos != str_param_end ? str_param_end - delimiter : std::string::npos);
+					Utils::trim(param_value);
+
+					content_params.emplace(std::move(param_name), std::move(param_value) );
+				}
+			}
+		}
+		else
+		{
+			data_variant_name = header_value;
+		}
+
+		// Поиск варианта данных по имени типа
+		auto variant = this->variants.find(data_variant_name);
+
+		// Если сервер не поддерживает формат полученных данных
+		if (this->variants.cend() == variant)
+		{
+			// HTTP 400 Bad Request
+			return 400;
+		}
+
+		DataVariantAbstract *data_variant = variant->second;
+
+		// Получить длину запроса в байтах
+		size_t data_length = 0;
+
+		auto it_len = rp.incoming_headers.find("Content-Length");
+
+		if (rp.incoming_headers.cend() != it_len)
+		{
+			data_length = std::strtoull(it_len->second.c_str(), nullptr, 10);
+		}
+
+		// Если размер запроса превышает лимит (если лимит был установлен)
+		if (data_length > appSets.request_max_size && 0 != appSets.request_max_size)
+		{
+			// HTTP 413 Request Entity Too Large
+			return 413;
+		}
+
+		// Сколько осталось получить данных
+		size_t left_bytes = 0;
+
+		std::string data_buf;
+
+		if (data_length >= str_buf.length() )
+		{
+			left_bytes = data_length - str_buf.length();
+
+			data_buf.swap(str_buf);
+		}
+		else
+		{
+			data_buf.assign(str_buf.cbegin(), str_buf.cbegin() + data_length);
+			str_buf.erase(str_buf.begin(), str_buf.begin() + data_length);
+		}
+
+		// Разобрать данные на составляющие
+		if (false == data_variant->parse(clientSocket, data_buf, left_bytes, content_params, rp) )
+		{
+			for (auto &it : rp.incoming_files)
+			{
+				remove(it.second.getName().c_str() );
+			}
+
+			// HTTP 400 Bad Request
+			return 400;
+		}
+
+		if (false == data_buf.empty() )
+		{
+			str_buf.swap(data_buf);
+		}
+
+		return 0;
+	}
+
+	const ServerApplicationSettings *Server::getApplicationSettings(const struct request_parameters &rp) const
+	{
+		// Получить доменное имя (или адрес) назначения запроса
+		auto it_host = rp.incoming_headers.find("Host");
+
+		// Если имя задано - продолжить обработку запроса
+		if (rp.incoming_headers.cend() != it_host)
+		{
+			// Поиск разделителя, за которым помещается номер порта, если указан
+			size_t delimiter = it_host->second.find(':');
+
+			// Получить имя (или адрес)
+			const std::string host = it_host->second.substr(0, delimiter);
+
+			// Получить номер порта
+			const int port = (std::string::npos != delimiter) ? std::strtol(it_host->second.substr(delimiter + 1).c_str(), nullptr, 10) : 80;
+
+			// Поиск настроек приложения по имени
+			const ServerApplicationSettings *app_sets = this->apps_tree.find(host);
+
+			// Если приложение найдено
+			if (app_sets && app_sets->port == port)
+			{
+				return app_sets;
+			}
+		}
+
+		return nullptr;
+	}
+
+	void Server::xSendfile(Socket clientSocket, struct request_parameters &rp) const
+	{
+		auto it_x_sendfile = rp.outgoing_headers.find("X-Sendfile");
+
+		if (rp.outgoing_headers.cend() != it_x_sendfile)
+		{
+			const std::string connection_header = isConnectionKeepAlive(rp) ? "Connection: Keep-Alive\r\nKeep-Alive: timeout=5; max=" + std::to_string(rp.keep_alive_count) + "\r\n" : "Connection: Close\r\n";
+
+			const bool headers_only = ("head" == rp.method);
+
+			this->transferFile(clientSocket, it_x_sendfile->second, connection_header, headers_only, rp);
+		}
+	}
+
+	void Server::getConnectionParams(struct request_parameters &rp)
+	{
+		rp.connection_params = CONNECTION_CLOSED;
+
+		auto it_in_connection = rp.incoming_headers.find("Connection");
+		auto it_out_connection = rp.outgoing_headers.find("Connection");
+
+		if (rp.incoming_headers.cend() != it_in_connection && rp.outgoing_headers.cend() != it_out_connection)
+		{
+			std::locale loc;
+
+			std::string connection_in = it_in_connection->second;
+			Utils::tolower(connection_in, loc);
+
+			std::string connection_out = it_out_connection->second;
+			Utils::tolower(connection_out, loc);
+
+			if ("keep-alive" == connection_in)
+			{
+				if ("keep-alive" == connection_out)
+				{
+					--rp.keep_alive_count;
+
+					if (0 < rp.keep_alive_count)
+					{
+						rp.connection_params |= CONNECTION_KEEP_ALIVE;
+					}
+				}
+			}
+			else if ("upgrade" == connection_in)
+			{
+				if ("upgrade" == connection_out)
+				{
+					rp.connection_params |= CONNECTION_UPGRADE;
+				}
+			}
+		}
+	}
+
+	bool Server::isConnectionKeepAlive(const struct request_parameters &rp)
+	{
+		return (rp.connection_params & CONNECTION_KEEP_ALIVE) > 0;
+	}
+
+	bool Server::isConnectionUpgrade(const struct request_parameters &rp)
+	{
+		return (rp.connection_params & CONNECTION_UPGRADE) > 0;
+	}
+
+	/**
+	 * Метод для обработки запросов (запускается в отдельном потоке)
+	 *	извлекает сокет клиенты из очереди и передаёт его на обслуживание
+	 */
 	void Server::threadRequestCycle(std::queue<Socket> &sockets) const
 	{
 		while (true)
@@ -915,7 +980,7 @@ namespace HttpServer
 	}
 
 	/**
-	 * Цикл обработки очереди запросов
+	 * Цикл управления количеством рабочих потоков
 	 */
 	int Server::cycleQueue(std::queue<Socket> &sockets)
 	{
@@ -1016,9 +1081,9 @@ namespace HttpServer
 		
 	}
 
-	void Server::addDataVariant(DataVariantAbstract *postVariant)
+	void Server::addDataVariant(DataVariantAbstract *dataVariant)
 	{
-		this->variants.emplace(postVariant->getName(), postVariant);
+		this->variants.emplace(dataVariant->getName(), dataVariant);
 	}
 
 	bool Server::updateModule(Module &module, std::unordered_set<ServerApplicationSettings *> &applications, const size_t moduleIndex)
@@ -1490,7 +1555,7 @@ namespace HttpServer
 
 	int Server::command_start(const int argc, const char *argv[])
 	{
-		std::string pid_file_name = "httpserver.pid";
+		const std::string pid_file_name = "httpserver.pid";
 
 		// TODO:
 		// Проверить, существует ли файл и открыт ли он уже на запись - значит сервер уже запущен - нужно завершить текущий (this) процесс

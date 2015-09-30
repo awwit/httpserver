@@ -56,18 +56,16 @@ namespace HttpServer
 	bool DataVariantMultipartFormData::parse
 	(
 		const Socket &sock,
-		const std::chrono::milliseconds &timeout,
 		std::string &str,
 		const size_t leftBytes,
-		const std::unordered_map<std::string, std::string> &params,
-		std::unordered_multimap<std::string, std::string> &data,
-		std::unordered_multimap<std::string, FileIncoming> &files
+		std::unordered_map<std::string, std::string> &contentParams,
+		struct request_parameters &rp
 	)
 	{
 		// Проверить есть ли в параметрах разделитель блоков данных
-		auto it = params.find("boundary");
+		auto it = contentParams.find("boundary");
 
-        if (params.cend() == it)
+		if (contentParams.cend() == it)
 		{
 			return false;
 		}
@@ -101,7 +99,7 @@ namespace HttpServer
 		if (std::string::npos == str_cur)
 		{
 			// Получить следующий кусок данных
-			if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+			if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 			{
 				return false;
 			}
@@ -134,7 +132,7 @@ namespace HttpServer
 			if (std::string::npos == headers_end)
 			{
 				// Получить следующий кусок данных
-				if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+				if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 				{
 					return false;
 				}
@@ -293,7 +291,7 @@ namespace HttpServer
 											str.erase(str.begin(), str.end() - data_end.length() );
 
 											// Получить следующий кусок данных
-											if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+											if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 											{
 												return false;
 											}
@@ -306,7 +304,7 @@ namespace HttpServer
 										file.write(str.data(), delimiter);
 
 										// Добавить данные в список
-										files.emplace(it_name->second, FileIncoming(std::move(tmp_name), it_filetype->second, file.tellp() ) );
+										rp.incoming_files.emplace(it_name->second, FileIncoming(std::move(tmp_name), it_filetype->second, file.tellp() ) );
 
 										file.close();
 
@@ -349,7 +347,7 @@ namespace HttpServer
 									str.erase(str.begin(), str.end() - data_end.length() );
 
 									// Получить следующий кусок данных
-									if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+									if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 									{
 										return false;
 									}
@@ -362,7 +360,7 @@ namespace HttpServer
 								value.append(str.cbegin(), str.cbegin() + delimiter);
 
 								// Добавить данные в список
-								data.emplace(it_name->second, std::move(value) );
+								rp.incoming_data.emplace(it_name->second, std::move(value) );
 
 								// Если найден конец данных
 								if (str.find(data_end, delimiter) == delimiter)
@@ -401,7 +399,7 @@ namespace HttpServer
 					str.erase(str.begin(), str.end() - data_end.length() );
 
 					// Получить следующий кусок данных
-					if (false == append(sock, timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+					if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
 					{
 						return false;
 					}

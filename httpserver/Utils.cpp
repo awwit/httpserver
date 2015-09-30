@@ -8,7 +8,7 @@ namespace Utils
 {
 	void trim(std::string &str)
 	{
-		size_t last = str.find_last_not_of(" \t\n\v\f\r");
+		const size_t last = str.find_last_not_of(" \t\n\v\f\r");
 
 		if (std::string::npos == last)
 		{
@@ -20,7 +20,7 @@ namespace Utils
 
 	char *stlStringToPChar(const std::string &str)
 	{
-		size_t length = str.length();
+		const size_t length = str.length();
 		char *s = nullptr;
 
 		if (length)
@@ -226,7 +226,7 @@ namespace Utils
 		return ::mktime(&tc);
 	}
 
-	std::string getDatetimeStringValue(const ::time_t tTime, const bool isGmtTime)
+	std::string getDatetimeAsString(const ::time_t tTime, const bool isGmtTime)
 	{
 		char buf[64];
 

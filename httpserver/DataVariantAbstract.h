@@ -1,9 +1,7 @@
 ﻿#pragma once
 
 #include "Socket.h"
-#include "FileIncoming.h"
-
-#include <unordered_map>
+#include "RequestParameters.h"
 
 namespace HttpServer
 {
@@ -26,24 +24,20 @@ namespace HttpServer
 
 		/**
 		 * @param const Socket & - сокет, откуда можно достать остальные данные
-		 * @param const std::chrono::milliseconds & - максимальное время ожидания данных (на сокете)
 		 * @param std::string & - первая часть полученных данных
 		 * @param const size_t - сколько осталось данных (в байтах) получить из сокета
 		 * @param const std::unordered_map<std::string, std::string> & - дополнительные параметры, описывающие формат данных
-		 * @param std::unordered_multimap<std::string, std::string> & - данные в виде ключ->значение
-		 * @param std::unordered_multimap<std::string, FileIncoming> & - имена файлов, в которые записаны данные
+		 * @param request_data & - данные текущего запроса (заголовки, параметры, коллекции для хранения данных)
 		 *
 		 * @return bool - (true|false) - удачно ли были разобраны данные
 		 */
 		virtual bool parse
 		(
-			const Socket &,
-			const std::chrono::milliseconds &,
+			const Socket &sock,
 			std::string &,
 			const size_t,
-			const std::unordered_map<std::string, std::string> &,
-			std::unordered_multimap<std::string, std::string> &,
-			std::unordered_multimap<std::string, FileIncoming> &
+			std::unordered_map<std::string, std::string> &contentParams,
+			struct request_parameters &rp
 		) = 0;
 	};
 };

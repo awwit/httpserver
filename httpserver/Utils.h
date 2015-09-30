@@ -77,7 +77,7 @@ namespace Utils
 
 	time_t stringTimeToTimestamp(const std::string &);
 
-	std::string getDatetimeStringValue(const ::time_t tTime = ~0, const bool isGmtTime = false);
+	std::string getDatetimeAsString(const ::time_t tTime = ~0, const bool isGmtTime = false);
 
 	size_t getNumberLength(const size_t number);
 

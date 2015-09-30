@@ -27,8 +27,8 @@ namespace HttpServer
 		void addApplication(const std::string &, ServerApplicationSettings *);
 		void addApplication(std::vector<std::string> &, ServerApplicationSettings *);
 
-		ServerApplicationSettings *find(const std::string &) const;
-		ServerApplicationSettings *find(std::vector<std::string> &) const;
+		const ServerApplicationSettings *find(const std::string &) const;
+		const ServerApplicationSettings *find(std::vector<std::string> &) const;
 
 		void collectApplicationSettings(std::unordered_set<ServerApplicationSettings *> &) const;
 

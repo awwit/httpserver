@@ -73,7 +73,7 @@ namespace HttpServer
 	#ifdef WIN32
 		WSAPOLLFD event = {
 			sock.get_handle(),
-			POLLRDNORM | POLLHUP,
+			POLLRDNORM,
 			0
 		};
 
@@ -86,7 +86,7 @@ namespace HttpServer
 			reinterpret_cast<void *>(sock.get_handle() )
 		};
 
-		size_t result = ::epoll_ctl(this->obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
+		const size_t result = ::epoll_ctl(this->obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
 
 		if (std::numeric_limits<size_t>::max() == result)
 		{
@@ -120,7 +120,7 @@ namespace HttpServer
 
 		return false;
 	#elif POSIX
-		size_t result = ::epoll_ctl(this->obj_list, EPOLL_CTL_DEL, sock.get_handle(), nullptr);
+		const size_t result = ::epoll_ctl(this->obj_list, EPOLL_CTL_DEL, sock.get_handle(), nullptr);
 
 		if (std::numeric_limits<size_t>::max() == result)
 		{
@@ -140,7 +140,7 @@ namespace HttpServer
 		if (is_created() )
 		{
 		#ifdef WIN32
-			size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+			const size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
 
 			if (SOCKET_ERROR == count)
 			{
@@ -170,7 +170,7 @@ namespace HttpServer
 
 			return false == sockets.empty();
 		#elif POSIX
-			size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+			const size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
 
             if (std::numeric_limits<size_t>::max() == count)
 			{
@@ -215,7 +215,7 @@ namespace HttpServer
 		}
 
 	#ifdef WIN32
-		size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+		const size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
 
 		if (SOCKET_ERROR == count)
 		{
@@ -238,7 +238,7 @@ namespace HttpServer
 
 		return false == sockets.empty();
 	#elif POSIX
-		size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+		const size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
 
 		if (std::numeric_limits<size_t>::max() == count)
 		{
