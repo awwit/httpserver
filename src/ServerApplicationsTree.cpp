@@ -87,7 +87,7 @@ namespace HttpServer
 		}
 		else
 		{
-			std::string part = nameParts.back();
+			const std::string part = std::move(nameParts.back() );
 
 			nameParts.pop_back();
 
@@ -144,7 +144,7 @@ namespace HttpServer
 	{
 		for (auto &node : list)
 		{
-			ServerApplicationsTree *tree = node.second;
+			const ServerApplicationsTree *tree = node.second;
 
 			if (nullptr != tree->app_sets)
 			{

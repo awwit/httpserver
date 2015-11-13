@@ -63,6 +63,17 @@ namespace HttpServer
 		}
 	}
 
+	bool SocketList::is_created() const
+	{
+	#ifdef WIN32
+		return INVALID_HANDLE_VALUE != this->obj_list;
+	#elif POSIX
+		return std::numeric_limits<size_t>::max() != this->obj_list;
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	bool SocketList::addSocket(const Socket &sock)
 	{
 		if (false == is_created() )
@@ -149,9 +160,9 @@ namespace HttpServer
 
 			for (size_t i = 0; i < this->poll_events.size(); ++i)
 			{
-				WSAPOLLFD &event = this->poll_events[i];
+				const WSAPOLLFD &event = this->poll_events[i];
 
-				if (event.revents & POLLRDNORM)
+				if (POLLRDNORM == (event.revents & POLLRDNORM) )
 				{
 					System::native_socket_type client_socket = ~0;
 
@@ -179,9 +190,9 @@ namespace HttpServer
 
 			for (size_t i = 0; i < count; ++i)
 			{
-				epoll_event &event = this->epoll_events[i];
+				const epoll_event &event = this->epoll_events[i];
 
-				if (event.events & EPOLLIN)
+				if (EPOLLIN == (event.events & EPOLLIN) )
 				{
 					System::native_socket_type client_socket = ~0;
 
@@ -207,7 +218,7 @@ namespace HttpServer
 		return false;
 	}
 
-	bool SocketList::recv(std::vector<Socket> &sockets, std::vector<Socket> &disconnected) const
+	bool SocketList::recv(std::vector<Socket> &sockets, std::vector<Socket> &disconnected, std::chrono::milliseconds timeout) const
 	{
 		if (false == is_created() )
 		{
@@ -215,7 +226,7 @@ namespace HttpServer
 		}
 
 	#ifdef WIN32
-		const size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+		const size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), timeout.count() );
 
 		if (SOCKET_ERROR == count)
 		{
@@ -224,21 +235,21 @@ namespace HttpServer
 
 		for (size_t i = 0; i < this->poll_events.size(); ++i)
 		{
-			WSAPOLLFD &event = this->poll_events[i];
+			const WSAPOLLFD &event = this->poll_events[i];
 
-			if (event.revents & POLLHUP)
-			{
-				disconnected.emplace_back(Socket(event.fd) );
-			}
-			else if (event.revents & POLLRDNORM)
+			if (POLLRDNORM == (event.revents & POLLRDNORM) )
 			{
 				sockets.emplace_back(Socket(event.fd) );
 			}
+			else if (POLLHUP == (event.revents & POLLHUP) )
+			{
+				disconnected.emplace_back(Socket(event.fd) );
+			}
 		}
 
-		return false == sockets.empty();
+		return false == sockets.empty() || false == disconnected.empty();
 	#elif POSIX
-		const size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+		const size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), timeout.count() );
 
 		if (std::numeric_limits<size_t>::max() == count)
 		{
@@ -247,19 +258,19 @@ namespace HttpServer
 
 		for (size_t i = 0; i < count; ++i)
 		{
-			epoll_event &event = this->epoll_events[i];
+			const epoll_event &event = this->epoll_events[i];
 
-			if (event.events & EPOLLRDHUP)
-			{
-				disconnected.emplace_back(Socket(event.data.fd) );
-			}
-			else if (event.events & EPOLLIN)
+			if (EPOLLIN == (event.events & EPOLLIN) )
 			{
 				sockets.emplace_back(Socket(event.data.fd) );
 			}
+			else if (EPOLLRDHUP == (event.events & EPOLLRDHUP) )
+			{
+				disconnected.emplace_back(Socket(event.data.fd) );
+			}
 		}
 
-		return false == sockets.empty();
+		return false == sockets.empty() || false == disconnected.empty();
 	#else
 		#error "Undefine platform"
 	#endif

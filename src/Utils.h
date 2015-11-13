@@ -25,6 +25,8 @@ namespace Utils
 
 	void trim(std::string &);
 
+	std::vector<std::string> explode(const std::string &str, const char sep);
+
 	inline std::string getUniqueName()
 	{
 		std::stringstream s;
@@ -62,16 +64,9 @@ namespace Utils
 		}
 	}
 
-	void stlMapToRawPairs(Utils::raw_pair *[], const std::map<std::string, std::string> &);
-	void stlMultimapToRawPairs(Utils::raw_pair *[], const std::multimap<std::string, std::string> &);
-	void stlUnorderedMapToRawPairs(Utils::raw_pair *[], const std::unordered_map<std::string, std::string> &);
-	void stlUnorderedMultimapToRawPairs(Utils::raw_pair *[], const std::unordered_multimap<std::string, std::string> &);
 	void filesIncomingToRawFilesInfo(Utils::raw_fileinfo *[], const std::unordered_multimap<std::string, HttpServer::FileIncoming> &);
-	void rawPairsToStlMap(std::map<std::string, std::string> &, const Utils::raw_pair [], const size_t);
-	void rawPairsToStlMultimap(std::multimap<std::string, std::string> &, const Utils::raw_pair [], const size_t);
-	void rawPairsToStlUnorderedMap(std::unordered_map<std::string, std::string> &, const Utils::raw_pair [], const size_t);
-	void rawPairsToStlUnorderedMultimap(std::unordered_multimap<std::string, std::string> &, const Utils::raw_pair [], const size_t);
 	void rawFilesInfoToFilesIncoming(std::unordered_multimap<std::string, HttpServer::FileIncoming> &, const Utils::raw_fileinfo [], const size_t);
+
 	void destroyRawPairs(Utils::raw_pair [], const size_t);
 	void destroyRawFilesInfo(Utils::raw_fileinfo [], const size_t);
 

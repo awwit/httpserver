@@ -2,9 +2,6 @@
 #include "SignalsHandles.h"
 
 #include <iostream>
-#include <cstring>
-#include <fstream>
-#include <unordered_map>
 
 int main(const int argc, const char *argv[])
 {

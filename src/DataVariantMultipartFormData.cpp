@@ -191,7 +191,7 @@ namespace HttpServer
 					// Разобрать значение заголовка данных на параметры
 					std::unordered_map<std::string, std::string> header_params;
 
-					std::string &header_value = it->second;
+					const std::string &header_value = it->second;
 
 					size_t delimiter = header_value.find(';');
 

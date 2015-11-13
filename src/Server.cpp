@@ -665,9 +665,9 @@ namespace HttpServer
 		Utils::raw_pair *raw_pair_data = nullptr;
 		Utils::raw_fileinfo *raw_fileinfo_files = nullptr;
 
-		Utils::stlUnorderedMultimapToRawPairs(&raw_pair_params, rp.incoming_params);
-		Utils::stlUnorderedMapToRawPairs(&raw_pair_headers, rp.incoming_headers);
-		Utils::stlUnorderedMultimapToRawPairs(&raw_pair_data, rp.incoming_data);
+		Utils::stlToRawPairs(&raw_pair_params, rp.incoming_params);
+		Utils::stlToRawPairs(&raw_pair_headers, rp.incoming_headers);
+		Utils::stlToRawPairs(&raw_pair_data, rp.incoming_data);
 		Utils::filesIncomingToRawFilesInfo(&raw_fileinfo_files, rp.incoming_files);
 
 		server_request request {
@@ -902,9 +902,15 @@ namespace HttpServer
 			std::string connection_out = it_out_connection->second;
 			Utils::tolower(connection_out, loc);
 
-			if ("keep-alive" == connection_in)
+			auto const incoming_params = Utils::explode(connection_in, ',');
+
+			auto const it = std::find(incoming_params.cbegin(), incoming_params.cend(), connection_out);
+
+			if (incoming_params.cend() != it)
 			{
-				if ("keep-alive" == connection_out)
+				const std::string &inc = *it;
+
+				if ("keep-alive" == inc)
 				{
 					--rp.keep_alive_count;
 
@@ -913,10 +919,7 @@ namespace HttpServer
 						rp.connection_params |= CONNECTION_KEEP_ALIVE;
 					}
 				}
-			}
-			else if ("upgrade" == connection_in)
-			{
-				if ("upgrade" == connection_out)
+				else if ("upgrade" == inc)
 				{
 					rp.connection_params |= CONNECTION_UPGRADE;
 				}
@@ -926,12 +929,12 @@ namespace HttpServer
 
 	bool Server::isConnectionKeepAlive(const struct request_parameters &rp)
 	{
-		return (rp.connection_params & CONNECTION_KEEP_ALIVE) > 0;
+		return (rp.connection_params & CONNECTION_KEEP_ALIVE) == CONNECTION_KEEP_ALIVE;
 	}
 
 	bool Server::isConnectionUpgrade(const struct request_parameters &rp)
 	{
-		return (rp.connection_params & CONNECTION_UPGRADE) > 0;
+		return (rp.connection_params & CONNECTION_UPGRADE) == CONNECTION_UPGRADE;
 	}
 
 	/**

@@ -61,9 +61,9 @@ namespace HttpServer
 		if (is_open() )
 		{
 		#ifdef WIN32
-			int result = ::closesocket(socket_handle);
+			const int result = ::closesocket(socket_handle);
 		#elif POSIX
-			int result = ::close(socket_handle);
+			const int result = ::close(socket_handle);
 		#else
 			#error "Undefine platform"
 		#endif
@@ -81,14 +81,14 @@ namespace HttpServer
 
 	int Socket::bind(const int port) const
 	{
-        ::sockaddr_in sock_addr = {
+		const ::sockaddr_in sock_addr = {
             AF_INET,
             htons(port),
             ::htonl(INADDR_ANY),
             0
         };
 
-		return ::bind(socket_handle, reinterpret_cast<sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
+		return ::bind(socket_handle, reinterpret_cast<const sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
 	}
 
 	int Socket::listen() const

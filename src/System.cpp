@@ -1,6 +1,12 @@
 ﻿
 #include "System.h"
 
+#include <array>
+
+#ifdef WIN32
+	char myWndClassName[] = "WndClassNameConstant";
+#endif
+
 namespace System
 {
 #ifdef WIN32
@@ -20,11 +26,11 @@ namespace System
 
         if (process_id == ed.process_id && ::GetConsoleWindow() != hWnd)
 		{
-			char class_name[65] = {0};
+			std::array<char, 65> class_name;
 
-            ::GetClassName(hWnd, class_name, 64);
+			::GetClassName(hWnd, class_name.data(), class_name.size() - 1);
 
-            if (0 == ::strcmp(class_name, myWndClassName) )
+			if (0 == ::strcmp(class_name.data(), myWndClassName) )
 			{
 				ed.hWnd = hWnd;
 
@@ -41,7 +47,7 @@ namespace System
 	#ifdef WIN32
 		EnumData ed = {pid, 0};
 
-		::EnumWindows(EnumProc, reinterpret_cast<LPARAM>(&ed) );
+		::EnumWindows(EnumProc, reinterpret_cast<::LPARAM>(&ed) );
 
 		if (0 == ed.hWnd)
 		{
@@ -59,9 +65,9 @@ namespace System
 	std::string getTempDir()
 	{
 	#ifdef WIN32
-		std::vector<std::string::value_type> buf(MAX_PATH + 1);
+		std::array<std::string::value_type, MAX_PATH + 1> buf;
 
-		const size_t len = ::GetTempPath(MAX_PATH + 1, buf.data() );
+		const size_t len = ::GetTempPath(buf.size(), buf.data() );
 
 		return std::string(buf.cbegin(), buf.cbegin() + len);
 	#elif POSIX
@@ -85,6 +91,31 @@ namespace System
 	#endif
 	}
 
+	bool isFileExists(const std::string &fileName)
+	{
+	#ifdef WIN32
+		const ::DWORD attrib = ::GetFileAttributes(fileName.c_str() );
+
+		if (INVALID_FILE_ATTRIBUTES == attrib)
+		{
+			return false;
+		}
+
+		return FILE_ATTRIBUTE_DIRECTORY != (attrib & FILE_ATTRIBUTE_DIRECTORY);
+	#elif POSIX
+		struct ::stat attrib;
+
+		if (-1 == ::stat(fileName.c_str(), &attrib) )
+		{
+			return false;
+		}
+
+		return S_ISREG(attrib.st_mode);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	bool getFileSizeAndTimeGmt(const std::string &filePath, size_t *fileSize, time_t *fileTime)
 	{
 	#ifdef WIN32
@@ -97,6 +128,7 @@ namespace System
 
 		if (false == ::GetFileSizeEx(hFile, reinterpret_cast<::PLARGE_INTEGER>(fileSize) ) )
 		{
+			::CloseHandle(hFile);
 			return false;
 		}
 

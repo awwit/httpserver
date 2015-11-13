@@ -1,6 +1,10 @@
 ﻿
 #include "SignalsHandles.h"
 
+#include <signal.h>
+
+HttpServer::Server *globalServerPtr = nullptr;
+
 void handlerSigTerm(int sig)
 {
 	if (globalServerPtr)

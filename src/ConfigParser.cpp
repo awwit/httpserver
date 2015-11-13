@@ -29,7 +29,7 @@ namespace HttpServer
 		std::streamsize file_size = file.tellg();
 		file.seekg(0, std::ifstream::beg);
 
-		std::streamsize file_size_max = 2048 * 1024;
+		const std::streamsize file_size_max = 2048 * 1024;
 
 		if (file_size_max < file_size)
 		{
@@ -73,7 +73,7 @@ namespace HttpServer
 
 		std::vector<std::string> names;
 
-		std::string whitespace(" \t\n\v\f\r");
+		const std::string whitespace(" \t\n\v\f\r");
 
 		const std::string &app_name = it_name->second;
 
@@ -286,7 +286,7 @@ namespace HttpServer
 		std::streamsize file_size = file.tellg();
 		file.seekg(0, std::ifstream::beg);
 
-		std::streamsize file_size_max = 2048 * 1024;
+		const std::streamsize file_size_max = 2048 * 1024;
 
 		if (file_size_max < file_size)
 		{
@@ -297,13 +297,13 @@ namespace HttpServer
 			return false;
 		}
 
-		std::string whitespace(" \t\v\f\r");
+		const std::string whitespace(" \t\v\f\r");
 
 		std::vector<std::string::value_type> buf(file_size);
 
 		file.read(reinterpret_cast<char *>(buf.data() ), file_size);
 
-		std::string str_buf(buf.cbegin(), buf.cend() );
+		const std::string str_buf(buf.cbegin(), buf.cend() );
 
 		size_t cur_pos = 0;
 		size_t end_pos = str_buf.find('\n', cur_pos);
@@ -363,24 +363,23 @@ namespace HttpServer
 	 * Config - parse
 	 */
 	bool ConfigParser::loadConfig(
-			const std::string &conf,
+			const std::string &conf_file_name,
 			std::unordered_map<std::string, std::string> &settings,
 			std::unordered_map<std::string, std::string> &mimes_types,
 			std::vector<Module> &modules,
 			ServerApplicationsTree &apps_tree
 		)
 	{
-		std::string file_name(conf);
 		std::string str_buf;
 
-		if (false == includeConfigFile(file_name, str_buf) )
+		if (false == includeConfigFile(conf_file_name, str_buf) )
 		{
 			return false;
 		}
 
 		std::vector<std::unordered_map<std::string, std::string> > applications;
 
-		std::string whitespace(" \t\n\v\f\r");
+		const std::string whitespace(" \t\n\v\f\r");
 
 		size_t cur_pos = 0;
 		size_t end_pos = str_buf.find(';', cur_pos);
@@ -421,7 +420,7 @@ namespace HttpServer
 				cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
 				size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
 
-				std::string block_type_name = str_buf.substr(cur_pos, delimiter - cur_pos);
+				const std::string block_type_name = str_buf.substr(cur_pos, delimiter - cur_pos);
 
 				delimiter = str_buf.find_first_not_of(whitespace, delimiter);
 

@@ -27,7 +27,7 @@ namespace HttpServer
 	{
 		std::ifstream file(file_name, std::ifstream::binary);
 
-		bool is_exists = file.good();
+		const bool is_exists = file.good();
 
 		file.close();
 

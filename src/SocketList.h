@@ -20,25 +20,16 @@ namespace HttpServer
 	public:
 		SocketList();
 
-		bool create(const size_t = 0);
+		bool create(const size_t = 1);
 		void destroy();
 
-		inline bool is_created() const
-		{
-		#ifdef WIN32
-			return INVALID_HANDLE_VALUE != this->obj_list;
-		#elif POSIX
-			return std::numeric_limits<size_t>::max() != this->obj_list;
-		#else
-			#error "Undefine platform"
-		#endif
-		}
+		bool is_created() const;
 
 		bool addSocket(const Socket &);
 		bool removeSocket(const Socket &);
 
 		bool accept(std::vector<Socket> &sockets) const;
 
-		bool recv(std::vector<Socket> &sockets, std::vector<Socket> &errors) const;
+		bool recv(std::vector<Socket> &sockets, std::vector<Socket> &errors, std::chrono::milliseconds timeout = std::chrono::milliseconds(~0) ) const;
 	};
 };

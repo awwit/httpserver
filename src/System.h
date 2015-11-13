@@ -2,7 +2,7 @@
 
 #ifdef WIN32
 	#include <Windows.h>
-	extern char myWndClassName[];
+	char myWndClassName[];
 
     #ifdef SIGTERM
         #undef SIGTERM
@@ -78,6 +78,8 @@ namespace System
 	}
 
 	std::string getTempDir();
+
+	bool isFileExists(const std::string &fileName);
 
 	bool getFileSizeAndTimeGmt(const std::string &, size_t *, time_t *);
 };
