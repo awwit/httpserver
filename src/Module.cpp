@@ -1,8 +1,6 @@
 ﻿
 #include "Module.h"
 
-#include <iostream>
-
 namespace HttpServer
 {
 	Module::Module(): lib_handle(nullptr)
@@ -33,7 +31,35 @@ namespace HttpServer
 		}
 
 	#ifdef WIN32
-		lib_handle = ::LoadLibrary(libPath.c_str() );
+		const size_t pos_slash = libPath.rfind('\\');
+		const size_t pos_slash_back = libPath.rfind('/');
+
+		size_t pos = std::string::npos;
+
+		if (pos_slash != std::string::npos && pos_slash > pos_slash_back)
+		{
+			pos = pos_slash;
+		}
+		else if (pos_slash_back != std::string::npos)
+		{
+			pos = pos_slash_back;
+		}
+
+		DLL_DIRECTORY_COOKIE cookie = nullptr;
+
+		if (std::string::npos != pos)
+		{
+			std::wstring directory(libPath.cbegin(), libPath.cbegin() + pos + 1);
+
+			cookie = ::AddDllDirectory(directory.data() );
+		}
+		
+		lib_handle = ::LoadLibraryEx(libPath.c_str(), 0, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+
+		if (cookie)
+		{
+			::RemoveDllDirectory(cookie);
+		}
 	#elif POSIX
 		lib_handle = ::dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
 	#else
