@@ -1,6 +1,8 @@
 ﻿
 #include "Module.h"
 
+#include <iostream>
+
 namespace HttpServer
 {
 	Module::Module(): lib_handle(nullptr)
