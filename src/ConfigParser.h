@@ -12,11 +12,11 @@ namespace HttpServer
 	class ConfigParser
 	{
 	private:
-		bool includeConfigFile(const std::string &, std::string &, const size_t);
+		bool includeConfigFile(const std::string &fileName, std::string &strBuf, const size_t offset = 0);
 
 		bool addApplication(
-			const std::unordered_map<std::string, std::string> &,
-			const ServerApplicationDefaultSettings &,
+			const std::unordered_map<std::string, std::string> &app,
+			const ServerApplicationDefaultSettings &defaults,
 			std::vector<Module> &modules,
 			ServerApplicationsTree &apps_tree
 		);

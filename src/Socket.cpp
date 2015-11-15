@@ -32,7 +32,7 @@ namespace HttpServer
 		
 	}
 
-	Socket::Socket(const System::native_socket_type handle) : socket_handle(handle)
+	Socket::Socket(const System::native_socket_type fd) : socket_handle(fd)
 	{
 		
 	}
@@ -42,9 +42,9 @@ namespace HttpServer
 		
 	}
 
-	Socket::Socket(Socket &&that) : socket_handle(that.socket_handle)
+	Socket::Socket(Socket &&obj) : socket_handle(obj.socket_handle)
 	{
-		that.socket_handle = ~0;
+		obj.socket_handle = ~0;
 	}
 
 	System::native_socket_type Socket::open()
@@ -139,7 +139,7 @@ namespace HttpServer
 		return Socket(client_socket);
 	}
 
-	Socket Socket::nonblock_accept(const std::chrono::milliseconds &timeWait) const
+	Socket Socket::nonblock_accept(const std::chrono::milliseconds &timeout) const
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
@@ -149,7 +149,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLRDNORM)
+		if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLRDNORM)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
@@ -160,7 +160,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLIN)
+		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN)
 		{
 			client_socket = ::accept(socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
@@ -234,7 +234,7 @@ namespace HttpServer
 	#endif
 	}
 
-	size_t Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeWait) const
+	size_t Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const
 	{
 		size_t recv_len = ~0;
 	#ifdef WIN32
@@ -244,7 +244,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLRDNORM)
+		if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLRDNORM)
         {
 			recv_len = ::recv(socket_handle, buf.data(), buf.size(), 0);
 		}
@@ -255,7 +255,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLIN)
+		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN)
 		{
 			recv_len = ::recv(socket_handle, buf.data(), buf.size(), MSG_NOSIGNAL);
 		}
@@ -287,7 +287,7 @@ namespace HttpServer
 	#endif
 	}
 
-	size_t Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeWait) const
+	size_t Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const
 	{
 		size_t send_len = ~0;
 	#ifdef WIN32
@@ -297,7 +297,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLWRNORM)
+		if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLWRNORM)
 		{
 			send_len = ::send(socket_handle, buf.data(), buf.length(), 0);
 		}
@@ -308,7 +308,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLOUT)
+		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLOUT)
 		{
 			send_len = ::send(socket_handle, buf.data(), buf.length(), MSG_NOSIGNAL);
 		}
@@ -318,7 +318,7 @@ namespace HttpServer
 		return send_len;
 	}
 
-	size_t Socket::nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeWait) const
+	size_t Socket::nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeout) const
 	{
 		size_t send_len = ~0;
 	#ifdef WIN32
@@ -328,7 +328,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::WSAPoll(&event, 1, timeWait.count() ) && event.revents & POLLWRNORM)
+		if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLWRNORM)
 		{
 			send_len = ::send(socket_handle, buf.data(), length, 0);
 		}
@@ -339,7 +339,7 @@ namespace HttpServer
             0
         };
 
-        if (1 == ::poll(&event, 1, timeWait.count() ) && event.revents & POLLOUT)
+		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLOUT)
 		{
 			send_len = ::send(socket_handle, buf.data(), length, MSG_NOSIGNAL);
 		}
@@ -372,19 +372,19 @@ namespace HttpServer
 	#endif
 	}
 
-	Socket &Socket::operator=(const Socket s)
+	Socket &Socket::operator=(const Socket &obj)
 	{
-		socket_handle = s.socket_handle;
+		socket_handle = obj.socket_handle;
 		return *this;
 	}
 
-	bool Socket::operator ==(const Socket &sock) const
+	bool Socket::operator ==(const Socket &obj) const
 	{
-		return this->socket_handle == sock.socket_handle;
+		return this->socket_handle == obj.socket_handle;
 	}
 
-	bool Socket::operator !=(const Socket &sock) const
+	bool Socket::operator !=(const Socket &obj) const
 	{
-		return this->socket_handle != sock.socket_handle;
+		return this->socket_handle != obj.socket_handle;
 	}
 };

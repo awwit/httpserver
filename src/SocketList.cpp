@@ -14,30 +14,30 @@ namespace HttpServer
 	#endif
 	}
 
-	bool SocketList::create(const size_t listSize)
+	bool SocketList::create(const size_t startListSize)
 	{
 		destroy();
 
 	#ifdef WIN32
-		obj_list = (HANDLE) 1;
+		this->obj_list = (HANDLE) 1;
 
-		if (listSize > 0)
+		if (startListSize > 0)
 		{
-			poll_events.reserve(listSize);
+			this->poll_events.reserve(startListSize);
 		}
 
 		return true;
 	#elif POSIX
-		this->obj_list = ::epoll_create(listSize);
+		this->obj_list = ::epoll_create(startListSize);
 
 		if (std::numeric_limits<size_t>::max() == this->obj_list)
 		{
 			return false;
 		}
 
-		if (listSize > 0)
+		if (startListSize > 0)
 		{
-			this->epoll_events.reserve(listSize);
+			this->epoll_events.reserve(startListSize);
 		}
 
 		return true;

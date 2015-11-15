@@ -14,13 +14,13 @@ unix {
 
 CONFIG(debug, debug|release):DEFINES += DEBUG
 
-CONFIG(release, debug|release)
-{
-	QMAKE_CFLAGS_RELEASE -= -O
-	QMAKE_CFLAGS_RELEASE -= -O1
-	QMAKE_CFLAGS_RELEASE *= -O2
+#CONFIG(release, debug|release)
+#{
+#	QMAKE_CFLAGS_RELEASE -= -O
+#	QMAKE_CFLAGS_RELEASE -= -O1
+#	QMAKE_CFLAGS_RELEASE -= -O2
 #	QMAKE_CFLAGS_RELEASE *= -O3
-}
+#}
 
 LIBS += -ldl -pthread
 

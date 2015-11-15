@@ -20,14 +20,14 @@ namespace HttpServer
 
 	public:
 		void wait();
-		bool wait_for(const std::chrono::milliseconds &);
-		bool wait_until(const std::chrono::high_resolution_clock::time_point &);
+		bool wait_for(const std::chrono::milliseconds &ms);
+		bool wait_until(const std::chrono::high_resolution_clock::time_point &tp);
 
 		void notify();
-		void notify(const size_t);
+		void notify(const size_t threadsCount);
 
 		void reset();
 
-		bool notifed();
+		bool notifed() const;
 	};
 };

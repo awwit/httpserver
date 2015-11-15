@@ -49,9 +49,9 @@ namespace HttpServer
 		static const int CONNECTION_UPGRADE = 2;
 
 	protected:
-		int cycleQueue(std::queue<Socket> &);
+		int cycleQueue(std::queue<Socket> &sockets);
 
-        int threadRequestProc(Socket) const;
+		int threadRequestProc(Socket clientSocket) const;
 
 		static bool getRequest(Socket clientSocket, std::vector<std::string::value_type> &buf, std::string &str_buf, struct request_parameters &rp);
 
@@ -70,7 +70,7 @@ namespace HttpServer
 		static bool isConnectionKeepAlive(const struct request_parameters &rp);
 		static bool isConnectionUpgrade(const struct request_parameters &rp);
 
-        void threadRequestCycle(std::queue<Socket> &) const;
+		void threadRequestCycle(std::queue<Socket> &sockets) const;
 
 		std::string getMimeTypeByFileName(const std::string &fileName) const;
 
@@ -83,27 +83,27 @@ namespace HttpServer
 		) const;
 
 		int transferFilePart(
-			const Socket &,
-			const std::chrono::milliseconds &,
-			const std::string &,
-			const time_t,
-			const size_t,
-			const std::string &,
-			const std::string &,
-			const std::string &,
-			const bool
+			const Socket &clientSocket,
+			const std::chrono::milliseconds &timeout,
+			const std::string &fileName,
+			const time_t fileTime,
+			const size_t fileSize,
+			const std::string &rangeHeader,
+			const std::string &connectionHeader,
+			const std::string &dateHeader,
+			const bool headersOnly
 		) const;
 
 		int transferFile(
-			const Socket &,
-			const std::string &,
-			const std::string &,
-			const bool,
+			const Socket &clientSocket,
+			const std::string &fileName,
+			const std::string &connectionHeader,
+			const bool headersOnly,
 			struct request_parameters &rp
 		) const;
 
-		static bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &, const std::string &);
-		static void sendStatus(const Socket &, const std::chrono::milliseconds &, const size_t);
+		static bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &params, const std::string &uriParams);
+		static void sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode);
 
 		bool init();
 		int run();
@@ -112,10 +112,10 @@ namespace HttpServer
 		System::native_processid_type getPidFromFile() const;
 
 		void updateModules();
-		bool updateModule(Module &, std::unordered_set<ServerApplicationSettings *> &, const size_t);
+		bool updateModule(Module &module, std::unordered_set<ServerApplicationSettings *> &applications, const size_t moduleIndex);
 
 	private:
-		void addDataVariant(DataVariantAbstract *);
+		void addDataVariant(DataVariantAbstract *dataVariant);
 
 	public:
 		Server();

@@ -20,13 +20,13 @@ namespace HttpServer
 	public:
 		SocketList();
 
-		bool create(const size_t = 1);
+		bool create(const size_t startListSize = 1);
 		void destroy();
 
 		bool is_created() const;
 
-		bool addSocket(const Socket &);
-		bool removeSocket(const Socket &);
+		bool addSocket(const Socket &sock);
+		bool removeSocket(const Socket &sock);
 
 		bool accept(std::vector<Socket> &sockets) const;
 

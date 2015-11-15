@@ -15,14 +15,14 @@ namespace HttpServer
 		open(libPath);
 	}
 
-	Module::Module(const Module &module) : lib_handle(module.lib_handle)
+	Module::Module(const Module &obj) : lib_handle(obj.lib_handle)
 	{
 		
 	}
 
-	Module::Module(Module &&module) : lib_handle(module.lib_handle)
+	Module::Module(Module &&obj) : lib_handle(obj.lib_handle)
 	{
-		module.lib_handle = nullptr;
+		obj.lib_handle = nullptr;
 	}
 
 	bool Module::open(const std::string &libPath)
@@ -143,27 +143,27 @@ namespace HttpServer
 		return false;
 	}
 
-	Module &Module::operator =(const Module &module)
+	Module &Module::operator =(const Module &obj)
 	{
-		if (*this != module)
+		if (*this != obj)
 		{
 			close();
 
-			lib_handle = module.lib_handle;
+			lib_handle = obj.lib_handle;
 		}
 
 		return *this;
 	}
 
-	Module &Module::operator =(Module &&module)
+	Module &Module::operator =(Module &&obj)
 	{
-		if (*this != module)
+		if (*this != obj)
 		{
 			close();
 
-			lib_handle = module.lib_handle;
+			lib_handle = obj.lib_handle;
 
-			module.lib_handle = nullptr;
+			obj.lib_handle = nullptr;
 		}
 
 		return *this;

@@ -11,16 +11,16 @@ namespace HttpServer
 		
 	}
 
-	FileIncoming::FileIncoming(const FileIncoming &file)
-		: file_name(file.file_name), file_type(file.file_type), file_size(file.file_size)
+	FileIncoming::FileIncoming(const FileIncoming &obj)
+		: file_name(obj.file_name), file_type(obj.file_type), file_size(obj.file_size)
 	{
 		
 	}
 
-	FileIncoming::FileIncoming(FileIncoming &&file)
-		: file_name(std::move(file.file_name) ), file_type(std::move(file.file_type) ), file_size(file.file_size)
+	FileIncoming::FileIncoming(FileIncoming &&obj)
+		: file_name(std::move(obj.file_name) ), file_type(std::move(obj.file_type) ), file_size(obj.file_size)
 	{
-		file.file_size = 0;
+		obj.file_size = 0;
 	}
 
 	bool FileIncoming::isExists() const

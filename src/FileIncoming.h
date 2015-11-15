@@ -15,9 +15,10 @@ namespace HttpServer
 		FileIncoming() = delete;
 
 	public:
-		FileIncoming(const std::string &, const std::string &, const size_t);
-		FileIncoming(const FileIncoming &);
-		FileIncoming(FileIncoming &&);
+		FileIncoming(const std::string &fileName, const std::string &fileType, const size_t fileSize);
+		FileIncoming(const FileIncoming &obj);
+		FileIncoming(FileIncoming &&obj);
+
 		~FileIncoming() = default;
 
 		inline std::string getName() const

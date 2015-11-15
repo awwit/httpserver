@@ -13,36 +13,6 @@ namespace HttpServer
 		clear();
 	}
 
-	void ServerApplicationsTree::addApplication(std::vector<std::string> &nameParts, ServerApplicationSettings *sets)
-	{
-		if (nameParts.empty() )
-		{
-			app_sets = sets;
-		}
-		else
-		{
-			std::string &part = nameParts.back();
-
-			auto it = list.find(part);
-
-			ServerApplicationsTree *sub;
-
-			if (list.cend() != it)
-			{
-				sub = it->second;
-			}
-			else
-			{
-				sub = new ServerApplicationsTree();
-				list.emplace(std::move(part), sub);
-			}
-
-			nameParts.pop_back();
-
-			sub->addApplication(nameParts, sets);
-		}
-	}
-
 	void ServerApplicationsTree::addApplication(const std::string &name, ServerApplicationSettings *sets)
 	{
 		std::vector<std::string> name_parts;
@@ -79,35 +49,33 @@ namespace HttpServer
 		addApplication(name_parts, sets);
 	}
 
-	const ServerApplicationSettings *ServerApplicationsTree::find(std::vector<std::string> &nameParts) const
+	void ServerApplicationsTree::addApplication(std::vector<std::string> &nameParts, ServerApplicationSettings *sets)
 	{
 		if (nameParts.empty() )
 		{
-			return app_sets;
+			app_sets = sets;
 		}
 		else
 		{
-			const std::string part = std::move(nameParts.back() );
-
-			nameParts.pop_back();
+			std::string &part = nameParts.back();
 
 			auto it = list.find(part);
 
-            if (list.cend() == it)
-			{
-				it = list.find("*");
+			ServerApplicationsTree *sub;
 
-				if (list.end() != it)
-				{
-					return app_sets;
-				}
+			if (list.cend() != it)
+			{
+				sub = it->second;
 			}
 			else
 			{
-				return it->second->find(nameParts);
+				sub = new ServerApplicationsTree();
+				list.emplace(std::move(part), sub);
 			}
 
-			return nullptr;
+			nameParts.pop_back();
+
+			sub->addApplication(nameParts, sets);
 		}
 	}
 
@@ -138,6 +106,38 @@ namespace HttpServer
 		}
 
 		return find(name_parts);
+	}
+
+	const ServerApplicationSettings *ServerApplicationsTree::find(std::vector<std::string> &nameParts) const
+	{
+		if (nameParts.empty() )
+		{
+			return app_sets;
+		}
+		else
+		{
+			const std::string part = std::move(nameParts.back() );
+
+			nameParts.pop_back();
+
+			auto it = list.find(part);
+
+            if (list.cend() == it)
+			{
+				it = list.find("*");
+
+				if (list.end() != it)
+				{
+					return app_sets;
+				}
+			}
+			else
+			{
+				return it->second->find(nameParts);
+			}
+
+			return nullptr;
+		}
 	}
 
 	void ServerApplicationsTree::collectApplicationSettings(std::unordered_set<ServerApplicationSettings *> &set) const

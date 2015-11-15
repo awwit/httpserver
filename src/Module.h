@@ -26,8 +26,8 @@ namespace HttpServer
 	public:
 		Module();
 		Module(const std::string &libPath);
-		Module(const Module &module);
-		Module(Module &&module);
+		Module(const Module &obj);
+		Module(Module &&obj);
 
 		~Module() = default;
 
@@ -42,17 +42,17 @@ namespace HttpServer
 		bool find(const std::string &symbolName, void *(**addr)(void *) ) const;
 		bool find(const char *symbolName, void *(**addr)(void *) ) const;
 
-		inline bool operator ==(const Module &module) const
+		inline bool operator ==(const Module &obj) const
 		{
-			return lib_handle == module.lib_handle;
+			return lib_handle == obj.lib_handle;
 		}
 
-		inline bool operator !=(const Module &module) const
+		inline bool operator !=(const Module &obj) const
 		{
-			return lib_handle != module.lib_handle;
+			return lib_handle != obj.lib_handle;
 		}
 
-		Module &operator =(const Module &);
-		Module &operator =(Module &&);
+		Module &operator =(const Module &obj);
+		Module &operator =(Module &&obj);
 	};
 };

@@ -81,5 +81,5 @@ namespace System
 
 	bool isFileExists(const std::string &fileName);
 
-	bool getFileSizeAndTimeGmt(const std::string &, size_t *, time_t *);
+	bool getFileSizeAndTimeGmt(const std::string &filePath, size_t *fileSize, time_t *fileTime);
 };

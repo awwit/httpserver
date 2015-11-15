@@ -23,7 +23,7 @@ namespace Utils
 		}
 	}
 
-	void trim(std::string &);
+	void trim(std::string &str);
 
 	std::vector<std::string> explode(const std::string &str, const char sep);
 
@@ -34,7 +34,7 @@ namespace Utils
 		return s.str();
 	}
 
-	char *stlStringToPChar(const std::string &);
+	char *stlStringToPChar(const std::string &str);
 
 	template<typename T>
 	void stlToRawPairs(Utils::raw_pair *raw[], const T &stl)
@@ -64,20 +64,20 @@ namespace Utils
 		}
 	}
 
-	void filesIncomingToRawFilesInfo(Utils::raw_fileinfo *[], const std::unordered_multimap<std::string, HttpServer::FileIncoming> &);
-	void rawFilesInfoToFilesIncoming(std::unordered_multimap<std::string, HttpServer::FileIncoming> &, const Utils::raw_fileinfo [], const size_t);
+	void filesIncomingToRawFilesInfo(Utils::raw_fileinfo *raw[], const std::unordered_multimap<std::string, HttpServer::FileIncoming> &map);
+	void rawFilesInfoToFilesIncoming(std::unordered_multimap<std::string, HttpServer::FileIncoming> &map, const Utils::raw_fileinfo raw[], const size_t count);
 
-	void destroyRawPairs(Utils::raw_pair [], const size_t);
-	void destroyRawFilesInfo(Utils::raw_fileinfo [], const size_t);
+	void destroyRawPairs(Utils::raw_pair raw[], const size_t count);
+	void destroyRawFilesInfo(Utils::raw_fileinfo raw[], const size_t count);
 
-	time_t stringTimeToTimestamp(const std::string &);
+	time_t stringTimeToTimestamp(const std::string &strTime);
 
 	std::string getDatetimeAsString(const ::time_t tTime = ~0, const bool isGmtTime = false);
 
 	size_t getNumberLength(const size_t number);
 
-	bool parseCookies(const std::string &, std::unordered_multimap<std::string, std::string> &);
+	bool parseCookies(const std::string &cookieHeader, std::unordered_multimap<std::string, std::string> &cookies);
 
-	std::string urlEncode(const std::string &);
-	std::string urlDecode(const std::string &);
+	std::string urlEncode(const std::string &str);
+	std::string urlDecode(const std::string &str);
 };

@@ -24,13 +24,13 @@ namespace HttpServer
 			return list.empty();
 		}
 
-		void addApplication(const std::string &, ServerApplicationSettings *);
-		void addApplication(std::vector<std::string> &, ServerApplicationSettings *);
+		void addApplication(const std::string &name, ServerApplicationSettings *sets);
+		void addApplication(std::vector<std::string> &nameParts, ServerApplicationSettings *sets);
 
-		const ServerApplicationSettings *find(const std::string &) const;
-		const ServerApplicationSettings *find(std::vector<std::string> &) const;
+		const ServerApplicationSettings *find(const std::string &name) const;
+		const ServerApplicationSettings *find(std::vector<std::string> &nameParts) const;
 
-		void collectApplicationSettings(std::unordered_set<ServerApplicationSettings *> &) const;
+		void collectApplicationSettings(std::unordered_set<ServerApplicationSettings *> &set) const;
 
 		void clear();
 	};

@@ -52,7 +52,6 @@ namespace HttpServer
 
 	void Event::notify()
 	{
-	//	std::unique_lock<std::mutex> lck(mtx);
 		signaled = true;
 		cv.notify_all();
 	}
@@ -61,8 +60,6 @@ namespace HttpServer
 	{
 		if (threadsCount)
 		{
-		//	std::unique_lock<std::mutex> lck(mtx);
-
 			signaled = true;
 
 			for (size_t i = 0; i < threadsCount; ++i)
@@ -74,15 +71,11 @@ namespace HttpServer
 
 	void Event::reset()
 	{
-	//	std::unique_lock<std::mutex> lck(mtx);
-
 		signaled = false;
 	}
 
-	bool Event::notifed()
+	bool Event::notifed() const
 	{
-	//	std::unique_lock<std::mutex> lck(mtx);
-
 		return signaled;
 	}
 };

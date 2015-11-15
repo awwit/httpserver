@@ -39,9 +39,9 @@ namespace HttpServer
 
 	public:
 		Socket();
-		Socket(const System::native_socket_type);
-		Socket(const Socket &);
-		Socket(Socket &&);
+		Socket(const System::native_socket_type fd);
+		Socket(const Socket &obj);
+		Socket(Socket &&obj);
 
 		~Socket() = default;
 
@@ -59,27 +59,27 @@ namespace HttpServer
 		#endif
 		}
 
-		int bind(const int) const;
+		int bind(const int port) const;
 		int listen() const;
 
 		Socket accept() const;
 		Socket nonblock_accept() const;
-		Socket nonblock_accept(const std::chrono::milliseconds &) const;
+		Socket nonblock_accept(const std::chrono::milliseconds &timeout) const;
 
 		int shutdown() const;
 
-		bool nonblock(const bool = true) const;
+		bool nonblock(const bool isNonBlock = true) const;
 	//	bool is_nonblock() const;
-		bool tcp_nodelay(const bool = true) const;
+		bool tcp_nodelay(const bool nodelay = true) const;
 
-		size_t recv(std::vector<std::string::value_type> &) const;
-		size_t nonblock_recv(std::vector<std::string::value_type> &, const std::chrono::milliseconds &) const;
+		size_t recv(std::vector<std::string::value_type> &buf) const;
+		size_t nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const;
 
-		size_t send(const std::string &) const;
-		size_t send(const std::vector<std::string::value_type> &, const size_t) const;
+		size_t send(const std::string &buf) const;
+		size_t send(const std::vector<std::string::value_type> &buf, const size_t length) const;
 
-		size_t nonblock_send(const std::string &, const std::chrono::milliseconds &) const;
-		size_t nonblock_send(const std::vector<std::string::value_type> &, const size_t, const std::chrono::milliseconds &) const;
+		size_t nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const;
+		size_t nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeout) const;
 
 		void nonblock_send_sync() const;
 
@@ -88,9 +88,9 @@ namespace HttpServer
 			return socket_handle;
 		}
 
-		Socket &operator =(const Socket);
+		Socket &operator =(const Socket &obj);
 
-		bool operator ==(const Socket &sock) const;
-		bool operator !=(const Socket &sock) const;
+		bool operator ==(const Socket &obj) const;
+		bool operator !=(const Socket &obj) const;
 	};
 };

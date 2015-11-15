@@ -12,7 +12,7 @@ namespace HttpServer
 	/**
 	 * Config - include file
 	 */
-	bool ConfigParser::includeConfigFile(const std::string &fileName, std::string &strBuf, const std::size_t offset = 0)
+	bool ConfigParser::includeConfigFile(const std::string &fileName, std::string &strBuf, const std::size_t offset)
 	{
 		std::ifstream file(fileName);
 

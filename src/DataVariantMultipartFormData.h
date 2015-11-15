@@ -12,22 +12,22 @@ namespace HttpServer
 	protected:
 		bool append
 		(
-			const Socket &,
-			const std::chrono::milliseconds &,
-			std::vector<std::string::value_type> &,
-			std::string &,
-			const std::string &,
-			const size_t &,
-			size_t &,
-			size_t &
+			const Socket &sock,
+			const std::chrono::milliseconds &timeout,
+			std::vector<std::string::value_type> &buf,
+			std::string &str_buf,
+			const std::string &data_end,
+			const size_t &leftBytes,
+			size_t &recv_len,
+			size_t &read_len
 		) const;
 
 	public:
 		virtual bool parse
 		(
-			const Socket &,
-			std::string &,
-			const size_t,
+			const Socket &sock,
+			std::string &str,
+			const size_t leftBytes,
 			std::unordered_map<std::string, std::string> &contentParams,
 			struct request_parameters &rp
 		) override;
