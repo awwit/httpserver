@@ -27,12 +27,15 @@ namespace Utils
 
 	std::vector<std::string> explode(const std::string &str, const char sep);
 
-	inline std::string getUniqueName()
-	{
-		std::stringstream s;
-		s << std::hex << std::chrono::high_resolution_clock::now().time_since_epoch().count();
-		return s.str();
-	}
+	std::string encodeHtmlSymbols(const std::string &str);
+
+	std::string binToHexString(const char *bin, const size_t size);
+
+	std::string hexStringToBin(const std::string &hexStr);
+
+	unsigned long long htonll(const unsigned long long src);
+
+	std::string getUniqueName();
 
 	char *stlStringToPChar(const std::string &str);
 

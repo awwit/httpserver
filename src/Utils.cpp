@@ -43,6 +43,126 @@ namespace Utils
 		return values;
 	}
 
+	std::string encodeHtmlSymbols(const std::string &str)
+	{
+		std::string buf;
+		buf.reserve(str.length() );
+
+		for (size_t pos = 0; pos < str.length(); ++pos)
+		{
+			switch (str[pos])
+			{
+				case '&': buf.append("&amp;"); break;
+				case '\"': buf.append("&quot;"); break;
+				case '\'': buf.append("&apos;"); break;
+				case '<': buf.append("&lt;"); break;
+				case '>': buf.append("&gt;"); break;
+				default: buf.push_back(str[pos]); break;
+			}
+		}
+
+		return buf;
+	}
+
+	std::string binToHexString(const char *binData, const size_t dataSize)
+	{
+		std::string str(dataSize * 2, 0);
+
+		const uint8_t *bin = reinterpret_cast<const uint8_t *>(binData);
+
+		const char hexDigits[] = { "0123456789abcdef" };
+
+		for (size_t i = dataSize - 1; std::numeric_limits<size_t>::max() != i; --i)
+		{
+			str[(i << 1) + 0] = hexDigits[bin[i] >> 4];
+			str[(i << 1) + 1] = hexDigits[bin[i] & 0x0F];
+		}
+
+		return str;
+	}
+
+	static unsigned char hexStringToBinEncodeSymbol(const char c)
+	{
+		if (c >= '0' && c <= '9')
+		{
+			return c - 0x30;
+		}
+		else if (c >= 'a' && c <= 'f')
+		{
+			return c - 0x57;
+		}
+		else if (c >= 'A' && c <= 'F')
+		{
+			return c - 0x37;
+		}
+
+		return 0;
+	}
+
+	std::string hexStringToBin(const std::string &hexStr)
+	{
+		std::string bin(hexStr.length() / 2, 0);
+
+		for (size_t i = 0; i < bin.length(); ++i)
+		{
+			char a = hexStr[(i << 1) + 0];
+			char b = hexStr[(i << 1) + 1];
+
+			bin[i] = (
+				(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
+			);
+		}
+
+		return bin;
+	}
+
+	unsigned long long htonll(const unsigned long long src)
+	{
+		enum Endianness {
+			INIT = 0,
+			LITE = 1,
+			BIGE = 2
+		};
+
+		static int endian = Endianness::INIT;
+
+		union {
+			unsigned long long ull;
+			unsigned char c[8];
+		} x;
+
+		if (endian == Endianness::INIT)
+		{
+			x.ull = 0x01;
+			endian = (x.c[7] == 0x01ULL) ? Endianness::BIGE : Endianness::LITE;
+		}
+
+		if (endian == Endianness::BIGE)
+		{
+			return src;
+		}
+
+		x.ull = src;
+
+		unsigned char c;
+
+		c = x.c[0]; x.c[0] = x.c[7]; x.c[7] = c;
+		c = x.c[1]; x.c[1] = x.c[6]; x.c[6] = c;
+		c = x.c[2]; x.c[2] = x.c[5]; x.c[5] = c;
+		c = x.c[3]; x.c[3] = x.c[4]; x.c[4] = c;
+
+		return x.ull;
+	}
+
+	std::string getUniqueName()
+	{
+		size_t time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
+		time = htonll(time);
+
+		return binToHexString(reinterpret_cast<const char *>(&time), sizeof(time) );
+	}
+
 	char *stlStringToPChar(const std::string &str)
 	{
 		const size_t length = str.length();
@@ -146,7 +266,7 @@ namespace Utils
 		const size_t str_mon_length = 64;
 		std::vector<char> s_mon(str_mon_length);
 
-        struct ::tm tc = {0};
+		struct ::tm tc = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 		// Parse RFC 822
 	#ifdef WIN32
