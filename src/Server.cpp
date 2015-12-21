@@ -1151,7 +1151,7 @@ namespace HttpServer
 		module.open(module_name);
 
 	#elif POSIX
-		// HACK: for posix system - load new version shared library
+		// HACK: for posix system — load new version shared library
 
 		size_t dir_pos = module_name.rfind('/');
 		size_t ext_pos = module_name.rfind('.');
@@ -1469,6 +1469,7 @@ namespace HttpServer
 		if (this->server_sockets.empty() )
 		{
 			std::cout << "Error: do not open any socket;" << std::endl;
+			clear();
 			return 2;
 		}
 
