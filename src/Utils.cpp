@@ -2,8 +2,12 @@
 #include "Utils.h"
 
 #include <array>
+#include <chrono>
 #include <cstring>
+#include <sstream>
 #include <iomanip>
+#include <cstdint>
+#include <cctype>
 
 namespace Utils
 {

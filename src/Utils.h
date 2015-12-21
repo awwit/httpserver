@@ -4,14 +4,8 @@
 #include "FileIncoming.h"
 
 #include <locale>
-#include <string>
-#include <algorithm>
-#include <functional>
-#include <sstream>
-#include <chrono>
-#include <map>
+#include <vector>
 #include <unordered_map>
-#include <cctype>
 
 namespace Utils
 {

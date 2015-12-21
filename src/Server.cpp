@@ -16,7 +16,7 @@
 #include <map>
 #include <thread>
 #include <fstream>
-#include <cstring>
+#include <algorithm>
 
 namespace HttpServer
 {
