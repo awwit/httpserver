@@ -2,7 +2,7 @@
 
 #ifdef WIN32
 	#include <Windows.h>
-	char myWndClassName[];
+	::TCHAR myWndClassName[];
 
     #ifdef SIGTERM
         #undef SIGTERM

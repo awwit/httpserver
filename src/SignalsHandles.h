@@ -8,7 +8,7 @@
 	#include <thread>
 
 	extern std::thread threadMessageLoop;
-	extern char myWndClassName[];
+	extern ::TCHAR myWndClassName[];
 #endif
 
 int bindSignalsHandles(HttpServer::Server *server);

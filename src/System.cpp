@@ -4,7 +4,12 @@
 #include <array>
 
 #ifdef WIN32
-	char myWndClassName[] = "WndClassNameConstant";
+	#include <tchar.h>
+	::TCHAR myWndClassName[] = TEXT("WndClassNameConstant");
+
+	#ifdef UNICODE
+		#include <codecvt>
+	#endif
 #endif
 
 namespace System
@@ -26,11 +31,11 @@ namespace System
 
         if (process_id == ed.process_id && ::GetConsoleWindow() != hWnd)
 		{
-			std::array<char, 65> class_name;
+			std::array<::TCHAR, 257> class_name;
 
 			::GetClassName(hWnd, class_name.data(), class_name.size() - 1);
 
-			if (0 == ::strcmp(class_name.data(), myWndClassName) )
+			if (0 == ::_tcscmp(class_name.data(), myWndClassName) )
 			{
 				ed.hWnd = hWnd;
 
@@ -65,11 +70,16 @@ namespace System
 	std::string getTempDir()
 	{
 	#ifdef WIN32
-		std::array<std::string::value_type, MAX_PATH + 1> buf;
+		std::array<TCHAR, MAX_PATH + 1> buf;
 
 		const size_t len = ::GetTempPath(buf.size(), buf.data() );
 
-		return std::string(buf.cbegin(), buf.cbegin() + len);
+		#ifdef UNICODE
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			return converter.to_bytes(buf.data() );
+		#else
+			return std::string(buf.cbegin(), buf.cbegin() + len);
+		#endif
 	#elif POSIX
         const char *buf = ::getenv("TMPDIR");
 
@@ -94,7 +104,14 @@ namespace System
 	bool isFileExists(const std::string &fileName)
 	{
 	#ifdef WIN32
-		const ::DWORD attrib = ::GetFileAttributes(fileName.c_str() );
+		#ifdef UNICODE
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			const std::wstring file_name = converter.from_bytes(fileName);
+		#else
+			const std::string &file_name = fileName;
+		#endif
+
+		const ::DWORD attrib = ::GetFileAttributes(file_name.c_str() );
 
 		if (INVALID_FILE_ATTRIBUTES == attrib)
 		{
@@ -119,7 +136,14 @@ namespace System
 	bool getFileSizeAndTimeGmt(const std::string &filePath, size_t *fileSize, time_t *fileTime)
 	{
 	#ifdef WIN32
-		::HANDLE hFile = ::CreateFile(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+		#ifdef UNICODE
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			const std::wstring file_path = converter.from_bytes(filePath);
+		#else
+			const std::string &file_path = filePath;
+		#endif
+
+		::HANDLE hFile = ::CreateFile(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 
 		if (INVALID_HANDLE_VALUE == hFile)
 		{
