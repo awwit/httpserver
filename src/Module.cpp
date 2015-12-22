@@ -5,6 +5,8 @@
 	#ifdef UNICODE
 		#include <codecvt>
 	#endif
+#elif POSIX
+	#include <iostream>
 #endif
 
 namespace HttpServer
