@@ -42,8 +42,8 @@ namespace HttpServer
 
 		if (file_size)
 		{
-			std::vector<std::string::value_type> buf(file_size);
-			file.read(reinterpret_cast<char *>(buf.data() ), file_size);
+			std::vector<char> buf(file_size);
+			file.read(buf.data(), file_size);
 
 			strBuf.insert(strBuf.begin() + offset, buf.cbegin(), buf.cend() );
 		}
@@ -299,9 +299,9 @@ namespace HttpServer
 
 		const std::string whitespace(" \t\v\f\r");
 
-		std::vector<std::string::value_type> buf(file_size);
+		std::vector<char> buf(file_size);
 
-		file.read(reinterpret_cast<char *>(buf.data() ), file_size);
+		file.read(buf.data(), file_size);
 
 		const std::string str_buf(buf.cbegin(), buf.cend() );
 

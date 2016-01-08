@@ -11,16 +11,26 @@
 
 namespace Utils
 {
+	void toLower(std::string &str, const std::locale &loc)
+	{
+		for (auto &c : str)
+		{
+			c = std::tolower(c, loc);
+		}
+	}
+
 	void trim(std::string &str)
 	{
-		const size_t last = str.find_last_not_of(" \t\n\v\f\r");
+		static const char whitespace[] = {" \t\n\v\f\r"};
+
+		const size_t last = str.find_last_not_of(whitespace);
 
 		if (std::string::npos == last)
 		{
 			return str.clear();
 		}
 
-		str.assign(str.cbegin() + str.find_first_not_of(" \t\n\v\f\r"), str.cbegin() + last + 1);
+		str.assign(str.cbegin() + str.find_first_not_of(whitespace), str.cbegin() + last + 1);
 	}
 
 	std::vector<std::string> explode(const std::string &str, const char sep)
@@ -68,7 +78,7 @@ namespace Utils
 		return buf;
 	}
 
-	std::string binToHexString(const char *binData, const size_t dataSize)
+	std::string binToHexString(const void *binData, const size_t dataSize)
 	{
 		std::string str(dataSize * 2, 0);
 
@@ -109,8 +119,8 @@ namespace Utils
 
 		for (size_t i = 0; i < bin.length(); ++i)
 		{
-			char a = hexStr[(i << 1) + 0];
-			char b = hexStr[(i << 1) + 1];
+			const char a = hexStr[(i << 1) + 0];
+			const char b = hexStr[(i << 1) + 1];
 
 			bin[i] = (
 				(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
@@ -164,7 +174,7 @@ namespace Utils
 
 		time = htonll(time);
 
-		return binToHexString(reinterpret_cast<const char *>(&time), sizeof(time) );
+		return binToHexString(&time, sizeof(time) );
 	}
 
 	char *stlStringToPChar(const std::string &str)
@@ -254,24 +264,19 @@ namespace Utils
 
 	time_t stringTimeToTimestamp(const std::string &strTime)
 	{
-	/*	static const std::unordered_map<std::string, int> map_days {
-			{"Sun", 0}, {"Mon", 1}, {"Tue", 2}, {"Wed", 3}, {"Thu", 4}, {"Fri", 5}, {"Sat", 6}
-		};*/
-
 		static const std::unordered_map<std::string, int> map_months {
 			{"Jan", 0}, {"Feb", 1}, {"Mar", 2}, {"Apr", 3}, {"May", 4}, {"Jun", 5}, {"Jul", 6}, {"Aug", 7}, {"Sep", 8}, {"Oct", 9}, {"Nov", 10}, {"Dec", 11}
 		};
 
 		if (strTime.length() > 64)
 		{
-			return (time_t) ~0;
+			return ~0;
 		}
 
 		const size_t str_mon_length = 64;
 		std::vector<char> s_mon(str_mon_length);
 
-		struct ::tm tc;
-		memset(&tc, 0, sizeof(tc) );
+		struct ::tm tc = {};
 
 		// Parse RFC 822
 	#ifdef WIN32
@@ -301,27 +306,24 @@ namespace Utils
 
 		::time_t cur_time = tTime;
 
-		if ( (time_t)~0 == tTime)
+		if (tTime == ~0)
 		{
 			::time(&cur_time);
 		}
 
 	#ifdef WIN32
-		struct ::tm stm = {0};
+		struct ::tm stm = {};
 
-		if (isGmtTime)
-		{
-			::localtime_s(&stm, &cur_time);
-		}
-		else
-		{
+		isGmtTime ?
+			::localtime_s(&stm, &cur_time) :
 			::gmtime_s(&stm, &cur_time);
-		}
 
 		// RFC 822
 		::strftime(buf.data(), buf.size(), "%a, %d %b %Y %H:%M:%S GMT", &stm);
 	#else
-		struct ::tm *ptm = isGmtTime ? localtime(&cur_time) : gmtime(&cur_time);
+		struct ::tm *ptm = isGmtTime ?
+			::localtime(&cur_time) :
+			::gmtime(&cur_time);
 
 		// RFC 822
 		::strftime(buf.data(), buf.size(), "%a, %d %b %G %H:%M:%S GMT", ptm);
@@ -350,7 +352,7 @@ namespace Utils
 	{
 		if (cookieHeader.empty() )
 		{
-			return false;
+			return true;
 		}
 
 		for (size_t cur_pos = 0, next_value; std::string::npos != cur_pos; cur_pos = next_value)
@@ -385,7 +387,7 @@ namespace Utils
 		return true;
 	}
 
-	inline bool isUrlAllowed(const std::string::value_type c)
+	inline bool isUrlAllowed(const char c)
 	{
 		static const std::string special("-_.~");
 
@@ -400,7 +402,7 @@ namespace Utils
 
 		for (auto it = str.cbegin(); str.cend() != it; ++it)
 		{
-			const std::string::value_type &c = *it;
+			const char &c = *it;
 
 			if (' ' == c)
 			{
@@ -423,11 +425,12 @@ namespace Utils
 	{
 		std::string decoded;
 
-		std::string::value_type ch[3] = {0};
+		// ch length must be >= 3
+		std::array<char, sizeof(size_t)> ch;
 
 		for (auto it = str.cbegin(); str.cend() != it; ++it)
 		{
-			const std::string::value_type &c = *it;
+			const char &c = *it;
 
 			if ('%' == c)
 			{
@@ -449,7 +452,7 @@ namespace Utils
 
 				ch[1] = *it;
 
-				decoded.push_back(strtoul(ch, nullptr, 16) );
+				decoded.push_back(strtoul(ch.data(), nullptr, 16) );
 			}
 			else if ('+' == c)
 			{

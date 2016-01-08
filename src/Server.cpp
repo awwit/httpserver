@@ -26,7 +26,7 @@ namespace HttpServer
 		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
 
 		std::locale loc;
-		Utils::tolower(file_ext, loc);
+		Utils::toLower(file_ext, loc);
 
 		auto it_mime = this->mimes_types.find(file_ext);
 
@@ -225,7 +225,7 @@ namespace HttpServer
 			{
 				const size_t length = std::get<1>(range);
 
-                std::vector<std::string::value_type> buf(length < 512 * 1024 ? length : 512 * 1024);
+				std::vector<char> buf(length < 512 * 1024 ? length : 512 * 1024);
 
 				const size_t position = std::get<0>(range);
 
@@ -242,7 +242,7 @@ namespace HttpServer
 						buf.resize(send_size_left);
 					}
 
-					file.read(reinterpret_cast<char *>(buf.data() ), buf.size() );
+					file.read(buf.data(), buf.size() );
 					send_size = clientSocket.nonblock_send(buf, file.gcount(), timeout);
 
 					send_size_left -= send_size;
@@ -350,7 +350,7 @@ namespace HttpServer
 		// Отправить файл
 		if (false == headersOnly && file_size)
 		{
-			std::vector<std::string::value_type> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
+			std::vector<char> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
 
 			size_t send_size;
 
@@ -441,7 +441,7 @@ namespace HttpServer
 		rp.keep_alive_count = 100;
 
 		const size_t buf_len = 4096;
-		std::vector<std::string::value_type> buf(buf_len);
+		std::vector<char> buf(buf_len);
 
 		std::string str_buf;
 
@@ -516,7 +516,7 @@ namespace HttpServer
 		return rp.app_exit_code;
 	}
 
-	bool Server::getRequest(Socket clientSocket, std::vector<std::string::value_type> &buf, std::string &str_buf, struct request_parameters &rp)
+	bool Server::getRequest(Socket clientSocket, std::vector<char> &buf, std::string &str_buf, struct request_parameters &rp)
 	{
 		// Получить данные запроса от клиента
 		const size_t recv_size = clientSocket.nonblock_recv(buf, rp.timeout);
@@ -897,10 +897,10 @@ namespace HttpServer
 			std::locale loc;
 
 			std::string connection_in = it_in_connection->second;
-			Utils::tolower(connection_in, loc);
+			Utils::toLower(connection_in, loc);
 
 			std::string connection_out = it_out_connection->second;
-			Utils::tolower(connection_out, loc);
+			Utils::toLower(connection_out, loc);
 
 			auto const incoming_params = Utils::explode(connection_in, ',');
 

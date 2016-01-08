@@ -53,7 +53,7 @@ namespace HttpServer
 
 		int threadRequestProc(Socket clientSocket) const;
 
-		static bool getRequest(Socket clientSocket, std::vector<std::string::value_type> &buf, std::string &str_buf, struct request_parameters &rp);
+		static bool getRequest(Socket clientSocket, std::vector<char> &buf, std::string &str_buf, struct request_parameters &rp);
 
 		int getRequestHeaders(std::string &str_buf, struct request_parameters &rp) const;
 

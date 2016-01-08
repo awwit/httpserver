@@ -127,10 +127,9 @@ int bindSignalsHandles(HttpServer::Server *server)
 
     ::HINSTANCE hInstance = ::GetModuleHandle(nullptr);
 
-    ::WNDCLASSEX wcex = {
-        sizeof(::WNDCLASSEX)
-	};
+	::WNDCLASSEX wcex = {};
 
+	wcex.cbSize = sizeof(::WNDCLASSEX);
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = hInstance;
 	wcex.lpszClassName = myWndClassName;
@@ -148,7 +147,7 @@ int bindSignalsHandles(HttpServer::Server *server)
 
 #elif POSIX
 
-    struct ::sigaction act = {0};
+	struct ::sigaction act = {};
 
 	act.sa_handler = handlerSigInt;
     ::sigaction(SIGINT, &act, nullptr);

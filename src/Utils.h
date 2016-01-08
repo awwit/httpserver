@@ -9,13 +9,7 @@
 
 namespace Utils
 {
-	inline void tolower(std::string &str, const std::locale &loc)
-	{
-		for (auto &c : str)
-		{
-			c = std::tolower(c, loc);
-		}
-	}
+	void toLower(std::string &str, const std::locale &loc);
 
 	void trim(std::string &str);
 
@@ -23,7 +17,7 @@ namespace Utils
 
 	std::string encodeHtmlSymbols(const std::string &str);
 
-	std::string binToHexString(const char *bin, const size_t size);
+	std::string binToHexString(const void *bin, const size_t size);
 
 	std::string hexStringToBin(const std::string &hexStr);
 

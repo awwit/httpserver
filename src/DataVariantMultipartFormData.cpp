@@ -15,7 +15,7 @@ namespace HttpServer
 	(
 		const Socket &sock,
 		const std::chrono::milliseconds &timeout,
-		std::vector<std::string::value_type> &buf,
+		std::vector<char> &buf,
 		std::string &str_buf,
 		const std::string &data_end,
 		const size_t &leftBytes,
@@ -86,7 +86,7 @@ namespace HttpServer
 		const size_t buf_len = (leftBytes >= 512 * 1024) ? 512 * 1024 : leftBytes;
 
 		// Создание буферов
-		std::vector<std::string::value_type> buf(buf_len);
+		std::vector<char> buf(buf_len);
 
 		size_t str_cur;			// Текущая позиция в буфере
 
@@ -275,7 +275,7 @@ namespace HttpServer
 									if (file.is_open() )
 									{
 										// Смещение данных в буфере в начало
-//										str.assign(str.cbegin() + str_cur, str.cend() );
+									//	str.assign(str.cbegin() + str_cur, str.cend() );
 										str.erase(str.begin(), str.begin() + str_cur);
 
 										// Поиск конца блока данных
@@ -287,7 +287,7 @@ namespace HttpServer
 											// Добавить данные к значению
 											file.write(str.data(), str.length() - data_end.length() );
 
-//											str.assign(str.cend() - data_end.length(), str.cend() );
+										//	str.assign(str.cend() - data_end.length(), str.cend() );
 											str.erase(str.begin(), str.end() - data_end.length() );
 
 											// Получить следующий кусок данных
@@ -331,7 +331,7 @@ namespace HttpServer
 								std::string value;
 
 								// Смещение данных в буфере в начало
-//								str.assign(str.cbegin() + str_cur, str.cend() );
+							//	str.assign(str.cbegin() + str_cur, str.cend() );
 								str.erase(str.begin(), str.begin() + str_cur);
 
 								// Поиск конца блока данных
@@ -343,7 +343,7 @@ namespace HttpServer
 									// Добавить данные к значению
 									value.append(str.cbegin(), str.cend() - data_end.length() );
 
-//									str.assign(str.cend() - data_end.length(), str.cend() );
+								//	str.assign(str.cend() - data_end.length(), str.cend() );
 									str.erase(str.begin(), str.end() - data_end.length() );
 
 									// Получить следующий кусок данных
@@ -395,7 +395,7 @@ namespace HttpServer
 
 				while (std::string::npos == str_cur)
 				{
-//					str.assign(str.cend() - data_end.length(), str.cend() );
+				//	str.assign(str.cend() - data_end.length(), str.cend() );
 					str.erase(str.begin(), str.end() - data_end.length() );
 
 					// Получить следующий кусок данных

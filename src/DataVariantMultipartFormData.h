@@ -14,7 +14,7 @@ namespace HttpServer
 		(
 			const Socket &sock,
 			const std::chrono::milliseconds &timeout,
-			std::vector<std::string::value_type> &buf,
+			std::vector<char> &buf,
 			std::string &str_buf,
 			const std::string &data_end,
 			const size_t &leftBytes,
