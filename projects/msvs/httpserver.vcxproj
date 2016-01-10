@@ -30,7 +30,7 @@
     <ClCompile Include="..\..\src\RequestParameters.cpp" />
     <ClCompile Include="..\..\src\Server.cpp" />
     <ClCompile Include="..\..\src\ServerApplicationsTree.cpp" />
-    <ClCompile Include="..\..\src\SignalsHandles.cpp" />
+    <ClCompile Include="..\..\src\SignalHandlers.cpp" />
     <ClCompile Include="..\..\src\Socket.cpp" />
     <ClCompile Include="..\..\src\SocketList.cpp" />
     <ClCompile Include="..\..\src\System.cpp" />
@@ -54,7 +54,7 @@
     <ClInclude Include="..\..\src\ServerApplicationsTree.h" />
     <ClInclude Include="..\..\src\ServerRequest.h" />
     <ClInclude Include="..\..\src\ServerResponse.h" />
-    <ClInclude Include="..\..\src\SignalsHandles.h" />
+    <ClInclude Include="..\..\src\SignalHandlers.h" />
     <ClInclude Include="..\..\src\Socket.h" />
     <ClInclude Include="..\..\src\SocketList.h" />
     <ClInclude Include="..\..\src\System.h" />
