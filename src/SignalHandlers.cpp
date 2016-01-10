@@ -1,11 +1,20 @@
 ﻿
-#include "SignalsHandles.h"
+#include "SignalHandlers.h"
+#include "System.h"
 
-#include <signal.h>
+#ifdef WIN32
+	#include <Windows.h>
+	#include <thread>
 
-HttpServer::Server *globalServerPtr = nullptr;
+	static std::thread threadMessageLoop;
+	extern ::TCHAR myWndClassName[];
+#endif
 
-void handlerSigTerm(int sig)
+#include <csignal>
+
+static HttpServer::Server *globalServerPtr = nullptr;
+
+static void handlerSigTerm(const int sig)
 {
 	if (globalServerPtr)
 	{
@@ -13,7 +22,7 @@ void handlerSigTerm(int sig)
 	}
 }
 
-void handlerSigInt(int sig)
+static void handlerSigInt(const int sig)
 {
 	if (globalServerPtr)
 	{
@@ -21,7 +30,7 @@ void handlerSigInt(int sig)
 	}
 }
 
-void handlerSigUsr1(int sig)
+static void handlerSigUsr1(const int sig)
 {
 	if (globalServerPtr)
 	{
@@ -30,7 +39,7 @@ void handlerSigUsr1(int sig)
 	}
 }
 
-void handlerSigUsr2(int sig)
+static void handlerSigUsr2(const int sig)
 {
 	if (globalServerPtr)
 	{
@@ -41,13 +50,12 @@ void handlerSigUsr2(int sig)
 }
 
 #ifdef WIN32
-
 /**
  * Note: PostQuitMessage(0)
  *  It doesn't work in case the program was launched and was
  *  attempted to finish under different remote sessions.
  */
-::LRESULT CALLBACK WndProc(::HWND hWnd, ::UINT message, ::WPARAM wParam, ::LPARAM lParam)
+static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const ::WPARAM wParam, const ::LPARAM lParam)
 {
 	switch (message)
 	{
@@ -88,9 +96,9 @@ void handlerSigUsr2(int sig)
 	return 0;
 }
 
-::WPARAM mainMessageLoop(::HINSTANCE hInstance, HttpServer::Event *pCreatedWindow)
+static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event *pCreatedWindow)
 {
-    ::HWND hWnd = ::CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
+	const ::HWND hWnd = ::CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
 
 	pCreatedWindow->notify();
 
@@ -111,7 +119,7 @@ void handlerSigUsr2(int sig)
 }
 #endif
 
-int bindSignalsHandles(HttpServer::Server *server)
+bool bindSignalHandlers(HttpServer::Server *server)
 {
 	globalServerPtr = server;
 
@@ -125,7 +133,7 @@ int bindSignalsHandles(HttpServer::Server *server)
 
     ::_set_abort_behavior(0, _WRITE_ABORT_MSG);
 
-    ::HINSTANCE hInstance = ::GetModuleHandle(nullptr);
+	const ::HINSTANCE hInstance = ::GetModuleHandle(nullptr);
 
 	::WNDCLASSEX wcex = {};
 
@@ -136,7 +144,7 @@ int bindSignalsHandles(HttpServer::Server *server)
 
     if (0 == ::RegisterClassEx(&wcex) )
 	{
-		return 0;
+		return false;
 	}
 
 	HttpServer::Event createdWindow;
@@ -164,5 +172,13 @@ int bindSignalsHandles(HttpServer::Server *server)
 	#error "Undefine platform"
 #endif
 
-	return 1;
+	return true;
+}
+
+void stopSignalHandlers()
+{
+#ifdef WIN32
+	System::sendSignal(::GetCurrentProcessId(), SIGINT);
+	threadMessageLoop.join();
+#endif
 }

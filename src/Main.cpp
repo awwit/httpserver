@@ -1,5 +1,7 @@
+
 #include "Main.h"
-#include "SignalsHandles.h"
+#include "Server.h"
+#include "SignalHandlers.h"
 
 #include <iostream>
 
@@ -17,20 +19,17 @@ int main(const int argc, const char *argv[])
 
 	if (1 < argc)
 	{
-		auto command = commands.find(argv[1]);
+		auto const command = commands.find(argv[1]);
 
-        if (commands.cend() != command)
+		if (commands.cend() != command)
 		{
 			HttpServer::Server server;
 
-			if (bindSignalsHandles(&server) )
+			if (bindSignalHandlers(&server) )
 			{
 				exitcode = command->second(&server, argc, argv);
 
-			#ifdef WIN32
-				System::sendSignal(GetCurrentProcessId(), SIGINT);
-				threadMessageLoop.join();
-			#endif
+				stopSignalHandlers();
 			}
 		}
 		else

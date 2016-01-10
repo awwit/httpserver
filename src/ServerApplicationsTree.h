@@ -19,10 +19,7 @@ namespace HttpServer
 		ServerApplicationsTree();
 		~ServerApplicationsTree();
 
-		inline bool empty() const
-		{
-			return list.empty();
-		}
+		inline bool empty() const { return list.empty(); }
 
 		void addApplication(const std::string &name, ServerApplicationSettings *sets);
 		void addApplication(std::vector<std::string> &nameParts, ServerApplicationSettings *sets);

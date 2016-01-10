@@ -10,7 +10,7 @@ namespace HttpServer
 		DataVariantMultipartFormData();
 
 	protected:
-		bool append
+		static bool append
 		(
 			const Socket &sock,
 			const std::chrono::milliseconds &timeout,
@@ -19,8 +19,8 @@ namespace HttpServer
 			const std::string &data_end,
 			const size_t &leftBytes,
 			size_t &recv_len,
-			size_t &read_len
-		) const;
+			size_t &recv_total_len
+		);
 
 	public:
 		virtual bool parse

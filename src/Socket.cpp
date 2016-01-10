@@ -27,6 +27,17 @@ namespace HttpServer
 	#endif
 	}
 
+	int Socket::getLastError()
+	{
+	#ifdef WIN32
+		return ::WSAGetLastError();
+	#elif POSIX
+		return errno;
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	Socket::Socket(): socket_handle(~0)
 	{
 		
@@ -47,16 +58,16 @@ namespace HttpServer
 		obj.socket_handle = ~0;
 	}
 
-	System::native_socket_type Socket::open()
+	bool Socket::open()
 	{
 		close();
 
 		socket_handle = ::socket(AF_INET, SOCK_STREAM, 0);
 
-		return socket_handle;
+		return is_open();
 	}
 
-	int Socket::close()
+	bool Socket::close()
 	{
 		if (is_open() )
 		{
@@ -71,15 +82,15 @@ namespace HttpServer
 			if (0 == result)
 			{
 				socket_handle = ~0;
-			}
 
-			return result;
+				return true;
+			}
 		}
 
-		return ~0;
+		return false;
 	}
 
-	int Socket::bind(const int port) const
+	bool Socket::bind(const int port) const
 	{
 		const ::sockaddr_in sock_addr = {
             AF_INET,
@@ -88,12 +99,12 @@ namespace HttpServer
             0
         };
 
-		return ::bind(socket_handle, reinterpret_cast<const sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
+		return 0 == ::bind(socket_handle, reinterpret_cast<const sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
 	}
 
-	int Socket::listen() const
+	bool Socket::listen() const
 	{
-		return ::listen(socket_handle, SOMAXCONN);
+		return 0 == ::listen(socket_handle, SOMAXCONN);
 	}
 
 	Socket Socket::accept() const
@@ -170,20 +181,20 @@ namespace HttpServer
 		return Socket(client_socket);
 	}
 
-	int Socket::shutdown() const
+	bool Socket::shutdown() const
 	{
 		if (is_open() )
 		{
 		#ifdef WIN32
-			return ::shutdown(socket_handle, SD_BOTH);
+			return 0 == ::shutdown(socket_handle, SD_BOTH);
 		#elif POSIX
-			return ::shutdown(socket_handle, SHUT_RDWR);
+			return 0 == ::shutdown(socket_handle, SHUT_RDWR);
 		#else
 			#error "Undefine platform"
 		#endif
 		}
 
-		return -1;
+		return false;
 	}
 
 	bool Socket::nonblock(const bool isNonBlock) const
@@ -192,32 +203,34 @@ namespace HttpServer
 		unsigned long value = isNonBlock;
 		return 0 == ::ioctlsocket(socket_handle, FIONBIO, &value);
 	#elif POSIX
-		return -1 != ::fcntl(socket_handle, F_SETFL, isNonBlock ? O_NONBLOCK : O_SYNC);
+		return ~0 != ::fcntl(socket_handle, F_SETFL, isNonBlock ? O_NONBLOCK : O_SYNC);
 	#else
 		#error "Undefine platform"
 	#endif
 	}
 
-/*	bool Socket::is_nonblock() const
+/*
+	bool Socket::is_nonblock() const
 	{
 	#ifdef WIN32
 		
 	#elif POSIX
-		int flags = ::fcntl(socket_handle, F_GETFL, 0);
-		return (flags != -1) && (flags & O_NONBLOCK);
+		const int flags = ::fcntl(socket_handle, F_GETFL, 0);
+		return (flags != ~0) && (flags & O_NONBLOCK);
 	#else
 		#error "Undefine platform"
 	#endif
-	}*/
+	}
+*/
 
 	bool Socket::tcp_nodelay(const bool nodelay) const
 	{
 	#ifdef WIN32
 		int flags = nodelay ? 1 : 0;
-		return 0 == setsockopt(socket_handle, IPPROTO_TCP, TCP_NODELAY, (char *)&flags, sizeof(flags) );
+		return 0 == setsockopt(socket_handle, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char *>(&flags), sizeof(flags) );
 	#elif POSIX
 		int flags = nodelay ? 1 : 0;
-		return 0 == setsockopt(socket_handle, IPPROTO_TCP, TCP_NODELAY, (char *)&flags, sizeof(flags) );
+		return 0 == setsockopt(socket_handle, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags) );
 	#else
 		#error "Undefine platform"
 	#endif

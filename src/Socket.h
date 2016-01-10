@@ -36,6 +36,7 @@ namespace HttpServer
 	public:
 		bool static Startup();
 		bool static Cleanup();
+		int static getLastError();
 
 	public:
 		Socket();
@@ -45,8 +46,8 @@ namespace HttpServer
 
 		~Socket() = default;
 
-		System::native_socket_type open();
-		int close();
+		bool open();
+		bool close();
 
 		inline bool is_open() const
 		{
@@ -59,14 +60,14 @@ namespace HttpServer
 		#endif
 		}
 
-		int bind(const int port) const;
-		int listen() const;
+		bool bind(const int port) const;
+		bool listen() const;
 
 		Socket accept() const;
 		Socket nonblock_accept() const;
 		Socket nonblock_accept(const std::chrono::milliseconds &timeout) const;
 
-		int shutdown() const;
+		bool shutdown() const;
 
 		bool nonblock(const bool isNonBlock = true) const;
 	//	bool is_nonblock() const;

@@ -11,7 +11,7 @@ namespace HttpServer
 		HANDLE obj_list;
 		mutable std::vector<WSAPOLLFD> poll_events;
 	#elif POSIX
-		size_t obj_list;
+		int obj_list;
 		mutable std::vector<struct ::epoll_event> epoll_events;
 	#else
 		#error "Undefine platform"

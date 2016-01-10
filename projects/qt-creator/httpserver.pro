@@ -36,11 +36,11 @@ SOURCES += \
     ../../src/RequestParameters.cpp \
     ../../src/Server.cpp \
     ../../src/ServerApplicationsTree.cpp \
-    ../../src/SignalsHandles.cpp \
     ../../src/Socket.cpp \
     ../../src/SocketList.cpp \
     ../../src/System.cpp \
-    ../../src/Utils.cpp
+    ../../src/Utils.cpp \
+    ../../src/SignalHandlers.cpp
 
 include(deployment.pri)
 qtcAddDeployment()
@@ -63,8 +63,8 @@ HEADERS += \
     ../../src/ServerApplicationsTree.h \
     ../../src/ServerRequest.h \
     ../../src/ServerResponse.h \
-    ../../src/SignalsHandles.h \
     ../../src/Socket.h \
     ../../src/SocketList.h \
     ../../src/System.h \
-    ../../src/Utils.h
+    ../../src/Utils.h \
+    ../../src/SignalHandlers.h

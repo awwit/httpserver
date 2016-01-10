@@ -12,7 +12,7 @@ namespace HttpServer
 		std::mutex mtx;
 		std::condition_variable cv;
 		std::atomic<bool> signaled;
-		bool manualy;
+		bool manually;
 
 	public:
 		Event(const bool _signaled = false, const bool _manualy = false);

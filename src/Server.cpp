@@ -25,10 +25,10 @@ namespace HttpServer
 		const size_t ext_pos = fileName.rfind('.');
 		std::string file_ext = std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : "";
 
-		std::locale loc;
+		const std::locale loc;
 		Utils::toLower(file_ext, loc);
 
-		auto it_mime = this->mimes_types.find(file_ext);
+		auto const it_mime = this->mimes_types.find(file_ext);
 
 		return this->mimes_types.cend() != it_mime ? it_mime->second : "application/octet-stream";
 	}
@@ -53,14 +53,14 @@ namespace HttpServer
 			{"bytes", 1}
 		};
 
-		auto it_unit = ranges_units.find(range_unit_name);
+		auto const it_unit = ranges_units.find(range_unit_name);
 
 		if (ranges_units.cend() == it_unit)
 		{
 			return ranges;
 		}
 
-		const size_t &range_unit = it_unit->second;
+		const size_t range_unit = it_unit->second;
 
 		for (size_t str_pos; std::string::npos != delimiter; )
 		{
@@ -68,7 +68,7 @@ namespace HttpServer
 
 			delimiter = rangeHeader.find(',', str_pos);
 
-			size_t range_pos = rangeHeader.find('-', str_pos);
+			const size_t range_pos = rangeHeader.find('-', str_pos);
 
 			if (range_pos < delimiter)
 			{
@@ -221,7 +221,7 @@ namespace HttpServer
 
 		if (false == headersOnly)
 		{
-			for (auto &range : ranges)
+			for (auto const &range : ranges)
 			{
 				const size_t length = std::get<1>(range);
 
@@ -287,7 +287,7 @@ namespace HttpServer
 		}
 
 		// Check for If-Modified header
-		auto it_modified = rp.incoming_headers.find("If-Modified-Since");
+		auto const it_modified = rp.incoming_headers.find("If-Modified-Since");
 
 		// Если найден заголовок проверки изменения файла (проверить, изменялся ли файл)
 		if (rp.incoming_headers.cend() != it_modified)
@@ -306,7 +306,7 @@ namespace HttpServer
 			}
 		}
 
-		auto it_range = rp.incoming_headers.find("Range");
+		auto const it_range = rp.incoming_headers.find("Range");
 
 		// Range transfer
 		if (rp.incoming_headers.cend() != it_range)
@@ -419,7 +419,7 @@ namespace HttpServer
 			{413, "Request Entity Too Large"}
 		};
 
-		auto it = statuses.find(statusCode);
+		auto const it = statuses.find(statusCode);
 
 		if (statuses.cend() != it)
 		{
@@ -484,7 +484,7 @@ namespace HttpServer
 
 			runApplication(clientSocket, *app_sets, rp);
 
-			for (auto &it : rp.incoming_files)
+			for (auto const &it : rp.incoming_files)
 			{
 				remove(it.second.getName().c_str() );
 			}
@@ -524,11 +524,7 @@ namespace HttpServer
 		if (std::numeric_limits<size_t>::max() == recv_size && str_buf.empty() )
 		{
 		#ifdef DEBUG
-			#ifdef WIN32
-				std::cout << "Error: " << WSAGetLastError() << std::endl;
-			#elif POSIX
-				std::cout << "Error: " << errno << std::endl;
-			#endif
+			std::cout << "Error: " << Socket::getLastError() << std::endl;
 		#endif
 			return false;
 		}
@@ -721,7 +717,7 @@ namespace HttpServer
 	int Server::getRequestData(Socket clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const
 	{
 		// Определить вариант данных запроса (заодно проверить, есть ли данные)
-		auto it = rp.incoming_headers.find("Content-Type");
+		auto const it = rp.incoming_headers.find("Content-Type");
 
 		if (rp.incoming_headers.cend() == it)
 		{
@@ -790,7 +786,7 @@ namespace HttpServer
 		// Получить длину запроса в байтах
 		size_t data_length = 0;
 
-		auto it_len = rp.incoming_headers.find("Content-Length");
+		auto const it_len = rp.incoming_headers.find("Content-Length");
 
 		if (rp.incoming_headers.cend() != it_len)
 		{
@@ -824,7 +820,7 @@ namespace HttpServer
 		// Разобрать данные на составляющие
 		if (false == data_variant->parse(clientSocket, data_buf, left_bytes, content_params, rp) )
 		{
-			for (auto &it : rp.incoming_files)
+			for (auto const &it : rp.incoming_files)
 			{
 				remove(it.second.getName().c_str() );
 			}
@@ -844,19 +840,21 @@ namespace HttpServer
 	const ServerApplicationSettings *Server::getApplicationSettings(const struct request_parameters &rp) const
 	{
 		// Получить доменное имя (или адрес) назначения запроса
-		auto it_host = rp.incoming_headers.find("Host");
+		auto const it_host = rp.incoming_headers.find("Host");
 
 		// Если имя задано - продолжить обработку запроса
 		if (rp.incoming_headers.cend() != it_host)
 		{
+			const std::string &host_header = it_host->second;
+
 			// Поиск разделителя, за которым помещается номер порта, если указан
-			size_t delimiter = it_host->second.find(':');
+			const size_t delimiter = host_header.find(':');
 
 			// Получить имя (или адрес)
-			const std::string host = it_host->second.substr(0, delimiter);
+			const std::string host = host_header.substr(0, delimiter);
 
 			// Получить номер порта
-			const int port = (std::string::npos != delimiter) ? std::strtol(it_host->second.substr(delimiter + 1).c_str(), nullptr, 10) : 80;
+			const int port = (std::string::npos != delimiter) ? std::strtol(host_header.substr(delimiter + 1).c_str(), nullptr, 10) : 80;
 
 			// Поиск настроек приложения по имени
 			const ServerApplicationSettings *app_sets = this->apps_tree.find(host);
@@ -873,7 +871,7 @@ namespace HttpServer
 
 	void Server::xSendfile(Socket clientSocket, struct request_parameters &rp) const
 	{
-		auto it_x_sendfile = rp.outgoing_headers.find("X-Sendfile");
+		auto const it_x_sendfile = rp.outgoing_headers.find("X-Sendfile");
 
 		if (rp.outgoing_headers.cend() != it_x_sendfile)
 		{
@@ -889,12 +887,12 @@ namespace HttpServer
 	{
 		rp.connection_params = CONNECTION_CLOSED;
 
-		auto it_in_connection = rp.incoming_headers.find("Connection");
-		auto it_out_connection = rp.outgoing_headers.find("Connection");
+		auto const it_in_connection = rp.incoming_headers.find("Connection");
+		auto const it_out_connection = rp.outgoing_headers.find("Connection");
 
 		if (rp.incoming_headers.cend() != it_in_connection && rp.outgoing_headers.cend() != it_out_connection)
 		{
-			std::locale loc;
+			const std::locale loc;
 
 			std::string connection_in = it_in_connection->second;
 			Utils::toLower(connection_in, loc);
@@ -941,13 +939,13 @@ namespace HttpServer
 	 * Метод для обработки запросов (запускается в отдельном потоке)
 	 *	извлекает сокет клиенты из очереди и передаёт его на обслуживание
 	 */
-	void Server::threadRequestCycle(std::queue<Socket> &sockets) const
+	void Server::threadRequestCycle(std::queue<Socket> &sockets, Event &eventThreadCycle) const
 	{
 		while (true)
 		{
 			Socket clientSocket;
 
-			this->eventThreadCycle->wait();
+			eventThreadCycle.wait();
 
 			if (false == this->process_flag)
 			{
@@ -964,7 +962,7 @@ namespace HttpServer
 
 			if (sockets.empty() )
 			{
-				this->eventThreadCycle->reset();
+				eventThreadCycle.reset();
 
 				this->eventNotFullQueue->notify();
 			}
@@ -1009,9 +1007,10 @@ namespace HttpServer
 		}
 
 		this->threads_working_count = 0;
-		this->eventThreadCycle = new Event(false, true);
 
-		std::function<void(Server *, std::queue<Socket> &)> serverThreadRequestCycle = std::mem_fn(&Server::threadRequestCycle);
+		Event eventThreadCycle(false, true);
+
+		std::function<void(Server *, std::queue<Socket> &, Event &)> serverThreadRequestCycle = std::mem_fn(&Server::threadRequestCycle);
 
 		std::vector<std::thread> active_threads;
 		active_threads.reserve(threads_max_count);
@@ -1029,7 +1028,7 @@ namespace HttpServer
 			{
 				while (this->threads_working_count == active_threads.size() && active_threads.size() < threads_max_count && sockets.empty() == false)
 				{
-					active_threads.emplace_back(serverThreadRequestCycle, this, std::ref(sockets) );
+					active_threads.emplace_back(serverThreadRequestCycle, this, std::ref(sockets), std::ref(eventThreadCycle) );
 				}
 
 				size_t notify_count = active_threads.size() - this->threads_working_count;
@@ -1039,7 +1038,7 @@ namespace HttpServer
 					notify_count = sockets.size();
 				}
 
-				this->eventThreadCycle->notify(notify_count);
+				eventThreadCycle.notify(notify_count);
 
 				this->eventProcessQueue->wait();
 			}
@@ -1047,7 +1046,7 @@ namespace HttpServer
 
 			// Data clear
 
-			this->eventThreadCycle->notify();
+			eventThreadCycle.notify();
 
 			if (false == active_threads.empty() )
 			{
@@ -1073,8 +1072,6 @@ namespace HttpServer
 
 			this->server_sockets.clear();
 		}
-
-		delete this->eventThreadCycle;
 
 		return 0;
 	}
@@ -1120,7 +1117,7 @@ namespace HttpServer
 
 		module.close();
 
-		auto app = *(same.cbegin() );
+		auto const app = *(same.cbegin() );
 
 		const std::string &module_name = app->server_module;
 
@@ -1153,8 +1150,8 @@ namespace HttpServer
 	#elif POSIX
 		// HACK: for posix system — load new version shared library
 
-		size_t dir_pos = module_name.rfind('/');
-		size_t ext_pos = module_name.rfind('.');
+		const size_t dir_pos = module_name.rfind('/');
+		const size_t ext_pos = module_name.rfind('.');
 
 		std::string module_name_temp;
 
@@ -1283,12 +1280,12 @@ namespace HttpServer
 
 		std::unordered_set<size_t> updated;
 
-		for (auto &app : applications)
+		for (auto const &app : applications)
 		{
 			const size_t module_index = app->module_index;
 
 			// If module is not updated (not checked)
-			if (updated.end() == updated.find(module_index) )
+			if (updated.cend() == updated.find(module_index) )
 			{
 				if (false == app->server_module_update.empty() && app->server_module_update != app->server_module)
 				{
@@ -1428,7 +1425,7 @@ namespace HttpServer
 		std::unordered_set<int> ports;
 
 		// Open applications sockets
-		for (auto &app : applications)
+		for (auto const &app : applications)
 		{
 			const int port = app->port;
 
@@ -1437,11 +1434,11 @@ namespace HttpServer
 			{
 				Socket sock;
 
-				if (~0 != sock.open() )
+				if (sock.open() )
 				{
-					if (~0 != sock.bind(port) )
+					if (sock.bind(port) )
 					{
-						if (0 == sock.listen() )
+						if (sock.listen() )
 						{
 							sock.nonblock(true);
 
@@ -1451,17 +1448,17 @@ namespace HttpServer
 						}
 						else
 						{
-							std::cout << "Error: cannot listen socket " << port << "; errno " << errno << ";" << std::endl;
+							std::cout << "Error: cannot listen socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
 						}
 					}
 					else
 					{
-						std::cout << "Error: cannot bind socket " << port << "; errno " << errno << ";" << std::endl;
+						std::cout << "Error: cannot bind socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
 					}
 				}
 				else
 				{
-					std::cout << "Error: cannot open socket; errno " << errno << ";" << std::endl;
+					std::cout << "Error: cannot open socket; errno " << Socket::getLastError() << ";" << std::endl;
 				}
 			}
 		}
@@ -1477,7 +1474,7 @@ namespace HttpServer
 
 		sockets_list.create(this->server_sockets.size() );
 
-		for (auto &sock : this->server_sockets)
+		for (auto const &sock : this->server_sockets)
 		{
 			sockets_list.addSocket(sock);
 		}

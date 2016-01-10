@@ -11,10 +11,7 @@ namespace HttpServer
 		std::string data_variant_name;
 
 	public:
-		inline std::string getName() const
-		{
-			return data_variant_name;
-		};
+		inline std::string getName() const { return data_variant_name; }
 
 	public:
 		/**

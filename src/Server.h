@@ -33,10 +33,9 @@ namespace HttpServer
 		Event *eventNotFullQueue;
 		Event *eventProcessQueue;
 		Event *eventUpdateModule;
-        Event *eventThreadCycle;
 
-        mutable std::atomic_size_t threads_working_count;
-        mutable std::mutex sockets_queue_mtx;
+		mutable std::atomic_size_t threads_working_count;
+		mutable std::mutex sockets_queue_mtx;
 
 		// Флаг, означающий - активированы ли главные циклы сервера
 		// (с помощью этого флага можно деактивировать циклы, чтобы завершить работу сервера)
@@ -70,7 +69,7 @@ namespace HttpServer
 		static bool isConnectionKeepAlive(const struct request_parameters &rp);
 		static bool isConnectionUpgrade(const struct request_parameters &rp);
 
-		void threadRequestCycle(std::queue<Socket> &sockets) const;
+		void threadRequestCycle(std::queue<Socket> &sockets, Event &eventThreadCycle) const;
 
 		std::string getMimeTypeByFileName(const std::string &fileName) const;
 

@@ -30,7 +30,7 @@ namespace HttpServer
 	#elif POSIX
 		this->obj_list = ::epoll_create(startListSize);
 
-		if (std::numeric_limits<size_t>::max() == this->obj_list)
+		if (this->obj_list == ~0)
 		{
 			return false;
 		}
@@ -66,9 +66,9 @@ namespace HttpServer
 	bool SocketList::is_created() const
 	{
 	#ifdef WIN32
-		return INVALID_HANDLE_VALUE != this->obj_list;
+		return this->obj_list != INVALID_HANDLE_VALUE;
 	#elif POSIX
-		return std::numeric_limits<size_t>::max() != this->obj_list;
+		return this->obj_list != ~0;
 	#else
 		#error "Undefine platform"
 	#endif
@@ -97,9 +97,9 @@ namespace HttpServer
 			reinterpret_cast<void *>(sock.get_handle() )
 		};
 
-		const size_t result = ::epoll_ctl(this->obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
+		const int result = ::epoll_ctl(this->obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
 
-		if (std::numeric_limits<size_t>::max() == result)
+		if (result == ~0)
 		{
 			return false;
 		}
@@ -131,9 +131,9 @@ namespace HttpServer
 
 		return false;
 	#elif POSIX
-		const size_t result = ::epoll_ctl(this->obj_list, EPOLL_CTL_DEL, sock.get_handle(), nullptr);
+		const int result = ::epoll_ctl(this->obj_list, EPOLL_CTL_DEL, sock.get_handle(), nullptr);
 
-		if (std::numeric_limits<size_t>::max() == result)
+		if (result == ~0)
 		{
 			return false;
 		}
@@ -151,7 +151,7 @@ namespace HttpServer
 		if (is_created() )
 		{
 		#ifdef WIN32
-			const size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+			const int count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
 
 			if (SOCKET_ERROR == count)
 			{
@@ -162,7 +162,7 @@ namespace HttpServer
 			{
 				const WSAPOLLFD &event = this->poll_events[i];
 
-				if (POLLRDNORM == (event.revents & POLLRDNORM) )
+				if (event.revents & POLLRDNORM)
 				{
 					System::native_socket_type client_socket = ~0;
 
@@ -181,18 +181,18 @@ namespace HttpServer
 
 			return false == sockets.empty();
 		#elif POSIX
-			const size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+			const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
 
-            if (std::numeric_limits<size_t>::max() == count)
+			if (count == ~0)
 			{
 				return false;
 			}
 
-			for (size_t i = 0; i < count; ++i)
+			for (int i = 0; i < count; ++i)
 			{
 				const epoll_event &event = this->epoll_events[i];
 
-				if (EPOLLIN == (event.events & EPOLLIN) )
+				if (event.events & EPOLLIN)
 				{
 					System::native_socket_type client_socket = ~0;
 
@@ -226,7 +226,7 @@ namespace HttpServer
 		}
 
 	#ifdef WIN32
-		const size_t count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), timeout.count() );
+		const int count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), timeout.count() );
 
 		if (SOCKET_ERROR == count)
 		{
@@ -237,11 +237,11 @@ namespace HttpServer
 		{
 			const WSAPOLLFD &event = this->poll_events[i];
 
-			if (POLLRDNORM == (event.revents & POLLRDNORM) )
+			if (event.revents & POLLRDNORM)
 			{
 				sockets.emplace_back(Socket(event.fd) );
 			}
-			else if (POLLHUP == (event.revents & POLLHUP) )
+			else if (event.revents & POLLHUP)
 			{
 				disconnected.emplace_back(Socket(event.fd) );
 			}
@@ -249,22 +249,22 @@ namespace HttpServer
 
 		return false == sockets.empty() || false == disconnected.empty();
 	#elif POSIX
-		const size_t count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), timeout.count() );
+		const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), timeout.count() );
 
-		if (std::numeric_limits<size_t>::max() == count)
+		if (count == ~0)
 		{
 			return false;
 		}
 
-		for (size_t i = 0; i < count; ++i)
+		for (int i = 0; i < count; ++i)
 		{
 			const epoll_event &event = this->epoll_events[i];
 
-			if (EPOLLIN == (event.events & EPOLLIN) )
+			if (event.events & EPOLLIN)
 			{
 				sockets.emplace_back(Socket(event.data.fd) );
 			}
-			else if (EPOLLRDHUP == (event.events & EPOLLRDHUP) )
+			else if (event.events & EPOLLRDHUP)
 			{
 				disconnected.emplace_back(Socket(event.data.fd) );
 			}

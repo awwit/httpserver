@@ -2,7 +2,7 @@
 
 namespace HttpServer
 {
-	Event::Event(const bool _signaled, const bool _manualy): signaled(_signaled), manualy(_manualy)
+	Event::Event(const bool _signaled, const bool _manually): signaled(_signaled), manually(_manually)
 	{
 		
 	}
@@ -16,7 +16,7 @@ namespace HttpServer
 			cv.wait(lck);
 		}
 
-		if (false == manualy)
+		if (false == manually)
 		{
 			signaled = false;
 		}
@@ -28,7 +28,7 @@ namespace HttpServer
 
 		auto const status = cv.wait_for(lck, ms);
 
-		if (false == manualy)
+		if (false == manually)
 		{
 			signaled = false;
 		}
@@ -42,7 +42,7 @@ namespace HttpServer
 
 		auto const status = cv.wait_until(lck, tp);
 
-		if (false == manualy)
+		if (false == manually)
 		{
 			signaled = false;
 		}

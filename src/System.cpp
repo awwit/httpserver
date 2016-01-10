@@ -21,9 +21,9 @@ namespace System
 		::HWND hWnd;
 	};
 
-    ::BOOL WINAPI EnumProc(::HWND hWnd, ::LPARAM lParam)
+	static ::BOOL WINAPI EnumProc(const ::HWND hWnd, const ::LPARAM lParam)
 	{
-		EnumData &ed = *reinterpret_cast<EnumData *>(lParam);
+		EnumData &ed = *reinterpret_cast<EnumData * const>(lParam);
 
 		native_processid_type process_id = 0;
 
@@ -143,7 +143,7 @@ namespace System
 			const std::string &file_path = filePath;
 		#endif
 
-		::HANDLE hFile = ::CreateFile(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+		const ::HANDLE hFile = ::CreateFile(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 
 		if (INVALID_HANDLE_VALUE == hFile)
 		{
@@ -187,7 +187,6 @@ namespace System
 
 		return true;
 	#elif POSIX
-		struct ::tm *clock;
 		struct ::stat attrib;
 
 		if (-1 == ::stat(filePath.c_str(), &attrib) )
@@ -197,7 +196,7 @@ namespace System
 
 		*fileSize = attrib.st_size;
 
-		clock = ::gmtime(&(attrib.st_mtime) );
+		struct ::tm *clock = ::gmtime(&(attrib.st_mtime) );
 
 		*fileTime = ::mktime(clock);
 

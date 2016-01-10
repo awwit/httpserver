@@ -20,11 +20,11 @@ namespace HttpServer
 		const std::string &data_end,
 		const size_t &leftBytes,
 		size_t &recv_len,
-		size_t &read_len
-	) const
+		size_t &recv_total_len
+	)
 	{
 		// Завершаем работу, если уже получено байт сколько нужно
-		if (read_len >= leftBytes)
+		if (recv_total_len >= leftBytes)
 		{
 			return false;
 		}
@@ -39,7 +39,7 @@ namespace HttpServer
 		}
 
 		// Обновляем общее количество полученных данных
-		read_len += recv_len;
+		recv_total_len += recv_len;
 
 		// Добавляем полученные данные к рабочему буферу
 		str_buf.append(buf.cbegin(), buf.cbegin() + recv_len);
@@ -63,7 +63,7 @@ namespace HttpServer
 	)
 	{
 		// Проверить есть ли в параметрах разделитель блоков данных
-		auto it = contentParams.find("boundary");
+		auto const it = contentParams.find("boundary");
 
 		if (contentParams.cend() == it)
 		{
@@ -88,18 +88,17 @@ namespace HttpServer
 		// Создание буферов
 		std::vector<char> buf(buf_len);
 
-		size_t str_cur;			// Текущая позиция в буфере
-
 		size_t recv_len;		// Прочитано байт при последнем извлечении данных из сокета
-		size_t read_len = 0;	// Прочитано байт из сокета всего
+		size_t recv_total_len = 0;	// Получено байт из сокета всего
 
 		// Поиск разделителя блока данных
-		str_cur = str.find(block_delimiter);
+		// str_cur — текущая позиция в буфере
+		size_t str_cur = str.find(block_delimiter);
 
 		if (std::string::npos == str_cur)
 		{
 			// Получить следующий кусок данных
-			if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+			if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, recv_total_len) )
 			{
 				return false;
 			}
@@ -132,7 +131,7 @@ namespace HttpServer
 			if (std::string::npos == headers_end)
 			{
 				// Получить следующий кусок данных
-				if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+				if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, recv_total_len) )
 				{
 					return false;
 				}
@@ -251,17 +250,17 @@ namespace HttpServer
 						}
 
 						// Поиск имени блока данных
-						auto it_name = header_params.find("name");
+						auto const it_name = header_params.find("name");
 
                         if (header_params.cend() != it_name)
 						{
 							// Если данные пришли из файла
-							auto it_filename = header_params.find("filename");
+							auto const it_filename = header_params.find("filename");
 
                             if (header_params.cend() != it_filename)
 							{
 								// Найти тип файла
-								auto it_filetype = headers.find("Content-Type");
+								auto const it_filetype = headers.find("Content-Type");
 
                                 if (headers.cend() != it_filetype)
 								{
@@ -291,7 +290,7 @@ namespace HttpServer
 											str.erase(str.begin(), str.end() - data_end.length() );
 
 											// Получить следующий кусок данных
-											if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+											if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, recv_total_len) )
 											{
 												return false;
 											}
@@ -347,7 +346,7 @@ namespace HttpServer
 									str.erase(str.begin(), str.end() - data_end.length() );
 
 									// Получить следующий кусок данных
-									if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+									if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, recv_total_len) )
 									{
 										return false;
 									}
@@ -399,7 +398,7 @@ namespace HttpServer
 					str.erase(str.begin(), str.end() - data_end.length() );
 
 					// Получить следующий кусок данных
-					if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, read_len) )
+					if (false == append(sock, rp.timeout, buf, str, data_end, leftBytes, recv_len, recv_total_len) )
 					{
 						return false;
 					}
