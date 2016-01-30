@@ -21,16 +21,16 @@ namespace Utils
 
 	void trim(std::string &str)
 	{
-		static const char whitespace[] = {" \t\n\v\f\r"};
+		static const std::array<char, 7> whitespace { " \t\n\v\f\r" };
 
-		const size_t last = str.find_last_not_of(whitespace);
+		const size_t last = str.find_last_not_of(whitespace.data() );
 
 		if (std::string::npos == last)
 		{
 			return str.clear();
 		}
 
-		str.assign(str.cbegin() + str.find_first_not_of(whitespace), str.cbegin() + last + 1);
+		str.assign(str.cbegin() + str.find_first_not_of(whitespace.data() ), str.cbegin() + last + 1);
 	}
 
 	std::vector<std::string> explode(const std::string &str, const char sep)
@@ -84,12 +84,12 @@ namespace Utils
 
 		const uint8_t *bin = reinterpret_cast<const uint8_t *>(binData);
 
-		const char hexDigits[] = { "0123456789abcdef" };
+		static const std::array<char, 17> hexDigits { "0123456789abcdef" };
 
 		for (size_t i = dataSize - 1; std::numeric_limits<size_t>::max() != i; --i)
 		{
-			str[(i << 1) + 0] = hexDigits[bin[i] >> 4];
-			str[(i << 1) + 1] = hexDigits[bin[i] & 0x0F];
+			str[i * 2 + 0] = hexDigits[bin[i] >> 4];
+			str[i * 2 + 1] = hexDigits[bin[i] & 0x0F];
 		}
 
 		return str;
@@ -119,8 +119,8 @@ namespace Utils
 
 		for (size_t i = 0; i < bin.length(); ++i)
 		{
-			const char a = hexStr[(i << 1) + 0];
-			const char b = hexStr[(i << 1) + 1];
+			const char a = hexStr[i * 2 + 0];
+			const char b = hexStr[i * 2 + 1];
 
 			bin[i] = (
 				(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
@@ -387,81 +387,71 @@ namespace Utils
 		return true;
 	}
 
-	inline bool isUrlAllowed(const char c)
+	static inline bool isCharUrlAllowed(const char c)
 	{
-		static const std::string special("-_.~");
-
-		return std::string::npos != special.find(c);
+		return c == '-' || c == '_' || c == '.' || c == '~';
 	}
 
 	std::string urlEncode(const std::string &str)
 	{
-		std::ostringstream encoded;
-		encoded.fill('0');
-		encoded << std::hex;
+		std::string encoded;
 
-		for (auto it = str.cbegin(); str.cend() != it; ++it)
+		static const std::array<char, 17> hexDigits { "0123456789abcdef" };
+
+		for (size_t i = 0; i < str.length(); ++i)
 		{
-			const char &c = *it;
+			const unsigned char c = str[i];
 
-			if (' ' == c)
+			if (std::isalnum(c) || isCharUrlAllowed(c) )
 			{
-				encoded << '+';
+				encoded.push_back(c);
 			}
-			else if (std::isalnum(c) || isUrlAllowed(c) )
+			else if (' ' == c)
 			{
-				encoded << c;
+				encoded.push_back('+');
 			}
 			else
 			{
-				encoded << '%' << std::setw(2) << (int) ( (unsigned char) c);
+				const uint8_t a = c >> 4;
+				const uint8_t b = c & 0x0F;
+
+				encoded.push_back('%');
+				encoded.push_back(hexDigits[a]);
+				encoded.push_back(hexDigits[b]);
 			}
 		}
 
-		return encoded.str();
+		return encoded;
 	}
 
 	std::string urlDecode(const std::string &str)
 	{
 		std::string decoded;
 
-		// ch length must be >= 3
-		std::array<char, sizeof(size_t)> ch;
-
-		for (auto it = str.cbegin(); str.cend() != it; ++it)
+		for (size_t i = 0; i < str.length(); ++i)
 		{
-			const char &c = *it;
+			unsigned char c = str[i];
 
 			if ('%' == c)
 			{
-				++it;
-
-				if (str.cend() == it)
+				if (i + 2 < str.length() )
 				{
-					break;
+					const char a = str[i + 1];
+					const char b = str[i + 2];
+
+					c = (
+						(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
+					);
+
+					i += 2;
 				}
-
-				ch[0] = *it;
-
-				++it;
-
-				if (str.cend() == it)
-				{
-					break;
-				}
-
-				ch[1] = *it;
-
-				decoded.push_back(strtoul(ch.data(), nullptr, 16) );
 			}
 			else if ('+' == c)
 			{
-				decoded.push_back(' ');
+				c = ' ';
 			}
-			else
-			{
-				decoded.push_back(c);
-			}
+
+			decoded.push_back(c);
 		}
 
 		return decoded;
