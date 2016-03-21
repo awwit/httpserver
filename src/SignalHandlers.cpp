@@ -62,7 +62,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 		case SIGTERM:
 		{
 			handlerSigTerm(message);
-            ::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
+			::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
 
 			break;
 		}
@@ -70,7 +70,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 		case SIGINT:
 		{
 			handlerSigInt(message);
-            ::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
+			::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
 
 			break;
 		}
@@ -89,7 +89,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 
 		default:
 		{
-            return ::DefWindowProc(hWnd, message, wParam, lParam);
+			return ::DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}
 
@@ -107,17 +107,37 @@ static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event *
 		return 0;
 	}
 
-    ::MSG msg;
+	::MSG msg;
 
-    while (::GetMessage(&msg, hWnd, 0, 0) )
+	while (::GetMessage(&msg, hWnd, 0, 0) )
 	{
-        ::TranslateMessage(&msg);
-        ::DispatchMessage(&msg);
+		::TranslateMessage(&msg);
+		::DispatchMessage(&msg);
 	}
 
 	return msg.wParam;
 }
-#endif
+
+#ifdef _CONSOLE
+static ::BOOL consoleSignalHandler(const ::DWORD ctrlType)
+{
+	switch (ctrlType)
+	{
+	case CTRL_CLOSE_EVENT:
+		handlerSigTerm(ctrlType);
+		std::this_thread::sleep_for(std::chrono::seconds(60) );
+		return true;
+
+	case CTRL_C_EVENT:
+		handlerSigInt(ctrlType);
+		return true;
+
+	default:
+		return false;
+	}
+}
+#endif // _CONSOLE
+#endif // WIN32
 
 bool bindSignalHandlers(HttpServer::Server *server)
 {
@@ -125,13 +145,12 @@ bool bindSignalHandlers(HttpServer::Server *server)
 
 #ifdef WIN32
 
-    const int sig_int = 2; // SIGINT
-    const int sig_term = 15; // SIGTERM
-
-    ::signal(sig_int, handlerSigInt);
-    ::signal(sig_term, handlerSigTerm);
-
-    ::_set_abort_behavior(0, _WRITE_ABORT_MSG);
+#ifdef _CONSOLE
+	::SetConsoleCtrlHandler(reinterpret_cast<PHANDLER_ROUTINE>(consoleSignalHandler), true);
+#elif
+	::signal(SIGINT, handlerSigInt);
+	::signal(SIGTERM, handlerSigTerm);
+#endif // _CONSOLE
 
 	const ::HINSTANCE hInstance = ::GetModuleHandle(nullptr);
 
@@ -142,7 +161,7 @@ bool bindSignalHandlers(HttpServer::Server *server)
 	wcex.hInstance = hInstance;
 	wcex.lpszClassName = myWndClassName;
 
-    if (0 == ::RegisterClassEx(&wcex) )
+	if (0 == ::RegisterClassEx(&wcex) )
 	{
 		return false;
 	}
@@ -158,16 +177,16 @@ bool bindSignalHandlers(HttpServer::Server *server)
 	struct ::sigaction act = {};
 
 	act.sa_handler = handlerSigInt;
-    ::sigaction(SIGINT, &act, nullptr);
+	::sigaction(SIGINT, &act, nullptr);
 
 	act.sa_handler = handlerSigTerm;
-    ::sigaction(SIGTERM, &act, nullptr);
+	::sigaction(SIGTERM, &act, nullptr);
 
 	act.sa_handler = handlerSigUsr1;
-    ::sigaction(SIGUSR1, &act, nullptr);
+	::sigaction(SIGUSR1, &act, nullptr);
 
 	act.sa_handler = handlerSigUsr2;
-    ::sigaction(SIGUSR2, &act, nullptr);
+	::sigaction(SIGUSR2, &act, nullptr);
 #else
 	#error "Undefine platform"
 #endif

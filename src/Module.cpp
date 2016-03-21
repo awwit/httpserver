@@ -84,7 +84,7 @@ namespace HttpServer
 		if (nullptr == lib_handle)
 		{
 		#ifdef POSIX
-            std::cout << ::dlerror() << std::endl;
+			std::cout << ::dlerror() << std::endl;
 		#endif
 			return false;
 		}

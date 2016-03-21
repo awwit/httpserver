@@ -396,7 +396,7 @@ namespace Utils
 	{
 		std::string encoded;
 
-		static const std::array<char, 17> hexDigits { "0123456789abcdef" };
+		static const std::array<char, 17> hexDigits { "0123456789ABCDEF" };
 
 		for (size_t i = 0; i < str.length(); ++i)
 		{
@@ -436,14 +436,12 @@ namespace Utils
 			{
 				if (i + 2 < str.length() )
 				{
-					const char a = str[i + 1];
-					const char b = str[i + 2];
+					const char a = str[++i];
+					const char b = str[++i];
 
 					c = (
 						(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
 					);
-
-					i += 2;
 				}
 			}
 			else if ('+' == c)
