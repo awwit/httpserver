@@ -6,6 +6,7 @@
 #include "ServerApplicationDefaultSettings.h"
 #include "Module.h"
 #include "Event.h"
+#include "SocketAdapter.h"
 
 #include <cstddef>
 #include <memory>
@@ -13,6 +14,8 @@
 #include <queue>
 #include <csignal>
 #include <atomic>
+
+#include <gnutls/gnutls.h>
 
 namespace HttpServer
 {
@@ -23,6 +26,8 @@ namespace HttpServer
 
 		std::unordered_map<std::string, std::string> settings;
 		std::unordered_map<std::string, std::string> mimes_types;
+
+		std::unordered_map<int, std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> > tls_data;
 
 		std::vector<Module> modules;
 
@@ -48,28 +53,28 @@ namespace HttpServer
 		static const int CONNECTION_UPGRADE = 2;
 
 	protected:
-		int cycleQueue(std::queue<Socket> &sockets);
+		int cycleQueue(std::queue<std::tuple<Socket, struct sockaddr_in > > &sockets);
 
-		int threadRequestProc(Socket clientSocket) const;
+		int threadRequestProc(SocketAdapter &clientSocket, const struct sockaddr_in &clientAddr) const;
 
-		static bool getRequest(Socket clientSocket, std::vector<char> &buf, std::string &str_buf, struct request_parameters &rp);
+		static bool getRequest(const SocketAdapter &clientSocket, std::vector<char> &buf, std::string &str_buf, struct request_parameters &rp);
 
 		int getRequestHeaders(std::string &str_buf, struct request_parameters &rp) const;
 
-		static void runApplication(Socket clientSocket, const ServerApplicationSettings &appSets, struct request_parameters &rp);
+		static void runApplication(const SocketAdapter &clientSocket, const ServerApplicationSettings &appSets, struct request_parameters &rp);
 
-		int getRequestData(Socket clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const;
+		int getRequestData(const SocketAdapter &clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const;
 
 		const ServerApplicationSettings *getApplicationSettings(const struct request_parameters &rp) const;
 
 		static void getConnectionParams(struct request_parameters &rp);
 
-		void xSendfile(Socket clientSocket, struct request_parameters &rp) const;
+		void xSendfile(const SocketAdapter &clientSocket, struct request_parameters &rp) const;
 
 		static bool isConnectionKeepAlive(const struct request_parameters &rp);
 		static bool isConnectionUpgrade(const struct request_parameters &rp);
 
-		void threadRequestCycle(std::queue<Socket> &sockets, Event &eventThreadCycle) const;
+		void threadRequestCycle(std::queue<std::tuple<Socket, struct sockaddr_in> > &sockets, Event &eventThreadCycle) const;
 
 		std::string getMimeTypeByFileName(const std::string &fileName) const;
 
@@ -82,7 +87,7 @@ namespace HttpServer
 		) const;
 
 		int transferFilePart(
-			const Socket &clientSocket,
+			const SocketAdapter &clientSocket,
 			const std::chrono::milliseconds &timeout,
 			const std::string &fileName,
 			const time_t fileTime,
@@ -94,7 +99,7 @@ namespace HttpServer
 		) const;
 
 		int transferFile(
-			const Socket &clientSocket,
+			const SocketAdapter &clientSocket,
 			const std::string &fileName,
 			const std::string &connectionHeader,
 			const bool headersOnly,
@@ -102,7 +107,12 @@ namespace HttpServer
 		) const;
 
 		static bool parseIncomingVars(std::unordered_multimap<std::string, std::string> &params, const std::string &uriParams);
-		static void sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode);
+		static void sendStatus(const SocketAdapter &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode);
+
+		static bool tlsInit(const ServerApplicationSettings &app, std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data);
+
+		bool tryBindPort(const int port, std::unordered_set<int> &ports);
+		void initAppsPorts();
 
 		bool init();
 		int run();

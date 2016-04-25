@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Socket.h"
+#include "SocketAdapter.h"
 #include "RequestParameters.h"
 
 namespace HttpServer
@@ -30,7 +30,7 @@ namespace HttpServer
 		 */
 		virtual bool parse
 		(
-			const Socket &sock,
+			const SocketAdapter &sock,
 			std::string &str,
 			const size_t leftBytes,
 			std::unordered_map<std::string, std::string> &contentParams,

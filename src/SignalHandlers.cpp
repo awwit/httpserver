@@ -187,6 +187,9 @@ bool bindSignalHandlers(HttpServer::Server *server)
 
 	act.sa_handler = handlerSigUsr2;
 	::sigaction(SIGUSR2, &act, nullptr);
+
+	::signal(SIGPIPE, SIG_IGN);
+
 #else
 	#error "Undefine platform"
 #endif

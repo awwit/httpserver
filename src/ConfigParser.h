@@ -15,7 +15,7 @@ namespace HttpServer
 		static bool includeConfigFile(const std::string &fileName, std::string &strBuf, const size_t offset = 0);
 
 		static bool addApplication(
-			const std::unordered_map<std::string, std::string> &app,
+			const std::unordered_multimap<std::string, std::string> &app,
 			const ServerApplicationDefaultSettings &defaults,
 			std::vector<Module> &modules,
 			ServerApplicationsTree &apps_tree

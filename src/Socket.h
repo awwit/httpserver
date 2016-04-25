@@ -52,9 +52,9 @@ namespace HttpServer
 		inline bool is_open() const
 		{
 		#ifdef WIN32
-			return INVALID_SOCKET != socket_handle;
+			return INVALID_SOCKET != this->socket_handle;
 		#elif POSIX
-			return ~0 != socket_handle;
+			return ~0 != this->socket_handle;
 		#else
 			#error "Undefine platform"
 		#endif
@@ -73,25 +73,37 @@ namespace HttpServer
 	//	bool is_nonblock() const;
 		bool tcp_nodelay(const bool nodelay = true) const;
 
-		size_t recv(std::vector<std::string::value_type> &buf) const;
-		size_t nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const;
+		long recv(std::vector<std::string::value_type> &buf) const;
+		long nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const;
 
-		size_t send(const std::string &buf) const;
-		size_t send(const std::vector<std::string::value_type> &buf, const size_t length) const;
+		long send(const std::string &buf) const;
+		long send(const std::vector<std::string::value_type> &buf, const size_t length) const;
 
-		size_t nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const;
-		size_t nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeout) const;
+		long nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const;
+		long nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeout) const;
 
 		void nonblock_send_sync() const;
 
 		inline System::native_socket_type get_handle() const
 		{
-			return socket_handle;
+			return this->socket_handle;
 		}
 
 		Socket &operator =(const Socket &obj);
 
 		bool operator ==(const Socket &obj) const;
 		bool operator !=(const Socket &obj) const;
+	};
+};
+
+namespace std
+{
+	// Hash for Socket
+	template<> struct hash<HttpServer::Socket>
+	{
+		std::size_t operator()(const HttpServer::Socket &obj) const
+		{
+			return std::hash<System::native_socket_type>{}(obj.get_handle() );
+		}
 	};
 };

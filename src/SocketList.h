@@ -29,6 +29,7 @@ namespace HttpServer
 		bool removeSocket(const Socket &sock);
 
 		bool accept(std::vector<Socket> &sockets) const;
+		bool accept(std::vector<Socket> &sockets, std::vector<struct sockaddr_in> &socketsAddress) const;
 
 		bool recv(std::vector<Socket> &sockets, std::vector<Socket> &errors, std::chrono::milliseconds timeout = std::chrono::milliseconds(~0) ) const;
 	};

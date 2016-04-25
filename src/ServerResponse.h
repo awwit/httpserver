@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "RawData.h"
+#include "SocketAdapter.h"
 
 #include <map>
 #include <string>
@@ -16,7 +17,7 @@ namespace HttpServer
 
 	struct ServerResponse
 	{
-		Socket socket;
+		SocketAdapter &socket;
 		std::map<std::string, std::string> headers;
 	};
 };

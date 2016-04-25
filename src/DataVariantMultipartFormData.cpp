@@ -13,13 +13,13 @@ namespace HttpServer
 
 	bool DataVariantMultipartFormData::append
 	(
-		const Socket &sock,
+		const SocketAdapter &sock,
 		const std::chrono::milliseconds &timeout,
 		std::vector<char> &buf,
 		std::string &str_buf,
 		const std::string &data_end,
 		const size_t &leftBytes,
-		size_t &recv_len,
+		long &recv_len,
 		size_t &recv_total_len
 	)
 	{
@@ -33,7 +33,7 @@ namespace HttpServer
 		recv_len = sock.nonblock_recv(buf, timeout);
 
 		// Завершаем работу, если ошибка получения данных через сокет
-		if (0 == recv_len || std::numeric_limits<size_t>::max() == recv_len)
+		if (recv_len <= 0)
 		{
 			return false;
 		}
@@ -55,7 +55,7 @@ namespace HttpServer
 
 	bool DataVariantMultipartFormData::parse
 	(
-		const Socket &sock,
+		const SocketAdapter &sock,
 		std::string &str,
 		const size_t leftBytes,
 		std::unordered_map<std::string, std::string> &contentParams,
@@ -88,7 +88,7 @@ namespace HttpServer
 		// Создание буферов
 		std::vector<char> buf(buf_len);
 
-		size_t recv_len;		// Прочитано байт при последнем извлечении данных из сокета
+		long recv_len;		// Прочитано байт при последнем извлечении данных из сокета
 		size_t recv_total_len = 0;	// Получено байт из сокета всего
 
 		// Поиск разделителя блока данных

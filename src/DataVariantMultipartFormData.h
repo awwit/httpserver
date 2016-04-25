@@ -12,20 +12,20 @@ namespace HttpServer
 	protected:
 		static bool append
 		(
-			const Socket &sock,
+			const SocketAdapter &sock,
 			const std::chrono::milliseconds &timeout,
 			std::vector<char> &buf,
 			std::string &str_buf,
 			const std::string &data_end,
 			const size_t &leftBytes,
-			size_t &recv_len,
+			long &recv_len,
 			size_t &recv_total_len
 		);
 
 	public:
 		virtual bool parse
 		(
-			const Socket &sock,
+			const SocketAdapter &sock,
 			std::string &str,
 			const size_t leftBytes,
 			std::unordered_map<std::string, std::string> &contentParams,

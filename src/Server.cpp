@@ -10,6 +10,8 @@
 #include "ServerRequest.h"
 #include "ServerResponse.h"
 #include "ConfigParser.h"
+#include "SocketAdapterDefault.h"
+#include "SocketAdapterTls.h"
 
 #include <iostream>
 #include <iomanip>
@@ -144,7 +146,7 @@ namespace HttpServer
 
 	int Server::transferFilePart
 	(
-		const Socket &clientSocket,
+		const SocketAdapter &clientSocket,
 		const std::chrono::milliseconds &timeout,
 		const std::string &fileName,
 		const time_t fileTime,
@@ -212,7 +214,7 @@ namespace HttpServer
 			+ connectionHeader + dateHeader + "\r\n";
 
 		// Отправить заголовки
-        if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, timeout) )
+		if (clientSocket.nonblock_send(headers, timeout) < 0)
 		{
 			file.close();
 
@@ -221,19 +223,19 @@ namespace HttpServer
 
 		if (false == headersOnly)
 		{
+			size_t position, length;
+
 			for (auto const &range : ranges)
 			{
-				const size_t length = std::get<1>(range);
+				std::tie(position, length) = range;
 
 				std::vector<char> buf(length < 512 * 1024 ? length : 512 * 1024);
-
-				const size_t position = std::get<0>(range);
 
 				file.seekg(position, file.beg);
 
 				size_t send_size_left = length;
 
-				size_t send_size;
+				long send_size;
 
 				do
 				{
@@ -247,7 +249,7 @@ namespace HttpServer
 
 					send_size_left -= send_size;
 				}
-				while (false == file.eof() && false == file.fail() && std::numeric_limits<size_t>::max() != send_size && send_size_left);
+				while (false == file.eof() && false == file.fail() && send_size > 0 && send_size_left);
 			}
 		}
 
@@ -261,7 +263,7 @@ namespace HttpServer
 	 */
 	int Server::transferFile
 	(
-		const Socket &clientSocket,
+		const SocketAdapter &clientSocket,
 		const std::string &fileName,
 		const std::string &connectionHeader,
 		const bool headersOnly,
@@ -340,7 +342,7 @@ namespace HttpServer
 			+ connectionHeader + date_header + "\r\n";
 
 		// Отправить заголовки
-		if (std::numeric_limits<size_t>::max() == clientSocket.nonblock_send(headers, rp.timeout) )
+		if (clientSocket.nonblock_send(headers, rp.timeout) < 0)
 		{
 			file.close();
 
@@ -352,14 +354,14 @@ namespace HttpServer
 		{
 			std::vector<char> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
 
-			size_t send_size;
+			long send_size;
 
 			do
 			{
 				file.read(reinterpret_cast<char *>(buf.data() ), buf.size() );
 				send_size = clientSocket.nonblock_send(buf, file.gcount(), rp.timeout);
 			}
-			while (false == file.eof() && false == file.fail() && std::numeric_limits<size_t>::max() != send_size);
+			while (false == file.eof() && false == file.fail() && send_size > 0);
 		}
 
 		file.close();
@@ -411,7 +413,7 @@ namespace HttpServer
 		return false;
 	}
 
-	void Server::sendStatus(const Socket &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode)
+	void Server::sendStatus(const SocketAdapter &clientSocket, const std::chrono::milliseconds &timeout, const size_t statusCode)
 	{
         static const std::unordered_map<size_t, std::string> statuses {
 			{400, "Bad Request"},
@@ -434,7 +436,7 @@ namespace HttpServer
 	/**
 	 * Метод для обработки запроса
 	 */
-	int Server::threadRequestProc(Socket clientSocket) const
+	int Server::threadRequestProc(SocketAdapter &clientSocket, const struct sockaddr_in &clientAddr) const
 	{
 		struct request_parameters rp;
 
@@ -506,30 +508,23 @@ namespace HttpServer
 
 		if (false == isConnectionUpgrade(rp) )
 		{
-			// Wait for send all data to client
-			clientSocket.nonblock_send_sync();
-
-			clientSocket.shutdown();
 			clientSocket.close();
 		}
 
 		return rp.app_exit_code;
 	}
 
-	bool Server::getRequest(Socket clientSocket, std::vector<char> &buf, std::string &str_buf, struct request_parameters &rp)
+	bool Server::getRequest(const SocketAdapter &clientSocket, std::vector<char> &buf, std::string &str_buf, struct request_parameters &rp)
 	{
 		// Получить данные запроса от клиента
-		const size_t recv_size = clientSocket.nonblock_recv(buf, rp.timeout);
+		const long recv_size = clientSocket.nonblock_recv(buf, rp.timeout);
 
-		if (std::numeric_limits<size_t>::max() == recv_size && str_buf.empty() )
+		if (recv_size < 0 && str_buf.empty() )
 		{
-		#ifdef DEBUG
-			std::cout << "Error: " << Socket::getLastError() << std::endl;
-		#endif
 			return false;
 		}
 
-		if (recv_size) // Если данные были получены
+		if (recv_size > 0) // Если данные были получены
 		{
 			str_buf.append(buf.cbegin(), buf.cbegin() + recv_size);
 		}
@@ -654,7 +649,7 @@ namespace HttpServer
 		return 0;
 	}
 
-	void Server::runApplication(Socket clientSocket, const ServerApplicationSettings &appSets, struct request_parameters &rp)
+	void Server::runApplication(const SocketAdapter &clientSocket, const ServerApplicationSettings &appSets, struct request_parameters &rp)
 	{
 		Utils::raw_pair *raw_pair_params = nullptr;
 		Utils::raw_pair *raw_pair_headers = nullptr;
@@ -668,6 +663,7 @@ namespace HttpServer
 
 		server_request request {
 			clientSocket.get_handle(),
+			clientSocket.get_tls_session(),
 			rp.method.c_str(),
 			rp.uri_reference.c_str(),
 			appSets.root_dir.c_str(),
@@ -685,10 +681,9 @@ namespace HttpServer
 			clientSocket.get_handle(), 0, nullptr
 		};
 
-		// Попытаться
 		try
 		{
-			// Запустить приложение
+			// Launch application
 			rp.app_exit_code = appSets.application_call(&request, &response);
 		}
 		catch (...)
@@ -714,7 +709,7 @@ namespace HttpServer
 		Utils::destroyRawFilesInfo(raw_fileinfo_files, rp.incoming_files.size() );
 	}
 
-	int Server::getRequestData(Socket clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const
+	int Server::getRequestData(const SocketAdapter &clientSocket, std::string &str_buf, const ServerApplicationSettings &appSets, struct request_parameters &rp) const
 	{
 		// Определить вариант данных запроса (заодно проверить, есть ли данные)
 		auto const it = rp.incoming_headers.find("Content-Type");
@@ -860,7 +855,7 @@ namespace HttpServer
 			const ServerApplicationSettings *app_sets = this->apps_tree.find(host);
 
 			// Если приложение найдено
-			if (app_sets && app_sets->port == port)
+			if (app_sets && (app_sets->ports.cend() != app_sets->ports.find(port) || app_sets->tls_ports.cend() != app_sets->tls_ports.find(port) ) )
 			{
 				return app_sets;
 			}
@@ -869,7 +864,7 @@ namespace HttpServer
 		return nullptr;
 	}
 
-	void Server::xSendfile(Socket clientSocket, struct request_parameters &rp) const
+	void Server::xSendfile(const SocketAdapter &clientSocket, struct request_parameters &rp) const
 	{
 		auto const it_x_sendfile = rp.outgoing_headers.find("X-Sendfile");
 
@@ -939,11 +934,12 @@ namespace HttpServer
 	 * Метод для обработки запросов (запускается в отдельном потоке)
 	 *	извлекает сокет клиенты из очереди и передаёт его на обслуживание
 	 */
-	void Server::threadRequestCycle(std::queue<Socket> &sockets, Event &eventThreadCycle) const
+	void Server::threadRequestCycle(std::queue<std::tuple<Socket, struct sockaddr_in> > &sockets, Event &eventThreadCycle) const
 	{
 		while (true)
 		{
 			Socket clientSocket;
+			struct sockaddr_in addr;
 
 			eventThreadCycle.wait();
 
@@ -956,7 +952,8 @@ namespace HttpServer
 
 			if (sockets.size() )
 			{
-				clientSocket = std::move(sockets.front() );
+				std::tie(clientSocket, addr) = sockets.front();
+
 				sockets.pop();
 			}
 
@@ -973,7 +970,36 @@ namespace HttpServer
 			{
 				++this->threads_working_count;
 
-				this->threadRequestProc(clientSocket);
+				struct ::sockaddr_in p;
+				::socklen_t p_len = sizeof(p);
+
+				::getsockname(clientSocket.get_handle(), reinterpret_cast<struct sockaddr *>(&p), &p_len);
+
+				const int port = ntohs(p.sin_port);
+
+				auto const it = this->tls_data.find(port);
+
+				if (this->tls_data.cend() != it) // if TLS connection
+				{
+					const std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data = it->second;
+
+					SocketAdapterTls sock(
+						clientSocket,
+						std::get<gnutls_priority_t>(data),
+						std::get<gnutls_certificate_credentials_t>(data)
+					);
+
+					if (sock.handshake() )
+					{
+						this->threadRequestProc(sock, addr);
+					}
+				}
+				else
+				{
+					SocketAdapterDefault sock(clientSocket);
+
+					this->threadRequestProc(sock, addr);
+				}
 
 				--this->threads_working_count;
 			}
@@ -983,15 +1009,17 @@ namespace HttpServer
 	/**
 	 * Цикл управления количеством рабочих потоков
 	 */
-	int Server::cycleQueue(std::queue<Socket> &sockets)
+	int Server::cycleQueue(std::queue<std::tuple<Socket, struct sockaddr_in> > &sockets)
 	{
-		auto it_option = this->settings.find("threads_max_count");
+		auto const it_option = this->settings.find("threads_max_count");
 
 		size_t threads_max_count = 0;
 
 		if (this->settings.cend() != it_option)
 		{
-			threads_max_count = std::strtoull(it_option->second.c_str(), nullptr, 10);
+			const std::string &option = it_option->second;
+
+			threads_max_count = std::strtoull(option.c_str(), nullptr, 10);
 		}
 
 		if (0 == threads_max_count)
@@ -1010,7 +1038,7 @@ namespace HttpServer
 
 		Event eventThreadCycle(false, true);
 
-		std::function<void(Server *, std::queue<Socket> &, Event &)> serverThreadRequestCycle = std::mem_fn(&Server::threadRequestCycle);
+		std::function<void(Server *, std::queue<std::tuple<Socket, struct sockaddr_in> > &, Event &)> serverThreadRequestCycle = std::mem_fn(&Server::threadRequestCycle);
 
 		std::vector<std::thread> active_threads;
 		active_threads.reserve(threads_max_count);
@@ -1329,6 +1357,8 @@ namespace HttpServer
 			this->addDataVariant(new DataVariantMultipartFormData() );
 			this->addDataVariant(new DataVariantTextPlain() );
 
+			::gnutls_global_init();
+
 			return true;
 		}
 
@@ -1365,6 +1395,17 @@ namespace HttpServer
 			}
 
 			this->variants.clear();
+		}
+
+		if (false == this->tls_data.empty() )
+		{
+			for (auto &pair : this->tls_data)
+			{
+				std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data = pair.second;
+
+				::gnutls_certificate_free_credentials(std::get<0>(data) );
+				::gnutls_priority_deinit(std::get<1>(data) );
+			}
 		}
 
 		if (false == this->apps_tree.empty() )
@@ -1407,15 +1448,129 @@ namespace HttpServer
 		{
 			this->settings.clear();
 		}
+
+		::gnutls_global_deinit();
 	}
 
-	int Server::run()
+	bool Server::tlsInit(const ServerApplicationSettings &app, std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data)
 	{
-		if (false == init() )
+		::gnutls_certificate_credentials_t x509_cred;
+
+		int ret = ::gnutls_certificate_allocate_credentials(&x509_cred);
+
+		if (ret < 0)
 		{
-			return 1;
+			std::cout << "Error: tls certificate credentials has not been allocated;" << std::endl;
+
+			return false;
 		}
 
+		if (false == app.chain_file.empty() )
+		{
+			ret = ::gnutls_certificate_set_x509_trust_file(x509_cred, app.chain_file.c_str(), GNUTLS_X509_FMT_PEM);
+
+			if (ret < 0)
+			{
+				std::cout << "Warning: (CA) chain file has not been accepted;" << std::endl;
+			}
+		}
+
+		if (false == app.crl_file.empty() )
+		{
+			ret = ::gnutls_certificate_set_x509_crl_file(x509_cred, app.crl_file.c_str(), GNUTLS_X509_FMT_PEM);
+
+			if (ret < 0)
+			{
+				std::cout << "Warning: (CLR) clr file has not been accepted;" << std::endl;
+			}
+		}
+
+		ret = ::gnutls_certificate_set_x509_key_file(x509_cred, app.cert_file.c_str(), app.key_file.c_str(), GNUTLS_X509_FMT_PEM);
+
+		if (ret < 0)
+		{
+			std::cout << "Error: (CERT) tls cert file or/and (KEY) tls key file has not been accepted;" << std::endl;
+
+			return false;
+		}
+
+		if (false == app.stapling_file.empty() )
+		{
+			ret = ::gnutls_certificate_set_ocsp_status_request_file(x509_cred, app.stapling_file.c_str(), 0);
+
+			if (ret < 0)
+			{
+				std::cout << "Warning: (OCSP) tls stapling file has not been accepted;" << std::endl;
+			}
+		}
+
+		::gnutls_dh_params_t dh_params;
+
+		::gnutls_dh_params_init(&dh_params);
+
+		const unsigned int bits = ::gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+
+		::gnutls_dh_params_generate2(dh_params, bits);
+
+		::gnutls_certificate_set_dh_params(x509_cred, dh_params);
+
+		::gnutls_priority_t priority_cache;
+
+		ret = ::gnutls_priority_init(&priority_cache, "NORMAL", nullptr);
+
+		if (ret < 0)
+		{
+			::gnutls_certificate_free_credentials(x509_cred);
+
+			std::cout << "Error: failed tls priority init;" << std::endl;
+
+			return false;
+		}
+
+		data = std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t>{x509_cred, priority_cache};
+
+		return true;
+	}
+
+	bool Server::tryBindPort(const int port, std::unordered_set<int> &ports)
+	{
+		// Only unique ports
+		if (ports.cend() != ports.find(port) )
+		{
+			return false;
+		}
+
+		Socket sock;
+
+		if (false == sock.open() )
+		{
+			std::cout << "Error: cannot open socket; errno " << Socket::getLastError() << ";" << std::endl;
+			return false;
+		}
+
+		if (false == sock.bind(port) )
+		{
+			std::cout << "Error: cannot bind socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
+			return false;
+		}
+
+		if (false == sock.listen() )
+		{
+			std::cout << "Error: cannot listen socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
+			return false;
+		}
+
+		sock.nonblock(true);
+
+		this->server_sockets.emplace_back(std::move(sock) );
+
+		ports.emplace(port);
+
+		return true;
+	}
+
+	void Server::initAppsPorts()
+	{
 		// Applications settings list
 		std::unordered_set<ServerApplicationSettings *> applications;
 		// Get full applications settings list
@@ -1427,46 +1582,46 @@ namespace HttpServer
 		// Open applications sockets
 		for (auto const &app : applications)
 		{
-			const int port = app->port;
+			const std::unordered_set<int> &tls = app->tls_ports;
 
-			// Only unique ports
-            if (ports.cend() == ports.find(port) )
+			if (false == tls.empty() )
 			{
-				Socket sock;
+				std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> data;
 
-				if (sock.open() )
+				if (Server::tlsInit(*app, data) )
 				{
-					if (sock.bind(port) )
+					for (const int port : tls)
 					{
-						if (sock.listen() )
+						if (this->tryBindPort(port, ports) )
 						{
-							sock.nonblock(true);
-
-							this->server_sockets.emplace_back(std::move(sock) );
-
-							ports.emplace(port);
-						}
-						else
-						{
-							std::cout << "Error: cannot listen socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
+							this->tls_data.emplace(port, data);
 						}
 					}
-					else
-					{
-						std::cout << "Error: cannot bind socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
-					}
-				}
-				else
-				{
-					std::cout << "Error: cannot open socket; errno " << Socket::getLastError() << ";" << std::endl;
 				}
 			}
+
+			const std::unordered_set<int> &list = app->ports;
+
+			for (const int port : list)
+			{
+				this->tryBindPort(port, ports);
+			}
 		}
+	}
+
+	int Server::run()
+	{
+		if (false == this->init() )
+		{
+			return 1;
+		}
+
+		this->initAppsPorts();
 
 		if (this->server_sockets.empty() )
 		{
 			std::cout << "Error: do not open any socket;" << std::endl;
-			clear();
+			this->clear();
 			return 2;
 		}
 
@@ -1486,30 +1641,38 @@ namespace HttpServer
 		this->eventProcessQueue = new Event();
 		this->eventUpdateModule = new Event(false, true);
 
-		std::queue<Socket> sockets;
+		std::queue<std::tuple<Socket, struct sockaddr_in> > sockets;
 
 		this->process_flag = true;
 
-		std::function<int(Server *, std::queue<Socket> &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
-
-		std::vector<Socket> client_sockets;
-
+		std::function<int(Server *, std::queue<std::tuple<Socket, struct sockaddr_in> > &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
 		std::thread threadQueue(serverCycleQueue, this, std::ref(sockets) );
+
+		std::vector<Socket> accept_sockets;
+		std::vector<struct sockaddr_in> accept_sockets_address;
 
 		// Cycle receiving new connections
 		do
 		{
-			if (sockets_list.accept(client_sockets) )
+			if (sockets_list.accept(accept_sockets, accept_sockets_address) )
 			{
 				this->sockets_queue_mtx.lock();
 
-				for (Socket &sock : client_sockets)
+				for (size_t i = 0; i < accept_sockets.size(); ++i)
 				{
+					const Socket &sock = accept_sockets[i];
+
 					if (sock.is_open() )
 					{
 						sock.nonblock(true);
 						sock.tcp_nodelay(true);
-						sockets.emplace(std::move(sock) );
+
+						sockets.emplace(
+							std::tuple<Socket, struct sockaddr_in> {
+								sock,
+								accept_sockets_address[i]
+							}
+						);
 					}
 				}
 
@@ -1522,7 +1685,8 @@ namespace HttpServer
 					this->eventNotFullQueue->reset();
 				}
 
-				client_sockets.clear();
+				accept_sockets.clear();
+				accept_sockets_address.clear();
 
 				this->eventNotFullQueue->wait();
 			}
@@ -1535,7 +1699,7 @@ namespace HttpServer
 
 		sockets_list.destroy();
 
-		clear();
+		this->clear();
 
 		std::cout << "Log: final server cycle;" << std::endl;
 
@@ -1620,7 +1784,7 @@ namespace HttpServer
 		std::cout << "Available arguments:" << std::endl
 			<< std::setw(4) << ' ' << "--start" << "\t\t" << "Start http server" << std::endl
 			<< std::setw(4) << ' ' << "--restart" << "\t\t" << "Restart http server" << std::endl
-			<< std::setw(4) << ' ' << "--update_module" << "\t" << "Update applications modules" << std::endl
+			<< std::setw(4) << ' ' << "--update-module" << "\t" << "Update applications modules" << std::endl
 			<< std::setw(4) << ' ' << "--kill" << "\t\t" << "Shutdown http server" << std::endl
 			<< std::setw(4) << ' ' << "--help" << "\t\t" << "This help" << std::endl << std::endl;
 

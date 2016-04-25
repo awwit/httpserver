@@ -218,6 +218,86 @@ namespace HttpServer
 		return false;
 	}
 
+	bool SocketList::accept(std::vector<Socket> &sockets, std::vector<struct sockaddr_in> &socketsAddress) const
+	{
+		if (is_created() )
+		{
+		#ifdef WIN32
+			const int count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+
+			if (SOCKET_ERROR == count)
+			{
+				return false;
+			}
+
+			for (size_t i = 0; i < this->poll_events.size(); ++i)
+			{
+				const WSAPOLLFD &event = this->poll_events[i];
+
+				if (event.revents & POLLRDNORM)
+				{
+					System::native_socket_type client_socket = ~0;
+
+					do
+					{
+						struct ::sockaddr_in client_addr = {};
+						socklen_t client_addr_len = sizeof(client_addr);
+
+						client_socket = ::accept(event.fd, reinterpret_cast<struct ::sockaddr *>(&client_addr), &client_addr_len);
+
+						if (~0 != client_socket)
+						{
+							sockets.emplace_back(Socket(client_socket) );
+							socketsAddress.emplace_back(client_addr);
+						}
+					}
+					while (~0 != client_socket);
+				}
+			}
+
+			return false == sockets.empty();
+		#elif POSIX
+			const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+
+			if (count == ~0)
+			{
+				return false;
+			}
+
+			for (int i = 0; i < count; ++i)
+			{
+				const epoll_event &event = this->epoll_events[i];
+
+				if (event.events & EPOLLIN)
+				{
+					System::native_socket_type client_socket = ~0;
+
+					do
+					{
+						struct ::sockaddr_in client_addr = {};
+						socklen_t client_addr_len = sizeof(client_addr);
+
+						client_socket = ::accept(event.data.fd, reinterpret_cast<struct ::sockaddr *>(&client_addr), &client_addr_len);
+
+						if (~0 != client_socket)
+						{
+							sockets.emplace_back(Socket(client_socket) );
+							socketsAddress.emplace_back(client_addr);
+						}
+					}
+					while (~0 != client_socket);
+				}
+			}
+
+			return false == sockets.empty();
+		#else
+			#error "Undefine platform"
+		#endif
+		}
+
+		return false;
+	}
+
 	bool SocketList::recv(std::vector<Socket> &sockets, std::vector<Socket> &disconnected, std::chrono::milliseconds timeout) const
 	{
 		if (false == is_created() )

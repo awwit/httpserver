@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "RawData.h"
-#include "Socket.h"
+#include "SocketAdapterTls.h"
 #include "FileIncoming.h"
 
 #include <unordered_map>
@@ -11,6 +11,7 @@ namespace HttpServer
 	struct server_request
 	{
 		const System::native_socket_type socket;
+		const ::gnutls_session_t tls_session;
 		const char *method;
 		const char *uri_reference;
 		const char *document_root;
@@ -27,7 +28,7 @@ namespace HttpServer
 	/**
 	 * Структура запроса (входные данные)
 	 *
-	 * @member const Socket socket - сокет клиента
+	 * @member const SocketAdapter &socket - сокет клиента
 	 * @member const std::string method - метод применяемый к ресурсу
 	 * @member const std::string uri_reference - ссылка на ресурс
 	 * @member const std::string document_root - корневая директория приложения
@@ -39,7 +40,7 @@ namespace HttpServer
 	 */
 	struct ServerRequest
 	{
-		const Socket socket;
+		const SocketAdapter &socket;
 		const std::string method;
 		const std::string uri_reference;
 		const std::string document_root;
