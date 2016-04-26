@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #ifdef WIN32
+	#include <WS2tcpip.h>
 	#include <Windows.h>
 	::TCHAR myWndClassName[];
 

@@ -77,7 +77,7 @@ namespace HttpServer
 
 	System::native_socket_type SocketAdapterTls::get_handle() const
 	{
-		return reinterpret_cast<System::native_socket_type>(::gnutls_transport_get_int(this->session) );
+		return static_cast<System::native_socket_type>(::gnutls_transport_get_int(this->session) );
 	}
 
 	::gnutls_session_t SocketAdapterTls::get_tls_session() const

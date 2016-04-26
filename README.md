@@ -4,9 +4,9 @@ httpserver
 Http server is written on C++14 language.
 
 Dynamic libraries act as applications for the server
-(* .so - linux, * .dll - windows).
+(\*.so - linux, \*.dll - windows).
 Library connection takes place in the configuration file
-[samples/apps.conf] [samples/apps.conf]
+[samples/apps.conf](samples/apps.conf)
 by using the parameter `server_module`.
 
 Sample application code: https://github.com/awwit/httpserverapp
@@ -30,26 +30,39 @@ Common:
 
 * [gnutls](https://www.gnutls.org/)
 
-Linux:
+Linux: `dl`, `pthread`, `gnutls`
 
-* dl
-* pthread
+Windows: `ws2_32.lib`, `libgnutls.dll.a`
 
 Build
 -----
 
 Linux:
 
-  git clone https://github.com/awwit/httpserver.git
-  cd httpserver
-  mkdir build
-  cd build
-  qbs build -f ./../projects/qt-creator/httpserver.qbs release
+```sh
+git clone https://github.com/awwit/httpserver.git
+cd httpserver
+mkdir build
+cd build
+qbs build -f ./../projects/qt-creator/httpserver.qbs release
+```
+
+Windows:
+
+```sh
+git clone https://github.com/awwit/httpserver.git
+cd httpserver
+mkdir build
+cd build
+devenv ./../projects/msvs/httpserver.sln /build
+```
 
 Server start
 ------------
 
-  ./httpserver --start
+```sh
+./httpserver --start
+```
 
 Configuration files must be located in the working (current) directory.
 
@@ -57,11 +70,11 @@ Server configuration
 --------------------
 
 Server (and its applications) setting is made using config-files.
-Examples of settings are located in the folder [samples][samples/].
+Examples of settings are located in the folder [samples](samples/).
 
 License
 =======
 
 The source codes are licensed under the
 [AGPL](http://www.gnu.org/licenses/agpl.html),
-the full text of the license is located in the [LICENSE][LICENSE] file.
+the full text of the license is located in the [LICENSE](LICENSE) file.

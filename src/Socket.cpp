@@ -284,7 +284,7 @@ namespace HttpServer
 
 		while (total < length)
 		{
-			const long send_size = ::send(socket_handle, reinterpret_cast<const uint8_t *>(data) + total, length - total, 0);
+			const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, length - total, 0);
 
 			if (send_size < 0)
 			{
@@ -322,7 +322,7 @@ namespace HttpServer
 		{
 			if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLWRNORM)
 			{
-				const long send_size = ::send(socket_handle, reinterpret_cast<const uint8_t *>(data) + total, length - total, 0);
+				const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, length - total, 0);
 
 				if (send_size < 0)
 				{

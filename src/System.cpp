@@ -72,7 +72,7 @@ namespace System
 	#ifdef WIN32
 		std::array<TCHAR, MAX_PATH + 1> buf;
 
-		const size_t len = ::GetTempPath(buf.size(), buf.data() );
+		auto const len = ::GetTempPath(buf.size(), buf.data() );
 
 		#ifdef UNICODE
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -196,9 +196,11 @@ namespace System
 
 		*fileSize = attrib.st_size;
 
-		struct ::tm *clock = ::gmtime(&(attrib.st_mtime) );
+		struct ::tm clock = {};
+		
+		::gmtime_r(&(attrib.st_mtime), &clock);
 
-		*fileTime = ::mktime(clock);
+		*fileTime = ::mktime(&clock);
 
 		return true;
 	#else

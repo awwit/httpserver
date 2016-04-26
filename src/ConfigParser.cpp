@@ -283,7 +283,7 @@ namespace HttpServer
 		std::string module_update = app.cend() != it_module_update ? it_module_update->second : "";
 
 		// Calculate module index
-		size_t module_index = std::numeric_limits<size_t>::max();
+		size_t module_index = ~0;
 
 		for (size_t i = 0; i < modules.size(); ++i)
 		{
@@ -294,7 +294,7 @@ namespace HttpServer
 			}
 		}
 
-		if (std::numeric_limits<size_t>::max() == module_index)
+		if (module_index == ~0)
 		{
 			module_index = modules.size();
 			modules.emplace_back(std::move(module) );

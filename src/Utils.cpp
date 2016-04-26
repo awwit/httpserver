@@ -287,7 +287,7 @@ namespace Utils
 		{
 			tc.tm_year -= 1900;
 
-			auto it_mon = map_months.find(s_mon.data() );
+			auto const it_mon = map_months.find(s_mon.data() );
 
             if (map_months.cend() != it_mon)
 			{
@@ -321,12 +321,14 @@ namespace Utils
 		// RFC 822
 		::strftime(buf.data(), buf.size(), "%a, %d %b %Y %H:%M:%S GMT", &stm);
 	#else
-		struct ::tm *ptm = isGmtTime ?
-			::localtime(&cur_time) :
-			::gmtime(&cur_time);
+		struct ::tm stm = {};
+		
+		isGmtTime ?
+			::localtime_r(&cur_time, &stm) :
+			::gmtime_r(&cur_time, &stm);
 
 		// RFC 822
-		::strftime(buf.data(), buf.size(), "%a, %d %b %G %H:%M:%S GMT", ptm);
+		::strftime(buf.data(), buf.size(), "%a, %d %b %G %H:%M:%S GMT", &stm);
 	#endif
 
 		return std::string(buf.data() );

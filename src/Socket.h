@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef WIN32
-	#include <WinSock2.h>
-	#pragma comment(lib, "ws2_32.lib")
-	#undef max
-#elif POSIX
+#ifdef POSIX
 	#include <sys/types.h>
 	#include <sys/socket.h>
 	#include <sys/epoll.h>
@@ -13,8 +9,6 @@
 	#include <netinet/tcp.h>
 	#include <unistd.h>
 	#include <fcntl.h>
-#else
-	#error "Undefine platform"
 #endif
 
 #include "System.h"
