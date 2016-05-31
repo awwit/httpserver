@@ -1508,9 +1508,49 @@ namespace HttpServer
 
 		::gnutls_dh_params_init(&dh_params);
 
-		const unsigned int bits = ::gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+		if (app.dh_file.empty() )
+		{
+			const unsigned int bits = ::gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_HIGH);
 
-		::gnutls_dh_params_generate2(dh_params, bits);
+			ret = ::gnutls_dh_params_generate2(dh_params, bits);
+		}
+		else
+		{
+			std::ifstream dh_file(app.dh_file);
+
+			if (dh_file)
+			{
+				const size_t max_file_size = 1024 * 1024;
+
+				std::vector<char> buf(max_file_size);
+
+				dh_file.read(buf.data(), buf.size() );
+
+				gnutls_datum_t datum {
+					reinterpret_cast<unsigned char *>(buf.data() ),
+					static_cast<unsigned int>(dh_file.gcount() )
+				};
+
+				ret = ::gnutls_dh_params_import_pkcs3(dh_params, &datum, GNUTLS_X509_FMT_PEM);
+			}
+			else
+			{
+				ret = -1;
+
+				std::cout << "Error: DH params file has not been opened;" << std::endl;;
+			}
+
+			dh_file.close();
+		}
+
+		if (ret < 0)
+		{
+			::gnutls_certificate_free_credentials(x509_cred);
+
+			std::cout << "Error: failed tls DH params get;" << std::endl;
+
+			return false;
+		}
 
 		::gnutls_certificate_set_dh_params(x509_cred, dh_params);
 

@@ -3,6 +3,9 @@
 #ifdef WIN32
 	#include <WS2tcpip.h>
 	#include <Windows.h>
+	#undef min
+	#undef max
+
 	::TCHAR myWndClassName[];
 
     #ifdef SIGTERM

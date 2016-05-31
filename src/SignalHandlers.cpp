@@ -7,13 +7,15 @@
 	#include <thread>
 
 	static std::thread threadMessageLoop;
-	extern ::TCHAR myWndClassName[];
 #endif
 
 #include <csignal>
 
 static HttpServer::Server *globalServerPtr = nullptr;
 
+/**
+ * Terminate signal
+ */
 static void handlerSigTerm(const int sig)
 {
 	if (globalServerPtr)
@@ -22,6 +24,9 @@ static void handlerSigTerm(const int sig)
 	}
 }
 
+/**
+ * Interrupt signal
+ */
 static void handlerSigInt(const int sig)
 {
 	if (globalServerPtr)
@@ -30,6 +35,9 @@ static void handlerSigInt(const int sig)
 	}
 }
 
+/**
+ * Signal to restart
+ */
 static void handlerSigUsr1(const int sig)
 {
 	if (globalServerPtr)
@@ -39,6 +47,9 @@ static void handlerSigUsr1(const int sig)
 	}
 }
 
+/**
+ * Signal to update modules
+ */
 static void handlerSigUsr2(const int sig)
 {
 	if (globalServerPtr)
@@ -60,6 +71,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 	switch (message)
 	{
 		case SIGTERM:
+		case WM_CLOSE:
 		{
 			handlerSigTerm(message);
 			::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
@@ -96,11 +108,11 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 	return 0;
 }
 
-static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event *pCreatedWindow)
+static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event * const eventWindowCreation)
 {
 	const ::HWND hWnd = ::CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
 
-	pCreatedWindow->notify();
+	eventWindowCreation->notify(); // After this action, eventWindowCreation will be destroyed (in the other thread)
 
 	if (0 == hWnd)
 	{
@@ -166,11 +178,11 @@ bool bindSignalHandlers(HttpServer::Server *server)
 		return false;
 	}
 
-	HttpServer::Event createdWindow;
+	HttpServer::Event eventWindowCreation;
 
-	threadMessageLoop = std::thread(mainMessageLoop, hInstance, &createdWindow);
+	threadMessageLoop = std::thread(mainMessageLoop, hInstance, &eventWindowCreation);
 
-	createdWindow.wait();
+	eventWindowCreation.wait();
 
 #elif POSIX
 

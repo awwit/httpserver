@@ -280,7 +280,7 @@ namespace Utils
 
 		// Parse RFC 822
 	#ifdef WIN32
-		if (~0 != ::sscanf_s(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon.data(), s_mon.size(), &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
+		if (~0 != ::sscanf_s(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon.data(), static_cast<unsigned int>(s_mon.size() ), &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
 	#else
 		if (~0 != ::sscanf(strTime.c_str(), "%*s %d %3s %d %d:%d:%d", &tc.tm_mday, s_mon.data(), &tc.tm_year, &tc.tm_hour, &tc.tm_min, &tc.tm_sec) )
 	#endif

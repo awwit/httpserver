@@ -55,7 +55,7 @@ namespace HttpServer
 
 		while (total < length)
 		{
-			::gnutls_record_set_timeout(this->session, timeout.count() );
+			::gnutls_record_set_timeout(this->session, static_cast<unsigned int>(timeout.count() ) );
 
 			if (record_size > length - total)
 			{
@@ -92,7 +92,7 @@ namespace HttpServer
 
 	long SocketAdapterTls::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const
 	{
-		::gnutls_record_set_timeout(this->session, timeout.count() );
+		::gnutls_record_set_timeout(this->session, static_cast<unsigned int>(timeout.count() ) );
 		return ::gnutls_record_recv(this->session, buf.data(), buf.size() );
 	}
 

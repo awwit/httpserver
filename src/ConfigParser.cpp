@@ -137,6 +137,7 @@ namespace HttpServer
 		std::string chain_file;
 		std::string crl_file;
 		std::string stapling_file;
+		std::string dh_file;
 
 		if (false == tls_ports.empty() )
 		{
@@ -159,6 +160,13 @@ namespace HttpServer
 			if (app.cend() != it_stapling_file)
 			{
 				stapling_file = it_stapling_file->second;
+			}
+
+			auto const it_dh_params_file = app.find("tls_dh_params_file");
+
+			if (app.cend() != it_dh_params_file)
+			{
+				dh_file = it_dh_params_file->second;
 			}
 
 			auto const it_cert_file = app.find("tls_certificate");
@@ -283,7 +291,7 @@ namespace HttpServer
 		std::string module_update = app.cend() != it_module_update ? it_module_update->second : "";
 
 		// Calculate module index
-		size_t module_index = ~0;
+		size_t module_index = std::numeric_limits<size_t>::max();
 
 		for (size_t i = 0; i < modules.size(); ++i)
 		{
@@ -294,7 +302,7 @@ namespace HttpServer
 			}
 		}
 
-		if (module_index == ~0)
+		if (std::numeric_limits<size_t>::max() == module_index)
 		{
 			module_index = modules.size();
 			modules.emplace_back(std::move(module) );
@@ -333,6 +341,7 @@ namespace HttpServer
 			std::move(chain_file),
 			std::move(crl_file),
 			std::move(stapling_file),
+			std::move(dh_file),
 
 			std::move(app_call),
 			std::move(app_clear),

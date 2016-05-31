@@ -28,6 +28,7 @@ namespace HttpServer
 		std::string chain_file;
 		std::string crl_file;
 		std::string stapling_file;
+		std::string dh_file;
 
 		std::function<int(server_request *, server_response *)> application_call;
 		std::function<void(Utils::raw_pair [], const size_t)> application_clear;
