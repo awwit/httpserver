@@ -6,7 +6,8 @@
 	#include <Windows.h>
 	#include <thread>
 
-	static std::thread threadMessageLoop;
+	static DWORD gMainThreadId;
+	static std::thread gThreadMessageLoop;
 #endif
 
 #include <csignal>
@@ -71,7 +72,6 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 	switch (message)
 	{
 		case SIGTERM:
-		case WM_CLOSE:
 		{
 			handlerSigTerm(message);
 			::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
@@ -96,6 +96,21 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 		case SIGUSR2:
 		{
 			handlerSigUsr2(message);
+			break;
+		}
+
+		// Cases WM_QUERYENDSESSION and WM_ENDSESSION run before shutting down the system (or ending user session)
+		case WM_QUERYENDSESSION:
+		{
+			handlerSigTerm(message);
+			break;
+		}
+
+		case WM_ENDSESSION:
+		{
+			::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
+			::WaitForSingleObject(hThread, INFINITE);
+			::CloseHandle(hThread);
 			break;
 		}
 
@@ -136,9 +151,18 @@ static ::BOOL consoleSignalHandler(const ::DWORD ctrlType)
 	switch (ctrlType)
 	{
 	case CTRL_CLOSE_EVENT:
+	// Cases CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT don't happen because... it's Windows %)
+	//  @see my function WndProc -> cases WM_QUERYENDSESSION and WM_ENDSESSION. Only they happen in this program, because the library user32.dll is connected.
+	//  @prooflink: https://msdn.microsoft.com/library/windows/desktop/ms686016(v=vs.85).aspx
+	case CTRL_LOGOFF_EVENT:
+	case CTRL_SHUTDOWN_EVENT:
+	{
 		handlerSigTerm(ctrlType);
-		std::this_thread::sleep_for(std::chrono::seconds(60) );
+		::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
+		::WaitForSingleObject(hThread, INFINITE);
+		::CloseHandle(hThread);
 		return true;
+	}
 
 	case CTRL_C_EVENT:
 		handlerSigInt(ctrlType);
@@ -180,7 +204,8 @@ bool bindSignalHandlers(HttpServer::Server *server)
 
 	HttpServer::Event eventWindowCreation;
 
-	threadMessageLoop = std::thread(mainMessageLoop, hInstance, &eventWindowCreation);
+	gMainThreadId = ::GetCurrentThreadId();
+	gThreadMessageLoop = std::thread(mainMessageLoop, hInstance, &eventWindowCreation);
 
 	eventWindowCreation.wait();
 
@@ -213,6 +238,6 @@ void stopSignalHandlers()
 {
 #ifdef WIN32
 	System::sendSignal(::GetCurrentProcessId(), SIGINT);
-	threadMessageLoop.join();
+	gThreadMessageLoop.join();
 #endif
 }
