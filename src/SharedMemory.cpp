@@ -3,6 +3,10 @@
 
 #ifdef WIN32
 	#include <Windows.h>
+
+	#ifdef UNICODE
+		#include <codecvt>
+	#endif
 #elif POSIX
 	#include <unistd.h>
 	#include <sys/mman.h>
@@ -35,13 +39,22 @@ namespace HttpServer
 
 	#ifdef WIN32
 
+		this->shm_name = "shm-" + memName;
+
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring memory_name = converter.from_bytes(this->shm_name);
+	#else
+		const std::string &memory_name = this->shm_name;
+	#endif
+
 		this->shm_desc = ::CreateFileMapping(
 			INVALID_HANDLE_VALUE,
 			nullptr,
 			PAGE_READWRITE,
 			0,
-			memSize,
-			memName.c_str()
+			static_cast<::DWORD>(memSize),
+			memory_name.c_str()
 		);
 
 		if (nullptr == this->shm_desc)
@@ -65,11 +78,11 @@ namespace HttpServer
 			return false;
 		}
 
+		this->shm_name = memName;
+
 	#else
 		#error "Undefine platform"
 	#endif
-
-		this->shm_name = memName;
 
 		return true;
 	}
@@ -80,12 +93,23 @@ namespace HttpServer
 
 	#ifdef WIN32
 
-		this->shm_desc = ::OpenFileMapping(FILE_MAP_ALL_ACCESS, false, memName.c_str() );
+		this->shm_name = "shm-" + memName;
+
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring memory_name = converter.from_bytes(this->shm_name);
+	#else
+		const std::string &memory_name = this->shm_name;
+	#endif
+
+		this->shm_desc = ::OpenFileMapping(FILE_MAP_ALL_ACCESS, false, memory_name.c_str() );
 
 		if (nullptr == this->shm_desc)
 		{
 			return false;
 		}
+
+		this->shm_name = memName;
 
 	#elif POSIX
 
@@ -96,11 +120,11 @@ namespace HttpServer
 			return false;
 		}
 
+		this->shm_name = memName;
+
 	#else
 		#error "Undefine platform"
 	#endif
-
-		this->shm_name = memName;
 
 		return true;
 	}
@@ -120,7 +144,7 @@ namespace HttpServer
 	{
 	#ifdef WIN32
 
-		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_WRITE, 0, offset, size);
+		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_WRITE, 0, static_cast<::DWORD>(offset), size);
 
 		if (nullptr == addr)
 		{
@@ -155,7 +179,7 @@ namespace HttpServer
 	{
 	#ifdef WIN32
 
-		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_READ, 0, offset, size);
+		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_READ, 0, static_cast<::DWORD>(offset), size);
 
 		if (nullptr == addr)
 		{
@@ -211,7 +235,16 @@ namespace HttpServer
 	bool SharedMemory::destroy()
 	{
 	#ifdef WIN32
-		bool ret = ::CloseHandle(this->shm_desc);
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring memory_name = converter.from_bytes(this->shm_name);
+	#else
+		const std::string &memory_name = this->shm_name;
+	#endif
+
+		::HANDLE hMemory = ::OpenFileMapping(DELETE, false, memory_name.c_str() );
+
+		const bool ret = (0 != ::CloseHandle(hMemory) );
 
 		this->close();
 
@@ -230,7 +263,18 @@ namespace HttpServer
 	bool SharedMemory::destroy(const std::string &memName)
 	{
 	#ifdef WIN32
-		return ::CloseHandle(this->shm_desc);
+		const std::string shm_name = "shm-" + memName;
+
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring memory_name = converter.from_bytes(shm_name);
+	#else
+		const std::string &memory_name = shm_name;
+	#endif
+
+		::HANDLE hMemory = ::OpenFileMapping(DELETE, false, memory_name.c_str() );
+
+		return 0 != ::CloseHandle(hMemory);
 	#elif POSIX
 		return 0 == ::shm_unlink(memName.c_str() );
 	#else

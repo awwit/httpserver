@@ -25,11 +25,13 @@
     <ClCompile Include="..\..\src\DataVariantTextPlain.cpp" />
     <ClCompile Include="..\..\src\Event.cpp" />
     <ClCompile Include="..\..\src\FileIncoming.cpp" />
+    <ClCompile Include="..\..\src\GlobalMutex.cpp" />
     <ClCompile Include="..\..\src\Main.cpp" />
     <ClCompile Include="..\..\src\Module.cpp" />
     <ClCompile Include="..\..\src\RequestParameters.cpp" />
     <ClCompile Include="..\..\src\Server.cpp" />
     <ClCompile Include="..\..\src\ServerApplicationsTree.cpp" />
+    <ClCompile Include="..\..\src\SharedMemory.cpp" />
     <ClCompile Include="..\..\src\SignalHandlers.cpp" />
     <ClCompile Include="..\..\src\Socket.cpp" />
     <ClCompile Include="..\..\src\SocketAdapter.cpp" />
@@ -47,6 +49,7 @@
     <ClInclude Include="..\..\src\DataVariantTextPlain.h" />
     <ClInclude Include="..\..\src\Event.h" />
     <ClInclude Include="..\..\src\FileIncoming.h" />
+    <ClInclude Include="..\..\src\GlobalMutex.h" />
     <ClInclude Include="..\..\src\Main.h" />
     <ClInclude Include="..\..\src\Module.h" />
     <ClInclude Include="..\..\src\RawData.h" />
@@ -57,6 +60,8 @@
     <ClInclude Include="..\..\src\ServerApplicationsTree.h" />
     <ClInclude Include="..\..\src\ServerRequest.h" />
     <ClInclude Include="..\..\src\ServerResponse.h" />
+    <ClInclude Include="..\..\src\ServerStructuresArguments.h" />
+    <ClInclude Include="..\..\src\SharedMemory.h" />
     <ClInclude Include="..\..\src\SignalHandlers.h" />
     <ClInclude Include="..\..\src\Socket.h" />
     <ClInclude Include="..\..\src\SocketAdapter.h" />
@@ -70,6 +75,7 @@
     <ProjectGuid>{A7023B84-DA18-3E3E-A9AE-B87F45CAC37F}</ProjectGuid>
     <RootNamespace>httpserver</RootNamespace>
     <Keyword>Qt4VSv1.0</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -162,7 +168,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(OutDir)obj\</ObjectFileName>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>_CONSOLE;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CONSOLE;WIN32;NDEBUG;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <ProgramDataBaseFileName>..\..\build\</ProgramDataBaseFileName>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -201,7 +207,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(OutDir)obj\</ObjectFileName>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>_CONSOLE;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CONSOLE;WIN32;NDEBUG;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <ProgramDataBaseFileName>..\..\build\</ProgramDataBaseFileName>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -240,7 +246,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(OutDir)obj\</ObjectFileName>
-      <PreprocessorDefinitions>_CONSOLE;WIN32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CONSOLE;WIN32;DEBUG;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <ProgramDataBaseFileName>..\..\build\</ProgramDataBaseFileName>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -278,7 +284,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(OutDir)obj\</ObjectFileName>
-      <PreprocessorDefinitions>_CONSOLE;WIN32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CONSOLE;WIN32;DEBUG;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <ProgramDataBaseFileName>..\..\build\</ProgramDataBaseFileName>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>

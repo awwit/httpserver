@@ -38,7 +38,7 @@ namespace System
 		{
 			std::array<::TCHAR, 257> class_name;
 
-			::GetClassName(hWnd, class_name.data(), class_name.size() - 1);
+			::GetClassName(hWnd, class_name.data(), static_cast<int>(class_name.size() - 1) );
 
 			if (0 == ::_tcscmp(class_name.data(), myWndClassName) )
 			{
@@ -66,7 +66,13 @@ namespace System
 	bool changeCurrentDirectory(const std::string &dir)
 	{
 	#ifdef WIN32
-		return ::SetCurrentDirectory(dir.c_str() );
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring target = converter.from_bytes(dir);
+	#else
+		const std::string &target = dir;
+	#endif
+		return 0 != ::SetCurrentDirectory(target.c_str() );
 	#elif POSIX
 		return 0 == ::chdir(dir.c_str() );
 	#else
@@ -121,12 +127,12 @@ namespace System
 	std::string getTempDir()
 	{
 	#ifdef WIN32
-		std::array<TCHAR, MAX_PATH + 1> buf;
+		std::array<::TCHAR, MAX_PATH + 1> buf;
 
-		auto const len = ::GetTempPath(buf.size(), buf.data() );
+		auto const len = ::GetTempPath(static_cast<::DWORD>(buf.size() ), buf.data() );
 
 		#ifdef UNICODE
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
 			return converter.to_bytes(buf.data() );
 		#else
 			return std::string(buf.cbegin(), buf.cbegin() + len);
@@ -262,7 +268,38 @@ namespace System
 	void filterSharedMemoryName(std::string &memName)
 	{
 	#ifdef WIN32
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		std::wstring memory_name = converter.from_bytes(memName);
+		const std::wstring file_ext = L".exe";
+	#else
+		std::string &memory_name = memName;
+		const std::string file_ext = ".exe";
+	#endif
 
+		const size_t pos = memory_name.rfind(file_ext);
+
+		if (pos == memory_name.length() - file_ext.length() )
+		{
+			memory_name.erase(memory_name.begin() + pos, memory_name.end() );
+		}
+
+		::TCHAR buf[MAX_PATH + 1] = {};
+		::GetFullPathName(memory_name.c_str(), MAX_PATH, buf, nullptr);
+
+	#ifdef UNICODE
+		memName = converter.to_bytes(buf);
+	#else
+		memName = buf;
+	#endif
+
+		for (size_t i = 1; i < memName.length(); ++i)
+		{
+			if ('/' == memName[i] || '\\' == memName[i])
+			{
+				memName[i] = '-';
+			}
+		}
 	#elif POSIX
 		if ('/' != memName.front() )
 		{

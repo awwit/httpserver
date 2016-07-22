@@ -71,7 +71,7 @@ namespace HttpServer
 		}
 
 		#ifdef UNICODE
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
 			const std::wstring lib_path = converter.from_bytes(libPath);
 		#else
 			const std::string &lib_path = libPath;

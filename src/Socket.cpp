@@ -186,7 +186,7 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLRDNORM)
+		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM)
 		{
 			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
@@ -265,7 +265,7 @@ namespace HttpServer
 	long Socket::recv(std::vector<std::string::value_type> &buf) const
 	{
 	#ifdef WIN32
-		return ::recv(this->socket_handle, buf.data(), buf.size(), 0);
+		return ::recv(this->socket_handle, buf.data(), static_cast<int>(buf.size() ), 0);
 	#elif POSIX
 		return ::recv(this->socket_handle, buf.data(), buf.size(), 0);
 	#else
@@ -283,9 +283,9 @@ namespace HttpServer
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLRDNORM)
+		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM)
         {
-			recv_len = ::recv(this->socket_handle, buf.data(), buf.size(), 0);
+			recv_len = ::recv(this->socket_handle, buf.data(), static_cast<int>(buf.size() ), 0);
 		}
 	#elif POSIX
         struct ::pollfd event = {
@@ -320,7 +320,7 @@ namespace HttpServer
 			total += send_size;
 		}
 
-		return total;
+		return static_cast<long>(total);
 	}
 
 	long Socket::send(const std::string &buf) const
@@ -346,9 +346,9 @@ namespace HttpServer
 
 		while (total < length)
 		{
-			if (1 == ::WSAPoll(&event, 1, timeout.count() ) && event.revents & POLLWRNORM)
+			if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLWRNORM)
 			{
-				const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, length - total, 0);
+				const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, static_cast<int>(length - total), 0);
 
 				if (send_size < 0)
 				{
@@ -392,7 +392,7 @@ namespace HttpServer
 		#error "Undefine platform"
 	#endif
 
-		return total;
+		return static_cast<long>(total);
 	}
 
 	long Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const

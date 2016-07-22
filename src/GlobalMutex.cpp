@@ -3,6 +3,10 @@
 
 #ifdef WIN32
 	#include <Windows.h>
+
+	#ifdef UNICODE
+		#include <codecvt>
+	#endif
 #elif POSIX
 	#include <fcntl.h>
 #endif
@@ -24,7 +28,17 @@ namespace HttpServer
 		this->close();
 
 	#ifdef WIN32
-		this->mtx_desc = ::CreateMutex(nullptr, false, mutexName.c_str() );
+
+		this->mtx_name = "mtx-" + mutexName;
+
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring mutex_name = converter.from_bytes(this->mtx_name);
+	#else
+		const std::string &mutex_name = this->mtx_name;
+	#endif
+
+		this->mtx_desc = ::CreateMutex(nullptr, false, mutex_name.c_str() );
 
 		if (nullptr == this->mtx_desc)
 		{
@@ -39,11 +53,10 @@ namespace HttpServer
 		}
 
 		this->mtx_desc = sem;
+		this->mtx_name = mutexName;
 	#else
 		#error "Undefine platform"
 	#endif
-
-		this->mtx_name = mutexName;
 
 		return true;
 	}
@@ -51,7 +64,18 @@ namespace HttpServer
 	bool GlobalMutex::destory(const std::string &mutexName)
 	{
 	#ifdef WIN32
-		return true;
+		const std::string mtx_name = "mtx-" + mutexName;
+
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring mutex_name = converter.from_bytes(mtx_name);
+	#else
+		const std::string &mutex_name = mtx_name;
+	#endif
+
+		::HANDLE hMutex = ::OpenMutex(DELETE, true, mutex_name.c_str() );
+
+		return 0 != ::CloseHandle(hMutex);
 	#elif POSIX
 		return 0 == ::sem_unlink(mutexName.c_str() );
 	#else
@@ -62,7 +86,16 @@ namespace HttpServer
 	bool GlobalMutex::destory()
 	{
 	#ifdef WIN32
-		const bool ret = ::CloseHandle(this->mtx_desc);
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring mutex_name = converter.from_bytes(this->mtx_name);
+	#else
+		const std::string &mutex_name = this->mtx_name;
+	#endif
+
+		::HANDLE hMutex = ::OpenMutex(DELETE, true, mutex_name.c_str() );
+
+		const bool ret = (0 != ::CloseHandle(hMutex) );
 
 		this->close();
 
@@ -83,7 +116,17 @@ namespace HttpServer
 		this->close();
 
 	#ifdef WIN32
-		this->mtx_desc = ::OpenMutex(SYNCHRONIZE, false, mutexName.c_str() );
+
+		this->mtx_name = "mtx-" + mutexName;
+
+	#ifdef UNICODE
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t> > converter;
+		const std::wstring mutex_name = converter.from_bytes(this->mtx_name);
+	#else
+		const std::string &mutex_name = this->mtx_name;
+	#endif
+
+		this->mtx_desc = ::OpenMutex(SYNCHRONIZE, false, mutex_name.c_str() );
 
 		if (nullptr == this->mtx_desc)
 		{
@@ -165,7 +208,7 @@ namespace HttpServer
 	bool GlobalMutex::unlock() const
 	{
 	#ifdef WIN32
-		return ::ReleaseMutex(this->mtx_desc);
+		return 0 != ::ReleaseMutex(this->mtx_desc);
 	#elif POSIX
 		return 0 == ::sem_post(this->mtx_desc);
 	#else

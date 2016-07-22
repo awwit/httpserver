@@ -157,7 +157,7 @@ namespace HttpServer
 		if (is_created() )
 		{
 		#ifdef WIN32
-			const int count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+			const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), ~0);
 
 			if (SOCKET_ERROR == count)
 			{
@@ -229,7 +229,7 @@ namespace HttpServer
 		if (is_created() )
 		{
 		#ifdef WIN32
-			const int count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), ~0);
+			const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), ~0);
 
 			if (SOCKET_ERROR == count)
 			{
@@ -312,7 +312,7 @@ namespace HttpServer
 		}
 
 	#ifdef WIN32
-		const int count = ::WSAPoll(this->poll_events.data(), this->poll_events.size(), timeout.count() );
+		const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), static_cast<::INT>(timeout.count() ) );
 
 		if (SOCKET_ERROR == count)
 		{

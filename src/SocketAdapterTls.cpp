@@ -72,7 +72,7 @@ namespace HttpServer
 			total += send_size;
 		}
 
-		return total;
+		return static_cast<long>(total);
 	}
 
 	System::native_socket_type SocketAdapterTls::get_handle() const
