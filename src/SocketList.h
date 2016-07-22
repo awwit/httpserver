@@ -2,6 +2,11 @@
 
 #include "Socket.h"
 
+#ifdef POSIX
+	#include <sys/epoll.h>
+	#include <netinet/in.h>
+#endif
+
 namespace HttpServer
 {
 	class SocketList

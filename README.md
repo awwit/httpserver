@@ -30,7 +30,7 @@ Common:
 
 * [gnutls](https://www.gnutls.org/)
 
-Linux: `dl`, `pthread`, `gnutls`
+Linux: `dl`, `pthread`, `rt`, `gnutls`
 
 Windows: `ws2_32.lib`, `libgnutls.dll.a`
 
@@ -65,6 +65,10 @@ Server start
 ```
 
 Configuration files must be located in the working (current) directory.
+Or input a parameter `--config-path=<path>` to set the directory with configuration files.
+
+Use the parameter `--server-name=<name>` to define the name of web-server's instance.
+Instances can be used to run web-servers with different settings.
 
 Server configuration
 --------------------

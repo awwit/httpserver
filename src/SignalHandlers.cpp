@@ -17,7 +17,7 @@ static HttpServer::Server *globalServerPtr = nullptr;
 /**
  * Terminate signal
  */
-static void handlerSigTerm(const int sig)
+static void handlerSigTerm(const int)
 {
 	if (globalServerPtr)
 	{
@@ -28,7 +28,7 @@ static void handlerSigTerm(const int sig)
 /**
  * Interrupt signal
  */
-static void handlerSigInt(const int sig)
+static void handlerSigInt(const int)
 {
 	if (globalServerPtr)
 	{
@@ -39,7 +39,7 @@ static void handlerSigInt(const int sig)
 /**
  * Signal to restart
  */
-static void handlerSigUsr1(const int sig)
+static void handlerSigUsr1(const int)
 {
 	if (globalServerPtr)
 	{
@@ -51,7 +51,7 @@ static void handlerSigUsr1(const int sig)
 /**
  * Signal to update modules
  */
-static void handlerSigUsr2(const int sig)
+static void handlerSigUsr2(const int)
 {
 	if (globalServerPtr)
 	{

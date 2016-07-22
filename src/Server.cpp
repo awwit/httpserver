@@ -12,7 +12,10 @@
 #include "ConfigParser.h"
 #include "SocketAdapterDefault.h"
 #include "SocketAdapterTls.h"
+#include "GlobalMutex.h"
+#include "SharedMemory.h"
 
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <map>
@@ -1131,9 +1134,9 @@ namespace HttpServer
 						app->application_final();
 					}
 				}
-				catch (...)
+				catch (std::exception &exc)
 				{
-					std::cout << "Warning: error when finalizing application '" << app->server_module << "';" << std::endl;
+					std::cout << "Warning: the error of the application's finalize '" << app->server_module << "':" << exc.what() << std::endl;
 				}
 
 				app->application_call = std::function<int(server_request *, server_response *)>();
@@ -1154,7 +1157,7 @@ namespace HttpServer
 
 		if ( ! src)
 		{
-			std::cout << "Error: file '" << app->server_module_update << "' cannot be open;" << std::endl;
+			std::cout << "Error: the file '" << app->server_module_update << "' cannot be open;" << std::endl;
 			return false;
 		}
 
@@ -1162,7 +1165,7 @@ namespace HttpServer
 
 		if ( ! dst)
 		{
-			std::cout << "Error: file '" << module_name << "' cannot be open;" << std::endl;
+			std::cout << "Error: the file '" << module_name << "' cannot be open;" << std::endl;
 			return false;
 		}
 
@@ -1196,7 +1199,7 @@ namespace HttpServer
 
 		if ( ! src)
 		{
-			std::cout << "Error: file '" << app->server_module_update << "' cannot be open;" << std::endl;
+			std::cout << "Error: the file '" << app->server_module_update << "' cannot be open;" << std::endl;
 			return false;
 		}
 
@@ -1204,7 +1207,7 @@ namespace HttpServer
 
 		if ( ! dst)
 		{
-			std::cout << "Error: file '" << module_name << "' cannot be open;" << std::endl;
+			std::cout << "Error: the file '" << module_name << "' cannot be open;" << std::endl;
 			return false;
 		}
 
@@ -1219,13 +1222,13 @@ namespace HttpServer
 
 		if (0 != remove(module_name.c_str() ) )
 		{
-			std::cout << "Error: file '" << module_name << "' cannot be removed;" << std::endl;
+			std::cout << "Error: the file '" << module_name << "' could not be removed;" << std::endl;
 			return false;
 		}
 
 		if (0 != rename(module_name_temp.c_str(), module_name.c_str() ) )
 		{
-			std::cout << "Error: file '" << module_name_temp << "' cannot be renamed;" << std::endl;
+			std::cout << "Error: the file '" << module_name_temp << "' could not be renamed;" << std::endl;
 			return false;
 		}
 	#else
@@ -1234,7 +1237,7 @@ namespace HttpServer
 
 		if (false == module.is_open() )
 		{
-			std::cout << "Error: application module '" << module_name << "' cannot be open;" << std::endl;
+			std::cout << "Error: application's module '" << module_name << "' cloud not be opened;" << std::endl;
 			return false;
 		}
 
@@ -1242,7 +1245,7 @@ namespace HttpServer
 
 		if (false == module.find("application_call", &addr) )
 		{
-			std::cout << "Error: function 'application_call' not found in module '" << module_name << "';" << std::endl;
+			std::cout << "Error: the function 'application_call' was not found in the module '" << module_name << "';" << std::endl;
 			return false;
 		}
 
@@ -1250,13 +1253,13 @@ namespace HttpServer
 
 		if ( ! app_call)
 		{
-			std::cout << "Error: invalid function 'application_call' in module '" << module_name << "';" << std::endl;
+			std::cout << "Error: invalid function 'application_call' is in the module '" << module_name << "';" << std::endl;
 			return false;
 		}
 
 		if (false == module.find("application_clear", &addr) )
 		{
-			std::cout << "Error: function 'application_clear' not found in module '" << module_name << "';" << std::endl;
+			std::cout << "Error: the function 'application_clear' was not found in the module '" << module_name << "';" << std::endl;
 			return false;
 		}
 
@@ -1290,9 +1293,9 @@ namespace HttpServer
 					app->application_init();
 				}
 			}
-			catch (...)
+			catch (std::exception &exc)
 			{
-				std::cout << "Warning: error when initializing application '" << module_name << "';" << std::endl;
+				std::cout << "Warning: the error of the application's initializing '" << module_name << "':" << exc.what() << std::endl;
 			}
 		}
 
@@ -1341,7 +1344,7 @@ namespace HttpServer
 			}
 		}
 
-		std::cout << "Notice: applications modules have been updated;" << std::endl;
+		std::cout << "Notice: applications' modules have been updated;" << std::endl;
 
 		this->process_flag = true;
 		this->eventUpdateModule->reset();
@@ -1422,9 +1425,9 @@ namespace HttpServer
 						app->application_final();
 					}
 				}
-				catch (...)
+				catch (std::exception &exc)
 				{
-					std::cout << "Warning: error when finalizing application '" << app->server_module << "';" << std::endl;
+					std::cout << "Warning: the error of the application's finalize '" << app->server_module << "':" << exc.what() << std::endl;
 				}
 
 				delete app;
@@ -1460,7 +1463,7 @@ namespace HttpServer
 
 		if (ret < 0)
 		{
-			std::cout << "Error: tls certificate credentials has not been allocated;" << std::endl;
+			std::cout << "Error [tls]: certificate credentials has not been allocated;" << std::endl;
 
 			return false;
 		}
@@ -1471,7 +1474,7 @@ namespace HttpServer
 
 			if (ret < 0)
 			{
-				std::cout << "Warning: (CA) chain file has not been accepted;" << std::endl;
+				std::cout << "Warning [tls]: (CA) chain file has not been accepted;" << std::endl;
 			}
 		}
 
@@ -1481,7 +1484,7 @@ namespace HttpServer
 
 			if (ret < 0)
 			{
-				std::cout << "Warning: (CLR) clr file has not been accepted;" << std::endl;
+				std::cout << "Warning [tls]: (CLR) clr file has not been accepted;" << std::endl;
 			}
 		}
 
@@ -1489,7 +1492,7 @@ namespace HttpServer
 
 		if (ret < 0)
 		{
-			std::cout << "Error: (CERT) tls cert file or/and (KEY) tls key file has not been accepted;" << std::endl;
+			std::cout << "Error [tls]: (CERT) cert file or/and (KEY) key file has not been accepted;" << std::endl;
 
 			return false;
 		}
@@ -1500,7 +1503,7 @@ namespace HttpServer
 
 			if (ret < 0)
 			{
-				std::cout << "Warning: (OCSP) tls stapling file has not been accepted;" << std::endl;
+				std::cout << "Warning [tls]: (OCSP) stapling file has not been accepted;" << std::endl;
 			}
 		}
 
@@ -1537,7 +1540,7 @@ namespace HttpServer
 			{
 				ret = -1;
 
-				std::cout << "Error: DH params file has not been opened;" << std::endl;;
+				std::cout << "Error [tls]: DH params file has not been opened;" << std::endl;;
 			}
 
 			dh_file.close();
@@ -1547,7 +1550,7 @@ namespace HttpServer
 		{
 			::gnutls_certificate_free_credentials(x509_cred);
 
-			std::cout << "Error: failed tls DH params get;" << std::endl;
+			std::cout << "Error [tls]: DH params were not loaded;" << std::endl;
 
 			return false;
 		}
@@ -1562,7 +1565,7 @@ namespace HttpServer
 		{
 			::gnutls_certificate_free_credentials(x509_cred);
 
-			std::cout << "Error: failed tls priority init;" << std::endl;
+			std::cout << "Error [tls]: priority cache cannot be init;" << std::endl;
 
 			return false;
 		}
@@ -1584,19 +1587,19 @@ namespace HttpServer
 
 		if (false == sock.open() )
 		{
-			std::cout << "Error: cannot open socket; errno " << Socket::getLastError() << ";" << std::endl;
+			std::cout << "Error: the socket cannot be open; errno " << Socket::getLastError() << ";" << std::endl;
 			return false;
 		}
 
 		if (false == sock.bind(port) )
 		{
-			std::cout << "Error: cannot bind socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
+			std::cout << "Error: the socket " << port << " cannot be bind; errno " << Socket::getLastError() << ";" << std::endl;
 			return false;
 		}
 
 		if (false == sock.listen() )
 		{
-			std::cout << "Error: cannot listen socket " << port << "; errno " << Socket::getLastError() << ";" << std::endl;
+			std::cout << "Error: the socket " << port << " cannot be listen; errno " << Socket::getLastError() << ";" << std::endl;
 			return false;
 		}
 
@@ -1653,16 +1656,16 @@ namespace HttpServer
 	{
 		if (false == this->init() )
 		{
-			return 1;
+			return 0x10;
 		}
 
 		this->initAppsPorts();
 
 		if (this->server_sockets.empty() )
 		{
-			std::cout << "Error: do not open any socket;" << std::endl;
+			std::cout << "Error: any socket was not open;" << std::endl;
 			this->clear();
-			return 2;
+			return 0x20;
 		}
 
 		SocketList sockets_list;
@@ -1674,7 +1677,7 @@ namespace HttpServer
 			sockets_list.addSocket(sock);
 		}
 
-		std::cout << "Log: start server cycle;" << std::endl << std::endl;
+		std::cout << "Log: launch server's cycle;" << std::endl << std::endl;
 
 		const size_t queue_max_length = 1024;
 		this->eventNotFullQueue = new Event(true, true);
@@ -1691,7 +1694,7 @@ namespace HttpServer
 		std::vector<Socket> accept_sockets;
 		std::vector<struct sockaddr_in> accept_sockets_address;
 
-		// Cycle receiving new connections
+		// Cycle for receiving new connections
 		do
 		{
 			if (sockets_list.accept(accept_sockets, accept_sockets_address) )
@@ -1741,7 +1744,7 @@ namespace HttpServer
 
 		this->clear();
 
-		std::cout << "Log: final server cycle;" << std::endl;
+		std::cout << "Log: complete server's cycle;" << std::endl;
 
 		return EXIT_SUCCESS;
 	}
@@ -1758,25 +1761,161 @@ namespace HttpServer
 		this->setProcessQueue();
 	}
 
-	int Server::command_start(const int argc, const char *argv[])
+	void Server::unsetProcess()
 	{
-		const std::string pid_file_name = "httpserver.pid";
+		this->process_flag = false;
+	}
 
-		// TODO:
-		// Проверить, существует ли файл и открыт ли он уже на запись - значит сервер уже запущен - нужно завершить текущий (this) процесс
+	void Server::setRestart()
+	{
+		this->restart_flag = true;
+	}
 
-		// Создать файл для хранения идентификатора процесса
-		std::ofstream file(pid_file_name, std::ofstream::trunc);
-
-		// Если создать не удалось
-		if (false == file.good() || false == file.is_open() )
+	void Server::setUpdateModule()
+	{
+		if (this->eventUpdateModule)
 		{
-			file.close();
-			return 7;
+			this->eventUpdateModule->notify();
+		}
+	}
+
+	void Server::setProcessQueue()
+	{
+		if (this->eventProcessQueue)
+		{
+			this->eventProcessQueue->notify();
+		}
+	}
+
+	bool Server::get_start_args(const int argc, const char *argv[], struct server_start_args *st)
+	{
+		for (int i = 1; i < argc; ++i)
+		{
+			if (0 == ::strcmp(argv[i], "--start") )
+			{
+
+			}
+			else if (0 == ::strcmp(argv[i], "--force") )
+			{
+				st->force = true;
+			}
+			else if (argv[i] == ::strstr(argv[i], "--config-path=") )
+			{
+				st->config_path = std::string(argv[i] + sizeof("--config-path=") - 1);
+			}
+			else if (argv[i] == ::strstr(argv[i], "--server-name=") )
+			{
+				st->server_name = std::string(argv[i] + sizeof("--server-name=") - 1);
+			}
+			else
+			{
+				std::cout << "The argument '" << argv[i] << "' can't be applied with --start;" << std::endl;
+
+				return false;
+			}
 		}
 
-		// Записать идентификатор текущего процесса в файл
-		file << std::to_string(System::getProcessId() ) << std::flush;
+		if (st->server_name.empty() )
+		{
+			st->server_name = argv[0];
+		}
+
+		System::filterSharedMemoryName(st->server_name);
+
+		return true;
+	}
+
+	int Server::command_start(const int argc, const char *argv[])
+	{
+		struct server_start_args st = {};
+
+		if (false == Server::get_start_args(argc, argv, &st) )
+		{
+			return 0x1;
+		}
+
+		if (false == st.config_path.empty() )
+		{
+			if (false == System::changeCurrentDirectory(st.config_path) )
+			{
+				std::cout << "Configuration path '" << st.config_path << "' has not been found;" << std::endl;
+
+				return 0x2;
+			}
+		}
+
+		if (st.force)
+		{
+			SharedMemory::destroy(st.server_name);
+			GlobalMutex::destory(st.server_name);
+		}
+
+		GlobalMutex glob_mtx;
+		SharedMemory glob_mem;
+
+		bool is_exists = false;
+
+		if (glob_mtx.open(st.server_name) )
+		{
+			glob_mtx.lock();
+
+			if (glob_mem.open(st.server_name) )
+			{
+				System::native_processid_type pid = 0;
+
+				if (glob_mem.read(&pid, sizeof(pid) ) )
+				{
+					is_exists = System::isProcessExists(pid);
+				}
+			}
+
+			glob_mtx.unlock();
+		}
+
+		if (is_exists)
+		{
+			std::cout << "The server instance with the name '" << st.server_name << "' is already running;" << std::endl;
+
+			return 0x3;
+		}
+
+		if (false == glob_mtx.open(st.server_name) )
+		{
+			if (false == glob_mtx.create(st.server_name) )
+			{
+				std::cout << "The global mutex could not been created;" << std::endl;
+
+				return 0x4;
+			}
+		}
+
+		glob_mtx.lock();
+
+		if (false == glob_mem.open(st.server_name) )
+		{
+			if (false == glob_mem.create(st.server_name, sizeof(System::native_processid_type) ) )
+			{
+				glob_mtx.unlock();
+
+				std::cout << "The shared memory could not been allocated;" << std::endl;
+
+				return 0x5;
+			}
+		}
+
+		System::native_processid_type pid = System::getProcessId();
+
+		if (false == glob_mem.write(&pid, sizeof(pid) ) )
+		{
+			glob_mem.destroy();
+			glob_mtx.unlock();
+
+			std::cout << "Writing data to the shared memory has failed;" << std::endl;
+
+			return 0x6;
+		}
+
+		glob_mtx.unlock();
 
 		int code = EXIT_FAILURE;
 
@@ -1789,51 +1928,79 @@ namespace HttpServer
 		}
 		while (this->process_flag || this->restart_flag);
 
-		file.close();
-
-		remove(pid_file_name.c_str() );
+		glob_mem.destroy();
+		glob_mtx.destory();
 
 		return code;
 	}
 
-	System::native_processid_type Server::getPidFromFile() const
+	System::native_processid_type Server::getServerProcessId(const std::string &serverName)
 	{
 		System::native_processid_type pid = 0;
 
-		std::ifstream file("httpserver.pid");
+		GlobalMutex glob_mtx;
 
-		if (file.good() && file.is_open() )
+		if (glob_mtx.open(serverName) )
 		{
-			char str_pid[32] = {0};
+			SharedMemory glob_mem;
 
-			file.get(str_pid, sizeof(str_pid) );
+			glob_mtx.lock();
 
-			if (file.gcount() )
+			if (glob_mem.open(serverName) )
 			{
-				pid = std::strtoull(str_pid, nullptr, 10);
+				glob_mem.read(&pid, sizeof(pid) );
 			}
-		}
 
-		file.close();
+			glob_mtx.unlock();
+		}
 
 		return pid;
 	}
 
 	int Server::command_help(const int argc, const char *argv[]) const
 	{
-		std::cout << "Available arguments:" << std::endl
-			<< std::setw(4) << ' ' << "--start" << "\t\t" << "Start http server" << std::endl
-			<< std::setw(4) << ' ' << "--restart" << "\t\t" << "Restart http server" << std::endl
-			<< std::setw(4) << ' ' << "--update-module" << "\t" << "Update applications modules" << std::endl
-			<< std::setw(4) << ' ' << "--kill" << "\t\t" << "Shutdown http server" << std::endl
-			<< std::setw(4) << ' ' << "--help" << "\t\t" << "This help" << std::endl << std::endl;
+		std::cout << std::left << "Available arguments:" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--start" << "Start the http server" << std::endl
+			<< std::setw(8) << ' ' << std::setw(22) << "[options]" << std::endl
+			<< std::setw(8) << ' ' << std::setw(22) << "--force" << "Forcibly start the http server (ignore the existing instance)" << std::endl
+			<< std::setw(8) << ' ' << std::setw(22) << "--config-path=<path>" << "The path to the directory with configuration files" << std::endl
+			<< std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--restart" << "Restart the http server" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--update-module" << "Update the applications modules" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--kill" << "Shutdown the http server" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--help" << "This help" << std::endl
+			<< std::endl<< "Optional arguments:" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--server-name=<name>" << "The name of the server instance" << std::endl;
 
 		return EXIT_SUCCESS;
 	}
 
+	static std::string get_server_name(const int argc, const char *argv[])
+	{
+		std::string server_name;
+
+		for (int i = 1; i < argc; ++i)
+		{
+			if (argv[i] == ::strstr(argv[i], "--server-name=") )
+			{
+				server_name = std::string(argv[i] + sizeof("--server-name=") - 1);
+				break;
+			}
+		}
+
+		if (server_name.empty() )
+		{
+			server_name = argv[0];
+		}
+
+		System::filterSharedMemoryName(server_name);
+
+		return server_name;
+	}
+
 	int Server::command_restart(const int argc, const char *argv[]) const
 	{
-		const System::native_processid_type pid = getPidFromFile();
+		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc, argv) );
 
 		if (1 < pid && System::sendSignal(pid, SIGUSR1) )
 		{
@@ -1845,7 +2012,7 @@ namespace HttpServer
 
 	int Server::command_terminate(const int argc, const char *argv[]) const
 	{
-		const System::native_processid_type pid = getPidFromFile();
+		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc, argv) );
 
 		if (1 < pid && System::sendSignal(pid, SIGTERM) )
 		{
@@ -1857,7 +2024,7 @@ namespace HttpServer
 
 	int Server::command_update_module(const int argc, const char *argv[]) const
 	{
-		const System::native_processid_type pid = getPidFromFile();
+		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc, argv) );
 
 		if (1 < pid && System::sendSignal(pid, SIGUSR2) )
 		{

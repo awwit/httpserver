@@ -34,16 +34,16 @@ int main(const int argc, const char *argv[])
 		}
 		else
 		{
-			std::cout << "Unknown command, see --help" << std::endl;
+			std::cout << "Unknown parameter, see --help" << std::endl;
 		}
 	}
 	else if (1 == argc)
 	{
-		std::cout << "Try: " << argv[0] << " --help" << std::endl;
+		std::cout << "Try to run with the parameter --help" << std::endl;
 	}
 	else
 	{
-		std::cout << "Arguments failure, see --help command" << std::endl;
+		std::cout << "The number of arguments cannot be equal to zero. Enter the parameter --help" << std::endl;
 	}
 
 	return exitcode;

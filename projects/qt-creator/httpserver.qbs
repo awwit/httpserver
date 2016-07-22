@@ -13,12 +13,12 @@ Project {
 		Properties {
 			condition: qbs.targetOS.contains("linux")
 			cpp.defines: outer.concat(["POSIX"])
-			cpp.dynamicLibraries: outer.concat(["dl", "pthread"])
+			cpp.dynamicLibraries: outer.concat(["dl", "pthread", "rt"])
 		}
 
 		Properties {
 			condition: qbs.targetOS.contains("windows")
-			cpp.defines: outer.concat(["WIN32"])
+			cpp.defines: outer.concat(["WIN32", "NOMINMAX"])
 		}
 
 		files: [
@@ -35,6 +35,8 @@ Project {
 			"../../src/Event.h",
 			"../../src/FileIncoming.cpp",
 			"../../src/FileIncoming.h",
+			"../../src/GlobalMutex.cpp",
+			"../../src/GlobalMutex.h",
 			"../../src/Main.cpp",
 			"../../src/Main.h",
 			"../../src/Module.cpp",
@@ -50,6 +52,9 @@ Project {
 			"../../src/ServerApplicationsTree.h",
 			"../../src/ServerRequest.h",
 			"../../src/ServerResponse.h",
+			"../../src/ServerStructuresArguments.h",
+			"../../src/SharedMemory.cpp",
+			"../../src/SharedMemory.h",
 			"../../src/SignalHandlers.cpp",
 			"../../src/SignalHandlers.h",
 			"../../src/Socket.cpp",

@@ -7,6 +7,7 @@
 #include "Module.h"
 #include "Event.h"
 #include "SocketAdapter.h"
+#include "ServerStructuresArguments.h"
 
 #include <cstddef>
 #include <memory>
@@ -118,7 +119,7 @@ namespace HttpServer
 		int run();
 		void clear();
 
-		System::native_processid_type getPidFromFile() const;
+		static System::native_processid_type getServerProcessId(const std::string &serverName);
 
 		void updateModules();
 		bool updateModule(Module &module, std::unordered_set<ServerApplicationSettings *> &applications, const size_t moduleIndex);
@@ -126,37 +127,17 @@ namespace HttpServer
 	private:
 		void addDataVariant(DataVariantAbstract *dataVariant);
 
+		static bool get_start_args(const int argc, const char *argv[], struct server_start_args *st);
+
 	public:
 		Server();
 		~Server() = default;
 
 		void stopProcess();
-
-		inline void unsetProcess()
-		{
-			this->process_flag = false;
-		}
-
-		inline void setRestart()
-		{
-			this->restart_flag = true;
-		}
-
-		inline void setUpdateModule()
-		{
-			if (this->eventUpdateModule)
-			{
-				this->eventUpdateModule->notify();
-			}
-		}
-
-		inline void setProcessQueue()
-		{
-			if (this->eventProcessQueue)
-			{
-				this->eventProcessQueue->notify();
-			}
-		}
+		void unsetProcess();
+		void setRestart();
+		void setUpdateModule();
+		void setProcessQueue();
 
 		int command_help(const int argc, const char *argv[]) const;
 		int command_start(const int argc, const char *argv[]);

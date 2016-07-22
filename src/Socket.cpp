@@ -1,6 +1,16 @@
 
 #include "Socket.h"
 
+#ifdef POSIX
+	#include <sys/types.h>
+	#include <sys/socket.h>
+	#include <poll.h>
+	#include <netinet/in.h>
+	#include <netinet/tcp.h>
+	#include <unistd.h>
+	#include <fcntl.h>
+#endif
+
 namespace HttpServer
 {
 	bool Socket::Startup()
@@ -88,6 +98,22 @@ namespace HttpServer
 		}
 
 		return false;
+	}
+
+	bool Socket::is_open() const
+	{
+	#ifdef WIN32
+		return INVALID_SOCKET != this->socket_handle;
+	#elif POSIX
+		return ~0 != this->socket_handle;
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	System::native_socket_type Socket::get_handle() const
+	{
+		return this->socket_handle;
 	}
 
 	bool Socket::bind(const int port) const

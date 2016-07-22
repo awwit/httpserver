@@ -1,20 +1,6 @@
 #pragma once
 
-#ifdef POSIX
-	#include <sys/types.h>
-	#include <sys/socket.h>
-	#include <sys/epoll.h>
-	#include <poll.h>
-	#include <netinet/in.h>
-	#include <netinet/tcp.h>
-	#include <unistd.h>
-	#include <fcntl.h>
-#endif
-
 #include "System.h"
-
-#include <cstddef>
-#include <cstdint>
 
 #include <vector>
 #include <string>
@@ -43,16 +29,8 @@ namespace HttpServer
 		bool open();
 		bool close();
 
-		inline bool is_open() const
-		{
-		#ifdef WIN32
-			return INVALID_SOCKET != this->socket_handle;
-		#elif POSIX
-			return ~0 != this->socket_handle;
-		#else
-			#error "Undefine platform"
-		#endif
-		}
+		bool is_open() const;
+		System::native_socket_type get_handle() const;
 
 		bool bind(const int port) const;
 		bool listen() const;
@@ -77,11 +55,6 @@ namespace HttpServer
 		long nonblock_send(const std::vector<std::string::value_type> &buf, const size_t length, const std::chrono::milliseconds &timeout) const;
 
 		void nonblock_send_sync() const;
-
-		inline System::native_socket_type get_handle() const
-		{
-			return this->socket_handle;
-		}
 
 		Socket &operator =(const Socket &obj);
 

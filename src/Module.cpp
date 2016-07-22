@@ -2,10 +2,13 @@
 #include "Module.h"
 
 #ifdef WIN32
+	#include <Windows.h>
+
 	#ifdef UNICODE
 		#include <codecvt>
 	#endif
 #elif POSIX
+	#include <dlfcn.h>
 	#include <iostream>
 #endif
 
@@ -29,6 +32,11 @@ namespace HttpServer
 	Module::Module(Module &&obj) : lib_handle(obj.lib_handle)
 	{
 		obj.lib_handle = nullptr;
+	}
+
+	bool Module::is_open() const
+	{
+		return nullptr != this->lib_handle;
 	}
 
 	bool Module::open(const std::string &libPath)
@@ -68,7 +76,7 @@ namespace HttpServer
 		#else
 			const std::string &lib_path = libPath;
 		#endif
-		
+
 		lib_handle = ::LoadLibraryEx(lib_path.c_str(), 0, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 		if (cookie)
@@ -154,6 +162,16 @@ namespace HttpServer
 		}
 
 		return false;
+	}
+
+	bool Module::operator ==(const Module &obj) const
+	{
+		return this->lib_handle == obj.lib_handle;
+	}
+
+	bool Module::operator !=(const Module &obj) const
+	{
+		return this->lib_handle != obj.lib_handle;
 	}
 
 	Module &Module::operator =(const Module &obj)

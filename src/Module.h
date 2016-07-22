@@ -1,11 +1,8 @@
 ﻿#pragma once
 
 #ifdef WIN32
-	#include <windows.h>
-#elif POSIX
-	#include <dlfcn.h>
-#else
-	#error "Undefine platform"
+	#include <wtypes.h>
+	#include <WinDef.h>
 #endif
 
 #include <string>
@@ -31,10 +28,7 @@ namespace HttpServer
 
 		~Module() = default;
 
-		inline bool is_open() const
-		{
-			return nullptr != lib_handle;
-		}
+		bool is_open() const;
 
 		bool open(const std::string &libPath);
 		void close();
@@ -42,15 +36,8 @@ namespace HttpServer
 		bool find(const std::string &symbolName, void *(**addr)(void *) ) const;
 		bool find(const char *symbolName, void *(**addr)(void *) ) const;
 
-		inline bool operator ==(const Module &obj) const
-		{
-			return lib_handle == obj.lib_handle;
-		}
-
-		inline bool operator !=(const Module &obj) const
-		{
-			return lib_handle != obj.lib_handle;
-		}
+		bool operator ==(const Module &obj) const;
+		bool operator !=(const Module &obj) const;
 
 		Module &operator =(const Module &obj);
 		Module &operator =(Module &&obj);

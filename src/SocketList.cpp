@@ -1,6 +1,12 @@
 ﻿
 #include "SocketList.h"
 
+#ifdef POSIX
+	#include <unistd.h>
+	#include <sys/types.h>
+	#include <sys/socket.h>
+#endif
+
 namespace HttpServer
 {
 	SocketList::SocketList()

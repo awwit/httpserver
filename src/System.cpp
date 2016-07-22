@@ -10,6 +10,11 @@
 	#ifdef UNICODE
 		#include <codecvt>
 	#endif
+#elif POSIX
+	#include <csignal>
+	#include <sys/sysinfo.h>
+	#include <sys/stat.h>
+	#include <unistd.h>
 #endif
 
 namespace System
@@ -47,6 +52,41 @@ namespace System
 	}
 #endif
 
+	native_processid_type getProcessId()
+	{
+	#ifdef WIN32
+		return ::GetCurrentProcessId();
+	#elif POSIX
+		return ::getpid();
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	bool changeCurrentDirectory(const std::string &dir)
+	{
+	#ifdef WIN32
+		return ::SetCurrentDirectory(dir.c_str() );
+	#elif POSIX
+		return 0 == ::chdir(dir.c_str() );
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	bool isProcessExists(const native_processid_type pid)
+	{
+	#ifdef WIN32
+		HANDLE hProcess = ::OpenProcess(SYNCHRONIZE, false, pid);
+		::CloseHandle(hProcess);
+		return 0 != hProcess;
+	#elif POSIX
+		return 0 == ::kill(pid, 0);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	bool sendSignal(const native_processid_type pid, const int signal)
 	{
 	#ifdef WIN32
@@ -62,6 +102,17 @@ namespace System
 		return 0 != ::PostMessage(ed.hWnd, signal, 0, 0);
 	#elif POSIX
 		return 0 == ::kill(pid, signal);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	bool isDoneThread(const std::thread::native_handle_type handle)
+	{
+	#ifdef WIN32
+		return WAIT_OBJECT_0 == ::WaitForSingleObject(handle, 0);
+	#elif POSIX
+		return 0 != ::pthread_kill(handle, 0);
 	#else
 		#error "Undefine platform"
 	#endif
@@ -203,6 +254,28 @@ namespace System
 		*fileTime = ::mktime(&clock);
 
 		return true;
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
+	void filterSharedMemoryName(std::string &memName)
+	{
+	#ifdef WIN32
+
+	#elif POSIX
+		if ('/' != memName.front() )
+		{
+			memName = '/' + memName;
+		}
+
+		for (size_t i = 1; i < memName.length(); ++i)
+		{
+			if ('/' == memName[i] || '\\' == memName[i])
+			{
+				memName[i] = '-';
+			}
+		}
 	#else
 		#error "Undefine platform"
 	#endif
