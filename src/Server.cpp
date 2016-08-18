@@ -941,7 +941,7 @@ namespace HttpServer
 	{
 		while (true)
 		{
-			Socket clientSocket;
+			Socket sock;
 			struct sockaddr_in addr;
 
 			eventThreadCycle.wait();
@@ -955,7 +955,7 @@ namespace HttpServer
 
 			if (sockets.size() )
 			{
-				std::tie(clientSocket, addr) = sockets.front();
+				std::tie(sock, addr) = sockets.front();
 
 				sockets.pop();
 			}
@@ -969,16 +969,16 @@ namespace HttpServer
 
 			this->sockets_queue_mtx.unlock();
 
-			if (clientSocket.is_open() )
+			if (sock.is_open() )
 			{
 				++this->threads_working_count;
 
-				struct ::sockaddr_in p;
-				::socklen_t p_len = sizeof(p);
+				struct ::sockaddr_in sock_addr;
+				::socklen_t sock_addr_len = sizeof(sock_addr);
 
-				::getsockname(clientSocket.get_handle(), reinterpret_cast<struct sockaddr *>(&p), &p_len);
+				::getsockname(sock.get_handle(), reinterpret_cast<struct sockaddr *>(&sock_addr), &sock_addr_len);
 
-				const int port = ntohs(p.sin_port);
+				const int port = ntohs(sock_addr.sin_port);
 
 				auto const it = this->tls_data.find(port);
 
@@ -986,22 +986,22 @@ namespace HttpServer
 				{
 					const std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data = it->second;
 
-					SocketAdapterTls sock(
-						clientSocket,
+					SocketAdapterTls socket_adapter(
+						sock,
 						std::get<gnutls_priority_t>(data),
 						std::get<gnutls_certificate_credentials_t>(data)
 					);
 
-					if (sock.handshake() )
+					if (socket_adapter.handshake() )
 					{
-						this->threadRequestProc(sock, addr);
+						this->threadRequestProc(socket_adapter, addr);
 					}
 				}
 				else
 				{
-					SocketAdapterDefault sock(clientSocket);
+					SocketAdapterDefault socket_adapter(sock);
 
-					this->threadRequestProc(sock, addr);
+					this->threadRequestProc(socket_adapter, addr);
 				}
 
 				--this->threads_working_count;

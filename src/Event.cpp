@@ -10,73 +10,92 @@ namespace HttpServer
 
 	void Event::wait()
 	{
-		std::unique_lock<std::mutex> lck(mtx);
-
-		while (false == signaled)
+		if (false == this->signaled.load() )
 		{
-			cv.wait(lck);
+			std::unique_lock<std::mutex> lck(this->mtx);
+
+			do
+			{
+				this->cv.wait(lck);
+			}
+			while (false == this->signaled.load() );
 		}
 
-		if (false == manually)
+		if (false == this->manually)
 		{
-			signaled = false;
+			this->signaled.store(false);
 		}
 	}
 
 	bool Event::wait_for(const std::chrono::milliseconds &ms)
 	{
-		std::unique_lock<std::mutex> lck(mtx);
+		bool is_timeout = false;
 
-		auto const status = cv.wait_for(lck, ms);
-
-		if (false == manually)
+		if (false == this->signaled.load() )
 		{
-			signaled = false;
+			std::unique_lock<std::mutex> lck(this->mtx);
+
+			is_timeout = false == this->cv.wait_for(lck, ms, [this] { return this->notifed(); } );
 		}
 
-		return std::cv_status::timeout == status;
+		if (false == this->manually)
+		{
+			this->signaled.store(false);
+		}
+
+		return is_timeout;
 	}
 
 	bool Event::wait_until(const std::chrono::high_resolution_clock::time_point &tp)
 	{
-		std::unique_lock<std::mutex> lck(mtx);
+		bool is_timeout = false;
 
-		auto const status = cv.wait_until(lck, tp);
-
-		if (false == manually)
+		if (false == this->signaled.load() )
 		{
-			signaled = false;
+			std::unique_lock<std::mutex> lck(this->mtx);
+
+			do
+			{
+				if (std::cv_status::timeout == this->cv.wait_until(lck, tp) )
+				{
+					is_timeout = true;
+					break;
+				}
+			}
+			while (false == this->signaled.load() );
 		}
 
-		return std::cv_status::timeout == status;
+		if (false == this->manually)
+		{
+			this->signaled.store(false);
+		}
+
+		return is_timeout;
 	}
 
 	void Event::notify()
 	{
-		signaled = true;
-		cv.notify_all();
+		this->signaled.store(true);
+		this->cv.notify_all();
 	}
 
 	void Event::notify(const size_t threadsCount)
 	{
-		if (threadsCount)
-		{
-			signaled = true;
+		this->signaled.store(true);
 
-			for (size_t i = 0; i < threadsCount; ++i)
-			{
-				cv.notify_one();
-			}
+		for (size_t i = 0; i < threadsCount; ++i)
+		{
+			this->cv.notify_one();
 		}
 	}
 
 	void Event::reset()
 	{
-		signaled = false;
+		this->signaled.store(false);
 	}
 
 	bool Event::notifed() const
 	{
-		return signaled;
+		return this->signaled.load();
 	}
 };
