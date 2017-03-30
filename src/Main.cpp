@@ -1,6 +1,6 @@
 
 #include "Main.h"
-#include "Server.h"
+#include "server/Server.h"
 #include "SignalHandlers.h"
 
 #include <iostream>

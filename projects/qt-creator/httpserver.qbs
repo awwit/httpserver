@@ -1,76 +1,100 @@
 import qbs
 
 Project {
-	CppApplication {
-		name: "httpserver"
+    CppApplication {
+        name: "httpserver"
 
-		cpp.cxxLanguageVersion: "c++14"
+        cpp.cxxLanguageVersion: "c++14"
 
-		cpp.defines: qbs.buildVariant == "debug" ? base : base.concat(["DEBUG"])
+        cpp.defines: qbs.buildVariant == "debug" ? ["DEBUG"] : original
 
-		cpp.dynamicLibraries: base.concat(["gnutls"])
+        cpp.dynamicLibraries: ["gnutls"]
 
-		Properties {
-			condition: qbs.targetOS.contains("linux")
-			cpp.defines: outer.concat(["POSIX"])
-			cpp.dynamicLibraries: outer.concat(["dl", "pthread", "rt"])
-		}
+        Properties {
+            condition: qbs.targetOS.contains("linux")
+            cpp.platformDefines: outer.concat(["POSIX"])
+            cpp.dynamicLibraries: outer.concat(["dl", "pthread", "rt"])
+        }
+        Properties {
+            condition: qbs.targetOS.contains("windows")
+            cpp.platformDefines: outer.concat(["WIN32", "NOMINMAX"])
+        }
 
-		Properties {
-			condition: qbs.targetOS.contains("windows")
-			cpp.defines: outer.concat(["WIN32", "NOMINMAX"])
-		}
-
-		files: [
-			"../../src/ConfigParser.cpp",
-			"../../src/ConfigParser.h",
-			"../../src/DataVariantAbstract.h",
-			"../../src/DataVariantFormUrlencoded.cpp",
-			"../../src/DataVariantFormUrlencoded.h",
-			"../../src/DataVariantMultipartFormData.cpp",
-			"../../src/DataVariantMultipartFormData.h",
-			"../../src/DataVariantTextPlain.cpp",
-			"../../src/DataVariantTextPlain.h",
-			"../../src/Event.cpp",
-			"../../src/Event.h",
-			"../../src/FileIncoming.cpp",
-			"../../src/FileIncoming.h",
-			"../../src/GlobalMutex.cpp",
-			"../../src/GlobalMutex.h",
-			"../../src/Main.cpp",
-			"../../src/Main.h",
-			"../../src/Module.cpp",
-			"../../src/Module.h",
-			"../../src/RawData.h",
-			"../../src/RequestParameters.cpp",
-			"../../src/RequestParameters.h",
-			"../../src/Server.cpp",
-			"../../src/Server.h",
-			"../../src/ServerApplicationDefaultSettings.h",
-			"../../src/ServerApplicationSettings.h",
-			"../../src/ServerApplicationsTree.cpp",
-			"../../src/ServerApplicationsTree.h",
-			"../../src/ServerRequest.h",
-			"../../src/ServerResponse.h",
-			"../../src/ServerStructuresArguments.h",
-			"../../src/SharedMemory.cpp",
-			"../../src/SharedMemory.h",
-			"../../src/SignalHandlers.cpp",
-			"../../src/SignalHandlers.h",
-			"../../src/Socket.cpp",
-			"../../src/Socket.h",
-			"../../src/SocketAdapter.cpp",
-			"../../src/SocketAdapter.h",
-			"../../src/SocketAdapterDefault.cpp",
-			"../../src/SocketAdapterDefault.h",
-			"../../src/SocketAdapterTls.cpp",
-			"../../src/SocketAdapterTls.h",
-			"../../src/SocketList.cpp",
-			"../../src/SocketList.h",
-			"../../src/System.cpp",
-			"../../src/System.h",
-			"../../src/Utils.cpp",
-			"../../src/Utils.h",
-		]
-	}
+        files: [
+            "../../src/transfer/AppRequest.h",
+            "../../src/transfer/AppResponse.h",
+            "../../src/server/ServerControls.cpp",
+            "../../src/server/ServerControls.h",
+            "../../src/server/ServerSettings.cpp",
+            "../../src/server/ServerSettings.h",
+            "../../src/server/SocketsQueue.h",
+            "../../src/server/config/ConfigParser.cpp",
+            "../../src/server/config/ConfigParser.h",
+            "../../src/server/data-variant/Abstract.cpp",
+            "../../src/server/data-variant/Abstract.h",
+            "../../src/server/data-variant/FormUrlencoded.cpp",
+            "../../src/server/data-variant/FormUrlencoded.h",
+            "../../src/server/data-variant/MultipartFormData.cpp",
+            "../../src/server/data-variant/MultipartFormData.h",
+            "../../src/server/data-variant/TextPlain.cpp",
+            "../../src/server/data-variant/TextPlain.h",
+            "../../src/server/protocol/ServerHttp2Protocol.cpp",
+            "../../src/server/protocol/ServerHttp2Protocol.h",
+            "../../src/server/protocol/ServerHttp2Stream.cpp",
+            "../../src/server/protocol/ServerHttp2Stream.h",
+            "../../src/server/protocol/ServerWebSocket.cpp",
+            "../../src/server/protocol/ServerWebSocket.h",
+            "../../src/socket/Adapter.cpp",
+            "../../src/socket/Adapter.h",
+            "../../src/socket/AdapterDefault.cpp",
+            "../../src/socket/AdapterDefault.h",
+            "../../src/socket/AdapterTls.cpp",
+            "../../src/socket/AdapterTls.h",
+            "../../src/socket/List.cpp",
+            "../../src/socket/List.h",
+            "../../src/system/Cache.h",
+            "../../src/utils/Event.cpp",
+            "../../src/utils/Event.h",
+            "../../src/transfer/FileIncoming.cpp",
+            "../../src/transfer/FileIncoming.h",
+            "../../src/system/GlobalMutex.cpp",
+            "../../src/system/GlobalMutex.h",
+            "../../src/transfer/http2/HPack.cpp",
+            "../../src/transfer/http2/HPack.h",
+            "../../src/transfer/http2/Http2.cpp",
+            "../../src/transfer/http2/Http2.h",
+            "../../src/transfer/HttpStatusCode.h",
+            "../../src/Main.cpp",
+            "../../src/Main.h",
+            "../../src/system/Module.cpp",
+            "../../src/system/Module.h",
+            "../../src/transfer/ProtocolVariant.h",
+            "../../src/server/Request.cpp",
+            "../../src/server/Request.h",
+            "../../src/server/Server.cpp",
+            "../../src/server/Server.h",
+            "../../src/server/ServerApplicationSettings.h",
+            "../../src/server/ServerApplicationsTree.cpp",
+            "../../src/server/ServerApplicationsTree.h",
+            "../../src/server/protocol/ServerHttp1.cpp",
+            "../../src/server/protocol/ServerHttp1.h",
+            "../../src/server/protocol/ServerHttp2.cpp",
+            "../../src/server/protocol/ServerHttp2.h",
+            "../../src/server/protocol/ServerProtocol.cpp",
+            "../../src/server/protocol/ServerProtocol.h",
+            "../../src/server/protocol/extensions/Sendfile.cpp",
+            "../../src/server/protocol/extensions/Sendfile.h",
+            "../../src/server/ServerStructuresArguments.h",
+            "../../src/system/SharedMemory.cpp",
+            "../../src/system/SharedMemory.h",
+            "../../src/SignalHandlers.cpp",
+            "../../src/SignalHandlers.h",
+            "../../src/socket/Socket.cpp",
+            "../../src/socket/Socket.h",
+            "../../src/system/System.cpp",
+            "../../src/system/System.h",
+            "../../src/utils/Utils.cpp",
+            "../../src/utils/Utils.h",
+        ]
+    }
 }

@@ -1,6 +1,6 @@
 ﻿
 #include "SignalHandlers.h"
-#include "System.h"
+#include "system/System.h"
 
 #ifdef WIN32
 	#include <Windows.h>
@@ -17,47 +17,47 @@ static HttpServer::Server *globalServerPtr = nullptr;
 /**
  * Terminate signal
  */
-static void handlerSigTerm(const int)
+static void handlerSigTerm(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->stopProcess();
+		globalServerPtr->controls.stopProcess();
 	}
 }
 
 /**
  * Interrupt signal
  */
-static void handlerSigInt(const int)
+static void handlerSigInt(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->stopProcess();
+		globalServerPtr->controls.stopProcess();
 	}
 }
 
 /**
  * Signal to restart
  */
-static void handlerSigUsr1(const int)
+static void handlerSigUsr1(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->setRestart();
-		globalServerPtr->stopProcess();
+		globalServerPtr->controls.setRestart();
+		globalServerPtr->controls.stopProcess();
 	}
 }
 
 /**
  * Signal to update modules
  */
-static void handlerSigUsr2(const int)
+static void handlerSigUsr2(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->setUpdateModule();
-		globalServerPtr->unsetProcess();
-		globalServerPtr->setProcessQueue();
+		globalServerPtr->controls.setUpdateModule();
+		globalServerPtr->controls.setProcess(false);
+		globalServerPtr->controls.setProcessQueue();
 	}
 }
 
@@ -67,7 +67,7 @@ static void handlerSigUsr2(const int)
  *  It doesn't work in case the program was launched and was
  *  attempted to finish under different remote sessions.
  */
-static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const ::WPARAM wParam, const ::LPARAM lParam)
+static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const ::WPARAM wParam, const ::LPARAM lParam) noexcept
 {
 	switch (message)
 	{
@@ -123,7 +123,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 	return 0;
 }
 
-static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event * const eventWindowCreation)
+static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event * const eventWindowCreation) noexcept
 {
 	const ::HWND hWnd = ::CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -146,7 +146,7 @@ static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event *
 }
 
 #ifdef _CONSOLE
-static ::BOOL consoleSignalHandler(const ::DWORD ctrlType)
+static ::BOOL consoleSignalHandler(const ::DWORD ctrlType) noexcept
 {
 	switch (ctrlType)
 	{
@@ -175,7 +175,7 @@ static ::BOOL consoleSignalHandler(const ::DWORD ctrlType)
 #endif // _CONSOLE
 #endif // WIN32
 
-bool bindSignalHandlers(HttpServer::Server *server)
+bool bindSignalHandlers(HttpServer::Server *server) noexcept
 {
 	globalServerPtr = server;
 
@@ -234,7 +234,7 @@ bool bindSignalHandlers(HttpServer::Server *server)
 	return true;
 }
 
-void stopSignalHandlers()
+void stopSignalHandlers() noexcept
 {
 #ifdef WIN32
 	System::sendSignal(::GetCurrentProcessId(), SIGINT);

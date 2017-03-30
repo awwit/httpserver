@@ -1,5 +1,4 @@
-httpserver
-==========
+# httpserver
 
 Http server is written on C++14 language.
 
@@ -11,20 +10,19 @@ by using the parameter `server_module`.
 
 Sample application code: https://github.com/awwit/httpserverapp
 
-Features
---------
+## Features
 
 This http server support:
 
 * HTTP v1.1
 * HTTPS (TLS)
+* HTTP v2 (*need optimize cleanup of streams*)
 * Keep-Alive
 * WebSocket
-* Get-Parted requests
 * X-Sendfile (header)
+* Get-Parted requests
 
-Dependencies
-------------
+## Dependencies
 
 Common:
 
@@ -34,8 +32,7 @@ Linux: `dl`, `pthread`, `rt`, `gnutls`
 
 Windows: `ws2_32.lib`, `libgnutls.dll.a`
 
-Build
------
+## Build
 
 Linux:
 
@@ -57,8 +54,7 @@ cd build
 devenv ./../projects/msvs/httpserver.sln /build
 ```
 
-Server start
-------------
+## Server start
 
 ```sh
 ./httpserver --start
@@ -70,14 +66,12 @@ Or input a parameter `--config-path=<path>` to set the directory with configurat
 Use the parameter `--server-name=<name>` to define the name of web-server's instance.
 Instances can be used to run web-servers with different settings.
 
-Server configuration
---------------------
+## Server configuration
 
 Server (and its applications) setting is made using config-files.
 Examples of settings are located in the folder [samples](samples/).
 
-License
-=======
+# License
 
 The source codes are licensed under the
 [AGPL](http://www.gnu.org/licenses/agpl.html),

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "Server.h"
+#include "server/Server.h"
 
-bool bindSignalHandlers(HttpServer::Server *server);
+bool bindSignalHandlers(HttpServer::Server *server) noexcept;
 
-void stopSignalHandlers();
+void stopSignalHandlers() noexcept;
