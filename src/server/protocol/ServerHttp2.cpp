@@ -3,6 +3,8 @@
 #include "../../utils/Utils.h"
 #include "../../transfer/http2/HPack.h"
 
+#include <array>
+
 namespace HttpServer
 {
 	ServerHttp2::ServerHttp2(Socket::Adapter &sock, const ServerSettings &settings, ServerControls &controls, SocketsQueue &sockets) noexcept

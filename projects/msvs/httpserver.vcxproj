@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -19,57 +19,82 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\ConfigParser.cpp" />
-    <ClCompile Include="..\..\src\DataVariantFormUrlencoded.cpp" />
-    <ClCompile Include="..\..\src\DataVariantMultipartFormData.cpp" />
-    <ClCompile Include="..\..\src\DataVariantTextPlain.cpp" />
-    <ClCompile Include="..\..\src\Event.cpp" />
-    <ClCompile Include="..\..\src\FileIncoming.cpp" />
-    <ClCompile Include="..\..\src\GlobalMutex.cpp" />
     <ClCompile Include="..\..\src\Main.cpp" />
-    <ClCompile Include="..\..\src\Module.cpp" />
-    <ClCompile Include="..\..\src\RequestParameters.cpp" />
-    <ClCompile Include="..\..\src\Server.cpp" />
-    <ClCompile Include="..\..\src\ServerApplicationsTree.cpp" />
-    <ClCompile Include="..\..\src\SharedMemory.cpp" />
+    <ClCompile Include="..\..\src\server\config\ConfigParser.cpp" />
+    <ClCompile Include="..\..\src\server\data-variant\Abstract.cpp" />
+    <ClCompile Include="..\..\src\server\data-variant\FormUrlencoded.cpp" />
+    <ClCompile Include="..\..\src\server\data-variant\MultipartFormData.cpp" />
+    <ClCompile Include="..\..\src\server\data-variant\TextPlain.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\extensions\Sendfile.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\ServerHttp1.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\ServerHttp2.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\ServerHttp2Protocol.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\ServerHttp2Stream.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\ServerProtocol.cpp" />
+    <ClCompile Include="..\..\src\server\protocol\ServerWebSocket.cpp" />
+    <ClCompile Include="..\..\src\server\Request.cpp" />
+    <ClCompile Include="..\..\src\server\Server.cpp" />
+    <ClCompile Include="..\..\src\server\ServerApplicationsTree.cpp" />
+    <ClCompile Include="..\..\src\server\ServerControls.cpp" />
+    <ClCompile Include="..\..\src\server\ServerSettings.cpp" />
     <ClCompile Include="..\..\src\SignalHandlers.cpp" />
-    <ClCompile Include="..\..\src\Socket.cpp" />
-    <ClCompile Include="..\..\src\SocketAdapter.cpp" />
-    <ClCompile Include="..\..\src\SocketAdapterDefault.cpp" />
-    <ClCompile Include="..\..\src\SocketAdapterTls.cpp" />
-    <ClCompile Include="..\..\src\SocketList.cpp" />
-    <ClCompile Include="..\..\src\System.cpp" />
-    <ClCompile Include="..\..\src\Utils.cpp" />
+    <ClCompile Include="..\..\src\socket\Adapter.cpp" />
+    <ClCompile Include="..\..\src\socket\AdapterDefault.cpp" />
+    <ClCompile Include="..\..\src\socket\AdapterTls.cpp" />
+    <ClCompile Include="..\..\src\socket\List.cpp" />
+    <ClCompile Include="..\..\src\socket\Socket.cpp" />
+    <ClCompile Include="..\..\src\system\GlobalMutex.cpp" />
+    <ClCompile Include="..\..\src\system\Module.cpp" />
+    <ClCompile Include="..\..\src\system\SharedMemory.cpp" />
+    <ClCompile Include="..\..\src\system\System.cpp" />
+    <ClCompile Include="..\..\src\transfer\FileIncoming.cpp" />
+    <ClCompile Include="..\..\src\transfer\http2\HPack.cpp" />
+    <ClCompile Include="..\..\src\transfer\http2\Http2.cpp" />
+    <ClCompile Include="..\..\src\utils\Event.cpp" />
+    <ClCompile Include="..\..\src\utils\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\ConfigParser.h" />
-    <ClInclude Include="..\..\src\DataVariantAbstract.h" />
-    <ClInclude Include="..\..\src\DataVariantFormUrlencoded.h" />
-    <ClInclude Include="..\..\src\DataVariantMultipartFormData.h" />
-    <ClInclude Include="..\..\src\DataVariantTextPlain.h" />
-    <ClInclude Include="..\..\src\Event.h" />
-    <ClInclude Include="..\..\src\FileIncoming.h" />
-    <ClInclude Include="..\..\src\GlobalMutex.h" />
     <ClInclude Include="..\..\src\Main.h" />
-    <ClInclude Include="..\..\src\Module.h" />
-    <ClInclude Include="..\..\src\RawData.h" />
-    <ClInclude Include="..\..\src\RequestParameters.h" />
-    <ClInclude Include="..\..\src\Server.h" />
-    <ClInclude Include="..\..\src\ServerApplicationDefaultSettings.h" />
-    <ClInclude Include="..\..\src\ServerApplicationSettings.h" />
-    <ClInclude Include="..\..\src\ServerApplicationsTree.h" />
-    <ClInclude Include="..\..\src\ServerRequest.h" />
-    <ClInclude Include="..\..\src\ServerResponse.h" />
-    <ClInclude Include="..\..\src\ServerStructuresArguments.h" />
-    <ClInclude Include="..\..\src\SharedMemory.h" />
+    <ClInclude Include="..\..\src\server\config\ConfigParser.h" />
+    <ClInclude Include="..\..\src\server\data-variant\Abstract.h" />
+    <ClInclude Include="..\..\src\server\data-variant\FormUrlencoded.h" />
+    <ClInclude Include="..\..\src\server\data-variant\MultipartFormData.h" />
+    <ClInclude Include="..\..\src\server\data-variant\TextPlain.h" />
+    <ClInclude Include="..\..\src\server\protocol\extensions\Sendfile.h" />
+    <ClInclude Include="..\..\src\server\protocol\ServerHttp1.h" />
+    <ClInclude Include="..\..\src\server\protocol\ServerHttp2.h" />
+    <ClInclude Include="..\..\src\server\protocol\ServerHttp2Protocol.h" />
+    <ClInclude Include="..\..\src\server\protocol\ServerHttp2Stream.h" />
+    <ClInclude Include="..\..\src\server\protocol\ServerProtocol.h" />
+    <ClInclude Include="..\..\src\server\protocol\ServerWebSocket.h" />
+    <ClInclude Include="..\..\src\server\Request.h" />
+    <ClInclude Include="..\..\src\server\Server.h" />
+    <ClInclude Include="..\..\src\server\ServerApplicationSettings.h" />
+    <ClInclude Include="..\..\src\server\ServerApplicationsTree.h" />
+    <ClInclude Include="..\..\src\server\ServerControls.h" />
+    <ClInclude Include="..\..\src\server\ServerSettings.h" />
+    <ClInclude Include="..\..\src\server\ServerStructuresArguments.h" />
+    <ClInclude Include="..\..\src\server\SocketsQueue.h" />
     <ClInclude Include="..\..\src\SignalHandlers.h" />
-    <ClInclude Include="..\..\src\Socket.h" />
-    <ClInclude Include="..\..\src\SocketAdapter.h" />
-    <ClInclude Include="..\..\src\SocketAdapterDefault.h" />
-    <ClInclude Include="..\..\src\SocketAdapterTls.h" />
-    <ClInclude Include="..\..\src\SocketList.h" />
-    <ClInclude Include="..\..\src\System.h" />
-    <ClInclude Include="..\..\src\Utils.h" />
+    <ClInclude Include="..\..\src\socket\Adapter.h" />
+    <ClInclude Include="..\..\src\socket\AdapterDefault.h" />
+    <ClInclude Include="..\..\src\socket\AdapterTls.h" />
+    <ClInclude Include="..\..\src\socket\List.h" />
+    <ClInclude Include="..\..\src\socket\Socket.h" />
+    <ClInclude Include="..\..\src\system\Cache.h" />
+    <ClInclude Include="..\..\src\system\GlobalMutex.h" />
+    <ClInclude Include="..\..\src\system\Module.h" />
+    <ClInclude Include="..\..\src\system\SharedMemory.h" />
+    <ClInclude Include="..\..\src\system\System.h" />
+    <ClInclude Include="..\..\src\transfer\AppRequest.h" />
+    <ClInclude Include="..\..\src\transfer\AppResponse.h" />
+    <ClInclude Include="..\..\src\transfer\FileIncoming.h" />
+    <ClInclude Include="..\..\src\transfer\http2\HPack.h" />
+    <ClInclude Include="..\..\src\transfer\http2\Http2.h" />
+    <ClInclude Include="..\..\src\transfer\HttpStatusCode.h" />
+    <ClInclude Include="..\..\src\transfer\ProtocolVariant.h" />
+    <ClInclude Include="..\..\src\utils\Event.h" />
+    <ClInclude Include="..\..\src\utils\Utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A7023B84-DA18-3E3E-A9AE-B87F45CAC37F}</ProjectGuid>
@@ -84,7 +109,7 @@
     <CharacterSet>MultiByte</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>release\</IntermediateDirectory>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -93,7 +118,7 @@
     <CharacterSet>MultiByte</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>release\</IntermediateDirectory>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -102,7 +127,7 @@
     <CharacterSet>MultiByte</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>debug\</IntermediateDirectory>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <OutputDirectory>debug\</OutputDirectory>
@@ -110,7 +135,7 @@
     <CharacterSet>MultiByte</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>debug\</IntermediateDirectory>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />

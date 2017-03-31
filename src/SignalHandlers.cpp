@@ -123,7 +123,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 	return 0;
 }
 
-static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, HttpServer::Event * const eventWindowCreation) noexcept
+static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, Utils::Event * const eventWindowCreation) noexcept
 {
 	const ::HWND hWnd = ::CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -202,7 +202,7 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 		return false;
 	}
 
-	HttpServer::Event eventWindowCreation;
+	Utils::Event eventWindowCreation;
 
 	gMainThreadId = ::GetCurrentThreadId();
 	gThreadMessageLoop = std::thread(mainMessageLoop, hInstance, &eventWindowCreation);

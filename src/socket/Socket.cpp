@@ -270,7 +270,7 @@ namespace Socket
 	long Socket::recv(void *buf, const size_t length) const noexcept
 	{
 	#ifdef WIN32
-		return ::recv(this->socket_handle, buf, static_cast<const int>(length), 0);
+		return ::recv(this->socket_handle, reinterpret_cast<char *>(buf), static_cast<const int>(length), 0);
 	#elif POSIX
 		return ::recv(this->socket_handle, buf, length, 0);
 	#else
@@ -295,7 +295,7 @@ namespace Socket
 
 		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM)
 		{
-			recv_len = this->recv(this->socket_handle, buf, static_cast<const int>(length), 0);
+			recv_len = ::recv(this->socket_handle, reinterpret_cast<char *>(buf), static_cast<const int>(length), 0);
 		}
 	#elif POSIX
 		struct ::pollfd event = {

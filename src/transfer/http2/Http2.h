@@ -9,7 +9,11 @@
 #include <unordered_map>
 #include <cstddef>
 
-#include <arpa/inet.h>
+#ifdef WIN32
+	#undef NO_ERROR
+#elif POSIX
+	#include <arpa/inet.h>
+#endif
 
 namespace Http2
 {
