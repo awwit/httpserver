@@ -173,6 +173,9 @@ namespace Http2
 
 		uint8_t *setHttp2FrameHeader(uint8_t *addr, const uint32_t frameSize, const Http2::FrameType frameType, const Http2::FrameFlag frameFlags) noexcept;
 
+		void lock();
+		void unlock() noexcept;
+
 		void close() noexcept;
 	};
 
@@ -186,10 +189,15 @@ namespace Http2
 
 		DynamicTable dynamic_table;
 
+		std::mutex *mtx;
+
 	public:
-		OutStream(const uint32_t streamId, const ConnectionSettings &settings, DynamicTable &&dynamic_table) noexcept;
-		OutStream(const IncStream &stream) noexcept;
+		OutStream(const uint32_t streamId, const ConnectionSettings &settings, DynamicTable &&dynamic_table, std::mutex *mtx) noexcept;
+		OutStream(const IncStream &stream);
 
 		uint8_t *setHttp2FrameHeader(uint8_t *addr, const uint32_t frameSize, const Http2::FrameType frameType, const Http2::FrameFlag frameFlags) noexcept;
+
+		void lock();
+		void unlock() noexcept;
 	};
 };

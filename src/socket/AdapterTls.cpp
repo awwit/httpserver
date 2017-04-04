@@ -63,25 +63,36 @@ namespace Socket
 
 	long AdapterTls::nonblock_send_all(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
 	{
-		size_t record_size = ::gnutls_record_get_max_size(this->session);
+	//	size_t record_size = ::gnutls_record_get_max_size(this->session);
+		size_t record_size = length;
 
 		if (0 == record_size)
 		{
 			return -1;
 		}
 
+		Socket sock(this->get_handle() );
+
+	//	::gnutls_record_set_timeout(this->session, static_cast<unsigned int>(timeout.count() ) );
+
 		size_t total = 0;
 
 		while (total < length)
 		{
-			::gnutls_record_set_timeout(this->session, static_cast<unsigned int>(timeout.count() ) );
-
 			if (record_size > length - total)
 			{
 				record_size = length - total;
 			}
 
-			const long send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size);
+		//	const long send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size);
+
+			long send_size = 0;
+
+			do
+			{
+				sock.nonblock_send_sync();
+			}
+			while (GNUTLS_E_AGAIN == (send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size) ) );
 
 			if (send_size < 0)
 			{
@@ -111,7 +122,11 @@ namespace Socket
 
 	long AdapterTls::nonblock_recv(void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
 	{
-		::gnutls_record_set_timeout(this->session, static_cast<const unsigned int>(timeout.count() ) );
+	//	::gnutls_record_set_timeout(this->session, static_cast<const unsigned int>(timeout.count() ) );
+
+		Socket sock(this->get_handle() );
+		sock.nonblock_recv_sync();
+
 		return ::gnutls_record_recv(this->session, buf, length);
 	}
 

@@ -144,6 +144,16 @@ namespace Http2
 		return (addr + Http2::FRAME_HEADER_SIZE);
 	}
 
+	void IncStream::lock()
+	{
+		this->conn.sync.mtx.lock();
+	}
+
+	void IncStream::unlock() noexcept
+	{
+		this->conn.sync.mtx.unlock();
+	}
+
 	void IncStream::close() noexcept
 	{
 		this->incoming_headers.clear();
@@ -157,15 +167,15 @@ namespace Http2
 	//	this->state = StreamState::CLOSED;
 	}
 
-	OutStream::OutStream(const uint32_t streamId, const ConnectionSettings &settings, DynamicTable &&dynamic_table) noexcept
-		: stream_id(streamId), settings(settings), window_size_out(settings.initial_window_size), dynamic_table(std::move(dynamic_table) )
+	OutStream::OutStream(const uint32_t streamId, const ConnectionSettings &settings, DynamicTable &&dynamic_table, std::mutex *mtx) noexcept
+		: stream_id(streamId), settings(settings), window_size_out(settings.initial_window_size), dynamic_table(std::move(dynamic_table) ), mtx(mtx)
 	{
 
 	}
 
-	OutStream::OutStream(const IncStream &stream) noexcept
+	OutStream::OutStream(const IncStream &stream)
 		: stream_id(stream.stream_id), settings(stream.conn.client_settings),
-		  window_size_out(stream.window_size_out), dynamic_table(stream.conn.encoding_dynamic_table)
+		  window_size_out(stream.window_size_out), dynamic_table(stream.conn.encoding_dynamic_table), mtx(&stream.conn.sync.mtx)
 	{
 
 	}
@@ -178,5 +188,15 @@ namespace Http2
 		*reinterpret_cast<uint32_t *>(addr + 5) = ::htonl(this->stream_id);
 
 		return (addr + Http2::FRAME_HEADER_SIZE);
+	}
+
+	void OutStream::lock()
+	{
+		this->mtx->lock();
+	}
+
+	void OutStream::unlock() noexcept
+	{
+		this->mtx->unlock();
 	}
 };

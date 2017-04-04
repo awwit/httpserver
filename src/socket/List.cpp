@@ -265,7 +265,7 @@ namespace Socket
 
 					do
 					{
-						struct ::sockaddr_in client_addr = {};
+						::sockaddr_in client_addr {};
 						socklen_t client_addr_len = sizeof(client_addr);
 
 						client_socket = ::accept(event.fd, reinterpret_cast<::sockaddr *>(&client_addr), &client_addr_len);
@@ -299,7 +299,7 @@ namespace Socket
 
 					do
 					{
-						struct ::sockaddr_in client_addr = {};
+						::sockaddr_in client_addr {};
 						socklen_t client_addr_len = sizeof(client_addr);
 
 						client_socket = ::accept(event.data.fd, reinterpret_cast<::sockaddr *>(&client_addr), &client_addr_len);

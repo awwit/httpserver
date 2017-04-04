@@ -38,12 +38,11 @@ namespace HttpServer
 
 		std::vector<char> buf;
 		buf.reserve(4096);
+		buf.resize(Http2::FRAME_HEADER_SIZE);
 
 		HPack::pack(buf, headers, this->stream->conn.encoding_dynamic_table);
 
-		const uint32_t frame_size = buf.size();
-
-		buf.insert(buf.begin(), Http2::FRAME_HEADER_SIZE, 0);
+		const uint32_t frame_size = buf.size() - Http2::FRAME_HEADER_SIZE;
 
 		Http2::FrameFlag flags = Http2::FrameFlag::END_HEADERS;
 
@@ -54,7 +53,16 @@ namespace HttpServer
 
 		this->stream->setHttp2FrameHeader(reinterpret_cast<uint8_t *>(buf.data() ), frame_size, Http2::FrameType::HEADERS, flags);
 
-		return this->sock.nonblock_send(buf.data(), buf.size(), timeout) > 0; // >= 0
+		this->stream->lock();
+
+		auto const is_sended = this->sock.nonblock_send(buf.data(), buf.size(), timeout) > 0; // >= 0;
+
+		if (endStream || false == is_sended)
+		{
+			this->stream->unlock();
+		}
+
+		return is_sended;
 	}
 
 	long ServerHttp2Protocol::sendData(const void *src, size_t size, const std::chrono::milliseconds &timeout, DataTransfer *dt) const
@@ -70,8 +78,6 @@ namespace HttpServer
 
 		while (size != 0)
 		{
-			buf.resize(0);
-
 			// TODO: test with data_size == 1 (padding length == 0)
 			size_t data_size = setting.max_frame_size < size ? setting.max_frame_size : size;
 
@@ -87,6 +93,8 @@ namespace HttpServer
 			}
 
 			const size_t frame_size = data_size + padding_size;
+
+			buf.resize(frame_size + Http2::FRAME_HEADER_SIZE);
 
 		/*	if (this->stream->window_size_out - frame_size <= 0)
 			{
@@ -109,30 +117,33 @@ namespace HttpServer
 				flags |= Http2::FrameFlag::END_STREAM;
 			}
 
+			size_t cur = Http2::FRAME_HEADER_SIZE;
+
 			if (padding_size)
 			{
 				flags |= Http2::FrameFlag::PADDED;
 
-				buf.insert(buf.begin(), sizeof(uint8_t), padding);
-			}
+				buf[cur] = padding;
 
-			buf.insert(buf.begin(), Http2::FRAME_HEADER_SIZE, 0);
+				++cur;
+			}
 
 			const Http2::FrameType frame_type = Http2::FrameType::DATA;
 
 			this->stream->setHttp2FrameHeader(buf.data(), frame_size, frame_type, flags);
 
-			std::copy(data, data + data_size, std::back_inserter(buf) );
+			std::copy(data, data + data_size, buf.begin() + cur);
 
 			if (padding)
 			{
-				buf.insert(buf.end(), padding, 0);
+				std::fill(buf.end() - padding, buf.end(), 0);
 			}
 
 			long sended = this->sock.nonblock_send(buf.data(), buf.size(), timeout);
 
 			if (sended <= 0)
 			{
+				send_size = sended;
 				break;
 			}
 
@@ -142,6 +153,11 @@ namespace HttpServer
 		//	stream->window_size_out -= frame_size;
 
 			size -= data_size;
+		}
+
+		if (0 >= send_size || dt->full_size == dt->send_total)
+		{
+			this->stream->unlock();
 		}
 
 		return send_size;
@@ -163,6 +179,7 @@ namespace HttpServer
 		Utils::packNumber(buf, this->stream->conn.client_settings.max_frame_size);
 		Utils::packNumber(buf, this->stream->conn.client_settings.max_header_list_size);
 		Utils::packContainer(buf, this->stream->conn.encoding_dynamic_table.getList() );
+		Utils::packPointer(buf, &this->stream->conn.sync.mtx);
 		Utils::packContainer(buf, req.incoming_headers);
 		Utils::packContainer(buf, req.incoming_data);
 		Utils::packFilesIncoming(buf, req.incoming_files);

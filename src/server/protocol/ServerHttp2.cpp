@@ -478,16 +478,16 @@ namespace HttpServer
 
 	static bool getNextHttp2FrameMeta(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, std::vector<char> &buf, Http2::FrameMeta &meta, long &read_size)
 	{
-		if (read_size <= meta.length + Http2::FRAME_HEADER_SIZE)
+		if (read_size <= static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) )
 		{
-			if (read_size == meta.length + Http2::FRAME_HEADER_SIZE)
+			if (read_size == static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) )
 			{
 				read_size = 0;
 			}
 
 			read_size = sock.nonblock_recv(buf.data() + read_size, buf.size() - read_size, timeout);
 
-			if (read_size < Http2::FRAME_HEADER_SIZE)
+			if (read_size < static_cast<long>(Http2::FRAME_HEADER_SIZE) )
 			{
 				return false;
 			}
@@ -496,7 +496,7 @@ namespace HttpServer
 		{
 			std::copy(buf.cbegin() + meta.length + Http2::FRAME_HEADER_SIZE, buf.cbegin() + read_size, buf.begin() );
 
-			read_size -= meta.length + Http2::FRAME_HEADER_SIZE;
+			read_size -= static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE);
 		}
 
 		const uint8_t *addr = reinterpret_cast<const uint8_t *>(buf.data() );

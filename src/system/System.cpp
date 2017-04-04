@@ -228,7 +228,7 @@ namespace System
 
 		::FileTimeToSystemTime(&ftWrite, &stUtc);
 
-		struct ::tm tm_time {
+		std::tm tm_time {
 			stUtc.wSecond,
 			stUtc.wMinute,
 			stUtc.wHour,
@@ -240,11 +240,11 @@ namespace System
             -1
 		};
 
-		*fileTime = ::mktime(&tm_time);
+		*fileTime = std::mktime(&tm_time);
 
 		return true;
 	#elif POSIX
-		struct ::stat attrib;
+		struct ::stat attrib {};
 
 		if (-1 == ::stat(filePath.c_str(), &attrib) )
 		{
@@ -253,11 +253,11 @@ namespace System
 
 		*fileSize = attrib.st_size;
 
-		struct ::tm clock = {};
+		std::tm clock {};
 		
 		::gmtime_r(&(attrib.st_mtime), &clock);
 
-		*fileTime = ::mktime(&clock);
+		*fileTime = std::mktime(&clock);
 
 		return true;
 	#else
@@ -284,7 +284,7 @@ namespace System
 			memory_name.erase(memory_name.begin() + pos, memory_name.end() );
 		}
 
-		::TCHAR buf[MAX_PATH + 1] = {};
+		::TCHAR buf[MAX_PATH + 1] {};
 		::GetFullPathName(memory_name.c_str(), MAX_PATH, buf, nullptr);
 
 	#ifdef UNICODE

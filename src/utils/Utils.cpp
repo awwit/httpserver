@@ -283,6 +283,13 @@ namespace Utils
 		return getPackNumberSize(str.length() ) + str.length();
 	}
 
+	uint8_t *packPointer(uint8_t *dest, void *pointer) noexcept
+	{
+		*reinterpret_cast<void **>(dest) = pointer;
+
+		return dest + sizeof(void *);
+	}
+
 	uint8_t *packNumber(uint8_t *dest, const size_t number) noexcept
 	{
 		if (number <= 252)
@@ -334,6 +341,13 @@ namespace Utils
 		return dest + str.length();
 	}
 
+	void packPointer(std::vector<char> &buf, void *pointer)
+	{
+		buf.resize(buf.size() + sizeof(void *) );
+		uint8_t *dest = reinterpret_cast<uint8_t *>(buf.data() + buf.size() - sizeof(void *) );
+		*reinterpret_cast<void **>(dest) = pointer;
+	}
+
 	void packNumber(std::vector<char> &buf, const size_t number)
 	{
 		if (number <= 252)
@@ -374,6 +388,13 @@ namespace Utils
 		{
 			std::copy(str.cbegin(), str.cend(), std::back_inserter(buf) );
 		}
+	}
+
+	const uint8_t *unpackPointer(void **pointer, const uint8_t *src) noexcept
+	{
+		*pointer = *reinterpret_cast<void **>(const_cast<void *>(static_cast<const void *>(src) ) );
+
+		return src + sizeof(void *);
 	}
 
 	const uint8_t *unpackNumber(size_t *number, const uint8_t *src) noexcept
@@ -437,7 +458,7 @@ namespace Utils
 	 */
 	time_t rfc822DatetimeToTimestamp(const std::string &strTime)
 	{
-		std::tm tc = {};
+		std::tm tc {};
 
 		// Parse RFC 882 (ddd, dd MMM yyyy HH:mm:ss K)
 
@@ -585,13 +606,13 @@ namespace Utils
 	static time_t localToGmt(const time_t timestamp)
 	{
 	#ifdef WIN32
-		std::tm stm = {};
+		std::tm stm {};
 
 		::gmtime_s(&stm, &timestamp);
 
 		return std::mktime(&stm);
 	#else
-		std::tm stm = {};
+		std::tm stm {};
 
 		::gmtime_r(&timestamp, &stm);
 
@@ -604,7 +625,7 @@ namespace Utils
 	 */
 	time_t predefinedDatetimeToTimestamp(const char *strTime)
 	{
-		std::tm tc = {};
+		std::tm tc {};
 
 		const char *ptrStr = std::strchr(strTime, ' ');
 
@@ -627,6 +648,12 @@ namespace Utils
 		}
 
 		++ptrStr;
+
+		// Fix for MS __DATE__
+		if (' ' == *ptrStr)
+		{
+			++ptrStr;
+		}
 
 		strTime = std::strchr(ptrStr, ' ');
 
@@ -690,7 +717,7 @@ namespace Utils
 		}
 
 	#ifdef WIN32
-		std::tm stm = {};
+		std::tm stm {};
 
 		isGmtTime ?
 			::localtime_s(&stm, &tTime) :
@@ -699,7 +726,7 @@ namespace Utils
 		// RFC 822
 		auto const len = std::strftime(buf.data(), buf.size(), "%a, %d %b %Y %H:%M:%S GMT", &stm);
 	#else
-		std::tm stm = {};
+		std::tm stm {};
 
 		isGmtTime ?
 			::localtime_r(&tTime, &stm) :

@@ -314,6 +314,29 @@ namespace Socket
 		return recv_len;
 	}
 
+	void Socket::nonblock_recv_sync() const noexcept
+	{
+	#ifdef WIN32
+		WSAPOLLFD event = {
+			this->socket_handle,
+			POLLRDNORM | POLLRDBAND,
+			0
+		};
+
+		::WSAPoll(&event, 1, ~0);
+	#elif POSIX
+		struct ::pollfd event = {
+			this->socket_handle,
+			POLLIN,
+			0
+		};
+
+		::poll(&event, 1, ~0);
+	#else
+		#error "Undefine platform"
+	#endif
+	}
+
 	static long send_all(const System::native_socket_type socket_handle, const void *data, const size_t length) noexcept
 	{
 		size_t total = 0;
