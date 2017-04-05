@@ -53,16 +53,9 @@ namespace HttpServer
 
 		this->stream->setHttp2FrameHeader(reinterpret_cast<uint8_t *>(buf.data() ), frame_size, Http2::FrameType::HEADERS, flags);
 
-		this->stream->lock();
+		const std::unique_lock<std::mutex> lock(this->stream->conn.sync.mtx);
 
-		auto const is_sended = this->sock.nonblock_send(buf.data(), buf.size(), timeout) > 0; // >= 0;
-
-		if (endStream || false == is_sended)
-		{
-			this->stream->unlock();
-		}
-
-		return is_sended;
+		return this->sock.nonblock_send(buf.data(), buf.size(), timeout) > 0; // >= 0;
 	}
 
 	long ServerHttp2Protocol::sendData(const void *src, size_t size, const std::chrono::milliseconds &timeout, DataTransfer *dt) const
@@ -128,9 +121,7 @@ namespace HttpServer
 				++cur;
 			}
 
-			const Http2::FrameType frame_type = Http2::FrameType::DATA;
-
-			this->stream->setHttp2FrameHeader(buf.data(), frame_size, frame_type, flags);
+			this->stream->setHttp2FrameHeader(buf.data(), frame_size, Http2::FrameType::DATA, flags);
 
 			std::copy(data, data + data_size, buf.begin() + cur);
 
@@ -139,7 +130,11 @@ namespace HttpServer
 				std::fill(buf.end() - padding, buf.end(), 0);
 			}
 
-			long sended = this->sock.nonblock_send(buf.data(), buf.size(), timeout);
+			this->stream->lock();
+
+			const long sended = this->sock.nonblock_send(buf.data(), buf.size(), timeout);
+
+			this->stream->unlock();
 
 			if (sended <= 0)
 			{
@@ -153,11 +148,6 @@ namespace HttpServer
 		//	stream->window_size_out -= frame_size;
 
 			size -= data_size;
-		}
-
-		if (0 >= send_size || dt->full_size == dt->send_total)
-		{
-			this->stream->unlock();
 		}
 
 		return send_size;
@@ -192,4 +182,3 @@ namespace HttpServer
 		Utils::unpackContainer(req.outgoing_headers, reinterpret_cast<const uint8_t *>(src) );
 	}
 };
-

@@ -40,7 +40,7 @@ namespace HttpServer
 		return streams.emplace(streamId, Http2::IncStream(streamId, conn) ).first->second;
 	}
 
-	static void sendWindowUpdate(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::IncStream &stream, const uint32_t size) noexcept
+	static void sendWindowUpdate(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, const Http2::IncStream &stream, const uint32_t size) noexcept
 	{
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + sizeof(uint32_t)> buf;
 		uint8_t *addr = buf.data();
@@ -48,6 +48,8 @@ namespace HttpServer
 		addr = setHttp2FrameHeader(addr, sizeof(uint32_t), Http2::FrameType::WINDOW_UPDATE, Http2::FrameFlag::EMPTY, stream.stream_id);
 
 		*reinterpret_cast<uint32_t *>(addr) = ::htonl(size);
+
+		const std::unique_lock<std::mutex> lock(stream.conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
@@ -305,18 +307,22 @@ namespace HttpServer
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static void ping(const Socket::Adapter &sock, const struct Request &req, const uint64_t pingData)
+	static void ping(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const uint64_t pingData)
 	{
 		constexpr uint32_t frame_size = sizeof(uint64_t);
 
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
 		uint8_t *addr = buf.data();
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::PING, Http2::FrameFlag::ACK, 0);
+		constexpr uint32_t stream_id = 0;
+
+		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::PING, Http2::FrameFlag::ACK, stream_id);
 
 		*reinterpret_cast<uint64_t *>(addr) = pingData;
 
-		sock.nonblock_send(buf.data(), buf.size(), req.timeout);
+		const std::unique_lock<std::mutex> lock(conn.sync.mtx);
+
+		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
 	static Http2::ErrorCode parseHttp2Ping(Http2::FrameMeta &meta)
@@ -374,21 +380,23 @@ namespace HttpServer
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static void rstStream(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, const uint32_t streamId, const Http2::ErrorCode errorCode)
+	static void rstStream(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::IncStream &stream, const Http2::ErrorCode errorCode)
 	{
 		constexpr uint32_t frame_size = sizeof(uint32_t);
 
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
 		uint8_t *addr = buf.data();
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::RST_STREAM, Http2::FrameFlag::EMPTY, streamId);
+		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::RST_STREAM, Http2::FrameFlag::EMPTY, stream.stream_id);
 
 		*reinterpret_cast<uint32_t *>(addr) = ::htonl(static_cast<const uint32_t>(errorCode) );
+
+		const std::unique_lock<std::mutex> lock(stream.conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static void sendSettings(const Socket::Adapter &sock, const struct Request &req, const uint8_t *src, const uint8_t *end)
+	static void sendSettings(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const uint8_t *src, const uint8_t *end)
 	{
 		const uint32_t frame_size = end - src;
 
@@ -402,10 +410,12 @@ namespace HttpServer
 
 		std::copy(src, end, addr);
 
-		sock.nonblock_send(buf.data(), buf.size(), req.timeout);
+		const std::unique_lock<std::mutex> lock(conn.sync.mtx);
+
+		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static void goAway(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, const uint32_t lastStreamId, const Http2::ErrorCode errorCode)
+	static void goAway(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const uint32_t lastStreamId, const Http2::ErrorCode errorCode)
 	{
 		constexpr uint32_t frame_size = sizeof(uint32_t) * 2;
 
@@ -417,6 +427,8 @@ namespace HttpServer
 
 		*reinterpret_cast<uint32_t *>(addr) = ::htonl(static_cast<const uint32_t>(lastStreamId) );
 		*reinterpret_cast<uint32_t *>(addr + sizeof(uint32_t) ) = ::htonl(static_cast<const uint32_t>(errorCode) );
+
+		const std::unique_lock<std::mutex> lock(conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
@@ -446,7 +458,7 @@ namespace HttpServer
 		return 0 == compare;
 	}
 
-	static void sendEmptySettings(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, const Http2::FrameFlag flags)
+	static void sendEmptySettings(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const Http2::FrameFlag flags)
 	{
 		constexpr uint32_t frame_size = 0;
 
@@ -457,21 +469,7 @@ namespace HttpServer
 
 		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::SETTINGS, flags, stream_id);
 
-		sock.nonblock_send(buf.data(), buf.size(), timeout);
-	}
-
-	static void windowUpdate(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout)
-	{
-		constexpr uint32_t frame_size = 4;
-
-		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
-		uint8_t *addr = buf.data();
-
-		constexpr uint32_t stream_id = 0;
-
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::WINDOW_UPDATE, Http2::FrameFlag::EMPTY, stream_id);
-
-		*reinterpret_cast<uint32_t *>(addr) = ::htonl(static_cast<const uint32_t>(1 << 16) - 1);
+		const std::unique_lock<std::mutex> lock(conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
@@ -512,21 +510,21 @@ namespace HttpServer
 	ServerProtocol *ServerHttp2::process()
 	{
 		struct Request req;
-		req.timeout = std::chrono::milliseconds(5000);
+		req.timeout = std::chrono::milliseconds(15000);
 		req.protocol_variant = Transfer::ProtocolVariant::HTTP_2;
 
-		sendEmptySettings(this->sock, req.timeout, Http2::FrameFlag::EMPTY);
+		Http2::ConnectionData conn;
+
+		sendEmptySettings(this->sock, req.timeout, conn, Http2::FrameFlag::EMPTY);
 
 		if (false == getClientPreface(this->sock, req.timeout) )
 		{
 			constexpr uint32_t last_stream_id = 0;
 
-			goAway(this->sock, req.timeout, last_stream_id, Http2::ErrorCode::PROTOCOL_ERROR);
+			goAway(this->sock, req.timeout, conn, last_stream_id, Http2::ErrorCode::PROTOCOL_ERROR);
 
 			return this;
 		}
-
-		Http2::ConnectionData conn;
 
 		conn.client_settings = Http2::ConnectionSettings::defaultSettings();
 		conn.server_settings = Http2::ConnectionSettings::defaultSettings();
@@ -565,7 +563,7 @@ namespace HttpServer
 
 			if (Http2::StreamState::CLOSED == stream.state)
 			{
-				rstStream(this->sock, req.timeout, stream.stream_id, Http2::ErrorCode::STREAM_CLOSED);
+				rstStream(this->sock, req.timeout, stream, Http2::ErrorCode::STREAM_CLOSED);
 
 				continue;
 			}
@@ -646,7 +644,7 @@ namespace HttpServer
 					conn.decoding_dynamic_table.changeHeaderTableSize(conn.client_settings.header_table_size);
 					conn.decoding_dynamic_table.changeMaxHeaderListSize(conn.client_settings.max_header_list_size);
 
-					sendEmptySettings(this->sock, req.timeout, Http2::FrameFlag::ACK);
+					sendEmptySettings(this->sock, req.timeout, conn, Http2::FrameFlag::ACK);
 				}
 
 				break;
@@ -664,7 +662,7 @@ namespace HttpServer
 				{
 					const uint64_t ping_data = *reinterpret_cast<const uint64_t *>(addr);
 
-					ping(this->sock, req, ping_data);
+					ping(this->sock, req.timeout, conn, ping_data);
 				}
 
 				break;
@@ -687,7 +685,7 @@ namespace HttpServer
 			{
 				stream.state = Http2::StreamState::CLOSED;
 
-				rstStream(this->sock, req.timeout, meta.stream_id, result);
+				rstStream(this->sock, req.timeout, stream, result);
 
 				// TODO: remove closed stream(s) from unordered map
 			}
@@ -718,7 +716,7 @@ namespace HttpServer
 			conn.sync.event.wait();
 		}
 
-		goAway(this->sock, req.timeout, last_stream_id, Http2::ErrorCode::NO_ERROR);
+		goAway(this->sock, req.timeout, conn, last_stream_id, Http2::ErrorCode::NO_ERROR);
 
 		for (auto &pair : streams)
 		{
