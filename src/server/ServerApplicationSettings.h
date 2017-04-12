@@ -31,7 +31,7 @@ namespace HttpServer
 
 		std::function<int(Transfer::app_request *, Transfer::app_response *)> application_call;
 		std::function<void(void *, size_t)> application_clear;
-		std::function<bool()> application_init;
-		std::function<void()> application_final;
+		std::function<bool(const char *)> application_init;
+		std::function<void(const char *)> application_final;
 	};
 };

@@ -38,12 +38,13 @@ namespace HttpServer
 				{
 					if (app->application_final)
 					{
-						app->application_final();
+						const std::string root = app->root_dir;
+						app->application_final(root.data() );
 					}
 				}
 				catch (std::exception &exc)
 				{
-					std::cout << "Warning: the error of the application's finalize '" << app->server_module << "':" << exc.what() << std::endl;
+					std::cout << "Warning: an exception was thrown when the application '" << app->server_module << "' was finishes: " << exc.what() << std::endl;
 				}
 
 				delete app;

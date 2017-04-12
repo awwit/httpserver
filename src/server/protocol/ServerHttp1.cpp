@@ -54,9 +54,12 @@ namespace HttpServer
 
 	long ServerHttp1::sendData(const void *src, size_t size, const std::chrono::milliseconds &timeout, DataTransfer *dt) const
 	{
-		long send_size = this->sock.nonblock_send(src, size, timeout);
+		const long send_size = this->sock.nonblock_send(src, size, timeout);
 
-		dt->send_total += send_size;
+		if (send_size > 0)
+		{
+			dt->send_total += send_size;
+		}
 
 		return send_size;
 	}

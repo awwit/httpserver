@@ -244,18 +244,33 @@ namespace HttpServer
 
 		std::function<void(void *, size_t)> app_clear = reinterpret_cast<void(*)(void *, size_t)>(addr);
 
-		std::function<bool()> app_init = std::function<bool()>();
+		std::function<bool(const char *)> app_init = std::function<bool(const char *)>();
 
 		if (module.find("application_init", &addr) )
 		{
-			app_init = reinterpret_cast<bool(*)()>(addr);
+			app_init = reinterpret_cast<bool(*)(const char *)>(addr);
 		}
 
-		std::function<void()> app_final = std::function<void()>();
+		std::function<void(const char *)> app_final = std::function<void(const char *)>();
 
 		if (module.find("application_final", &addr) )
 		{
-			app_final = reinterpret_cast<void(*)()>(addr);
+			app_final = reinterpret_cast<void(*)(const char *)>(addr);
+		}
+
+		std::string root_dir = it_root_dir->second;
+
+	#ifdef WIN32
+		if ('\\' == root_dir.back() )
+		{
+			root_dir.pop_back();
+		}
+	#endif
+
+		// Remove back slash from root_dir
+		if ('/' == root_dir.back() )
+		{
+			root_dir.pop_back();
 		}
 
 		bool success = true;
@@ -264,17 +279,21 @@ namespace HttpServer
 		{
 			if (app_init)
 			{
-				success = app_init();
+				const std::string root = root_dir;
+				success = app_init(root.data() );
 			}
 		}
-		catch (...)
+		catch (std::exception &exc)
 		{
+			std::cout << "Warning: an exception was thrown when the application '" << it_module->second << "' was initialized: " << exc.what() << std::endl;
+
 			success = false;
 		}
 
 		if (false == success)
 		{
 			std::cout << "Warning: error when initializing application '" << it_module->second << "';" << std::endl;
+
 			return false;
 		}
 
@@ -306,21 +325,6 @@ namespace HttpServer
 		{
 			module_index = modules.size();
 			modules.emplace_back(std::move(module) );
-		}
-
-		std::string root_dir = it_root_dir->second;
-
-	#ifdef WIN32
-		if ('\\' == root_dir.back() )
-		{
-			root_dir.pop_back();
-		}
-	#endif
-
-		// Remove back slash from root_dir
-		if ('/' == root_dir.back() )
-		{
-			root_dir.pop_back();
 		}
 
 		// Create application settings struct

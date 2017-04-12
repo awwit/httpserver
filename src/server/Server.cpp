@@ -289,18 +289,19 @@ namespace HttpServer
 				{
 					if (app->application_final)
 					{
-						app->application_final();
+						const std::string root = app->root_dir;
+						app->application_final(root.data() );
 					}
 				}
 				catch (std::exception &exc)
 				{
-					std::cout << "Warning: error when the application finishes '" << app->server_module << "':" << exc.what() << std::endl;
+					std::cout << "Warning: an exception was thrown when the application '" << app->server_module << "' was finishes: " << exc.what() << std::endl;
 				}
 
 				app->application_call = std::function<int(Transfer::app_request *, Transfer::app_response *)>();
 				app->application_clear = std::function<void(void *, size_t)>();
-				app->application_init = std::function<bool()>();
-				app->application_final = std::function<void()>();
+				app->application_init = std::function<bool(const char *)>();
+				app->application_final = std::function<void(const char *)>();
 			}
 		}
 
@@ -423,18 +424,18 @@ namespace HttpServer
 
 		std::function<void(void *, size_t)> app_clear = reinterpret_cast<void(*)(void *, size_t)>(addr);
 
-		std::function<bool()> app_init = std::function<bool()>();
+		std::function<bool(const char *)> app_init = std::function<bool(const char *)>();
 
 		if (module.find("application_init", &addr) )
 		{
-			app_init = reinterpret_cast<bool(*)()>(addr);
+			app_init = reinterpret_cast<bool(*)(const char *)>(addr);
 		}
 
-		std::function<void()> app_final = std::function<void()>();
+		std::function<void(const char *)> app_final = std::function<void(const char *)>();
 
 		if (module.find("application_final", &addr) )
 		{
-			app_final = reinterpret_cast<void(*)()>(addr);
+			app_final = reinterpret_cast<void(*)(const char *)>(addr);
 		}
 
 		for (auto &app : same)
@@ -448,12 +449,13 @@ namespace HttpServer
 			{
 				if (app->application_init)
 				{
-					app->application_init();
+					const std::string root = app->root_dir;
+					app->application_init(root.data() );
 				}
 			}
 			catch (std::exception &exc)
 			{
-				std::cout << "Warning: error when initializing the application '" << module_name << "':" << exc.what() << std::endl;
+				std::cout << "Warning: an exception was thrown when the application '" << module_name << "' was initialized: " << exc.what() << std::endl;
 			}
 		}
 
@@ -502,7 +504,7 @@ namespace HttpServer
 			}
 		}
 
-		std::cout << "Notice: applications' modules have been updated;" << std::endl;
+		std::cout << "Notice: application modules have been updated;" << std::endl;
 
 		this->controls.setProcess();
 		this->controls.eventUpdateModule->reset();
@@ -780,7 +782,7 @@ namespace HttpServer
 			sockets_list.addSocket(sock);
 		}
 
-		std::cout << "Log: launch server's cycle;" << std::endl << std::endl;
+		std::cout << "Log: server started work;" << std::endl << std::endl;
 
 		constexpr size_t queue_max_length = 1024;
 		this->controls.eventNotFullQueue = new Utils::Event(true, true);
@@ -855,7 +857,7 @@ namespace HttpServer
 
 		this->clear();
 
-		std::cout << "Log: complete server's cycle;" << std::endl;
+		std::cout << "Log: server work completed;" << std::endl;
 
 		return EXIT_SUCCESS;
 	}
