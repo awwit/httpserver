@@ -39,6 +39,14 @@ Linux:
 ```sh
 git clone https://github.com/awwit/httpserver.git
 cd httpserver
+make
+```
+
+or
+
+```sh
+git clone https://github.com/awwit/httpserver.git
+cd httpserver
 mkdir build
 cd build
 qbs build -f ./../projects/qt-creator/httpserver.qbs release
