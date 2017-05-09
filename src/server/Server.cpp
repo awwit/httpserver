@@ -1009,6 +1009,36 @@ namespace HttpServer
 		return code;
 	}
 
+	static void close_liseners(std::vector<Socket::Socket> &liseners)
+	{
+		for (auto &sock : liseners)
+		{
+			sock.close();
+		}
+	}
+
+	void Server::stop()
+	{
+		this->controls.stopProcess();
+
+		close_liseners(this->liseners);
+	}
+
+	void Server::restart()
+	{
+		this->controls.setRestart();
+		this->controls.stopProcess();
+
+		close_liseners(this->liseners);
+	}
+
+	void Server::update()
+	{
+		this->controls.setUpdateModule();
+		this->controls.setProcess(false);
+		this->controls.setProcessQueue();
+	}
+
 	System::native_processid_type Server::getServerProcessId(const std::string &serverName)
 	{
 		System::native_processid_type pid = 0;

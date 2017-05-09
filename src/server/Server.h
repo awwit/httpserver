@@ -53,6 +53,10 @@ namespace HttpServer
 	public:
 		Server() = default;
 
+		void stop();
+		void restart();
+		void update();
+
 		int command_help(const int argc, const char *argv[]) const;
 		int command_start(const int argc, const char *argv[]);
 		int command_restart(const int argc, const char *argv[]) const;

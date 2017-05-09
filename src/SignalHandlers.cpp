@@ -21,7 +21,7 @@ static void handlerSigTerm(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->controls.stopProcess();
+		globalServerPtr->stop();
 	}
 }
 
@@ -32,7 +32,7 @@ static void handlerSigInt(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->controls.stopProcess();
+		globalServerPtr->stop();
 	}
 }
 
@@ -43,8 +43,7 @@ static void handlerSigUsr1(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->controls.setRestart();
-		globalServerPtr->controls.stopProcess();
+		globalServerPtr->restart();
 	}
 }
 
@@ -55,9 +54,7 @@ static void handlerSigUsr2(const int) noexcept
 {
 	if (globalServerPtr)
 	{
-		globalServerPtr->controls.setUpdateModule();
-		globalServerPtr->controls.setProcess(false);
-		globalServerPtr->controls.setProcessQueue();
+		globalServerPtr->update();
 	}
 }
 
@@ -108,7 +105,7 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 
 		case WM_ENDSESSION:
 		{
-			::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
+			const ::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
 			::WaitForSingleObject(hThread, INFINITE);
 			::CloseHandle(hThread);
 			break;
@@ -158,7 +155,7 @@ static ::BOOL consoleSignalHandler(const ::DWORD ctrlType) noexcept
 	case CTRL_SHUTDOWN_EVENT:
 	{
 		handlerSigTerm(ctrlType);
-		::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
+		const ::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
 		::WaitForSingleObject(hThread, INFINITE);
 		::CloseHandle(hThread);
 		return true;
@@ -190,7 +187,7 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 
 	const ::HINSTANCE hInstance = ::GetModuleHandle(nullptr);
 
-	::WNDCLASSEX wcex = {};
+	::WNDCLASSEX wcex {};
 
 	wcex.cbSize = sizeof(::WNDCLASSEX);
 	wcex.lpfnWndProc = WndProc;
@@ -211,7 +208,7 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 
 #elif POSIX
 
-	struct ::sigaction act = {};
+	struct ::sigaction act {};
 
 	act.sa_handler = handlerSigInt;
 	::sigaction(SIGINT, &act, nullptr);
