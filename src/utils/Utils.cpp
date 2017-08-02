@@ -55,9 +55,9 @@ namespace Utils
 
 		for (size_t pos = 0; std::string::npos != pos;)
 		{
-			size_t delimiter = str.find(sep, pos);
+			const size_t delimiter = str.find(sep, pos);
 
-			std::string value = str.substr(pos, delimiter);
+			std::string value = str.substr(pos, delimiter - pos);
 			trim(value);
 
 			values.emplace_back(std::move(value) );
@@ -865,4 +865,4 @@ namespace Utils
 
 		return decoded;
 	}
-};
+}
