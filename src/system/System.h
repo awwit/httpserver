@@ -69,4 +69,4 @@ namespace System
 	bool getFileSizeAndTimeGmt(const std::string &filePath, size_t *fileSize, time_t *fileTime);
 
 	void filterSharedMemoryName(std::string &memName);
-};
+}

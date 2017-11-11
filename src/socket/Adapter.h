@@ -30,4 +30,4 @@ namespace Socket
 		bool operator ==(const Adapter &obj) const noexcept;
 		bool operator !=(const Adapter &obj) const noexcept;
 	};
-};
+}

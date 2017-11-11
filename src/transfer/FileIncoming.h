@@ -31,10 +31,10 @@ namespace Transfer
 
 		bool isExists() const noexcept;
 	};
-};
+}
 
 namespace Utils
 {
 	void packFilesIncoming(std::vector<char> &buf, const std::unordered_multimap<std::string, Transfer::FileIncoming> &map);
 	const uint8_t *unpackFilesIncoming(std::unordered_multimap<std::string, Transfer::FileIncoming> &map, const uint8_t *src);
-};
+}

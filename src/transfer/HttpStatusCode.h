@@ -49,4 +49,4 @@ namespace Http
 		GATEWAY_TIMEOUT = 504,
 		HTTP_VERSION_NOT_SUPPORTED = 505,
 	};
-};
+}

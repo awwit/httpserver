@@ -10,4 +10,4 @@ namespace Transfer
 		void *response_data;
 		size_t data_size;
 	};
-};
+}

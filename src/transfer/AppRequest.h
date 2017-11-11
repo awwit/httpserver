@@ -20,4 +20,4 @@ namespace Transfer
 		const ::gnutls_session_t tls_session;
 		const void * const request_data;
 	};
-};
+}

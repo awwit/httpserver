@@ -40,10 +40,8 @@ namespace System
 
 			::GetClassName(hWnd, class_name.data(), static_cast<int>(class_name.size() - 1) );
 
-			if (0 == ::_tcscmp(class_name.data(), myWndClassName) )
-			{
+			if (0 == ::_tcscmp(class_name.data(), myWndClassName) ) {
 				ed.hWnd = hWnd;
-
 				return false;
 			}
 		}
@@ -100,8 +98,7 @@ namespace System
 
 		::EnumWindows(EnumProc, reinterpret_cast<::LPARAM>(&ed) );
 
-		if (0 == ed.hWnd)
-		{
+		if (0 == ed.hWnd) {
 			return false;
 		}
 
@@ -140,15 +137,13 @@ namespace System
 	#elif POSIX
         const char *buf = ::getenv("TMPDIR");
 
-		if (nullptr == buf)
-		{
+		if (nullptr == buf) {
 			return std::string("/tmp/");
 		}
 
 		std::string str(buf);
 
-		if ('/' != str.back() )
-		{
+		if (str.back() != '/') {
 			str.push_back('/');
 		}
 
@@ -170,8 +165,7 @@ namespace System
 
 		const ::DWORD attrib = ::GetFileAttributes(file_name.c_str() );
 
-		if (INVALID_FILE_ATTRIBUTES == attrib)
-		{
+		if (INVALID_FILE_ATTRIBUTES == attrib) {
 			return false;
 		}
 
@@ -179,8 +173,7 @@ namespace System
 	#elif POSIX
 		struct ::stat attrib;
 
-		if (-1 == ::stat(fileName.c_str(), &attrib) )
-		{
+		if (-1 == ::stat(fileName.c_str(), &attrib) ) {
 			return false;
 		}
 
@@ -202,13 +195,11 @@ namespace System
 
 		const ::HANDLE hFile = ::CreateFile(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 
-		if (INVALID_HANDLE_VALUE == hFile)
-		{
+		if (INVALID_HANDLE_VALUE == hFile) {
 			return false;
 		}
 
-		if (false == ::GetFileSizeEx(hFile, reinterpret_cast<::PLARGE_INTEGER>(fileSize) ) )
-		{
+		if (::GetFileSizeEx(hFile, reinterpret_cast<::PLARGE_INTEGER>(fileSize) ) == false) {
 			::CloseHandle(hFile);
 			return false;
 		}
@@ -219,8 +210,7 @@ namespace System
 
 		::CloseHandle(hFile);
 
-		if (false == result)
-		{
+		if (false == result) {
 			return false;
 		}
 
@@ -246,15 +236,14 @@ namespace System
 	#elif POSIX
 		struct ::stat attrib {};
 
-		if (-1 == ::stat(filePath.c_str(), &attrib) )
-		{
+		if (-1 == ::stat(filePath.c_str(), &attrib) ) {
 			return false;
 		}
 
 		*fileSize = attrib.st_size;
 
 		std::tm clock {};
-		
+
 		::gmtime_r(&(attrib.st_mtime), &clock);
 
 		*fileTime = std::mktime(&clock);
@@ -279,8 +268,7 @@ namespace System
 
 		const size_t pos = memory_name.rfind(file_ext);
 
-		if (pos == memory_name.length() - file_ext.length() )
-		{
+		if (pos == memory_name.length() - file_ext.length() ) {
 			memory_name.erase(memory_name.begin() + pos, memory_name.end() );
 		}
 
@@ -293,23 +281,18 @@ namespace System
 		memName = buf;
 	#endif
 
-		for (size_t i = 1; i < memName.length(); ++i)
-		{
-			if ('/' == memName[i] || '\\' == memName[i])
-			{
+		for (size_t i = 1; i < memName.length(); ++i) {
+			if ('/' == memName[i] || '\\' == memName[i]) {
 				memName[i] = '-';
 			}
 		}
 	#elif POSIX
-		if ('/' != memName.front() )
-		{
+		if (memName.front() != '/') {
 			memName = '/' + memName;
 		}
 
-		for (size_t i = 1; i < memName.length(); ++i)
-		{
-			if ('/' == memName[i] || '\\' == memName[i])
-			{
+		for (size_t i = 1; i < memName.length(); ++i) {
+			if ('/' == memName[i] || '\\' == memName[i]) {
 				memName[i] = '-';
 			}
 		}
@@ -317,4 +300,4 @@ namespace System
 		#error "Undefine platform"
 	#endif
 	}
-};
+}

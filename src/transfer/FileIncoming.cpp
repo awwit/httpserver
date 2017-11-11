@@ -27,37 +27,29 @@ namespace Transfer
 		obj.file_size = 0;
 	}
 
-	const std::string &FileIncoming::getTmpName() const noexcept
-	{
+	const std::string &FileIncoming::getTmpName() const noexcept {
 		return this->file_tmp_name;
 	}
 
-	const std::string &FileIncoming::getName() const noexcept
-	{
+	const std::string &FileIncoming::getName() const noexcept {
 		return this->file_name;
 	}
 
-	const std::string &FileIncoming::getType() const noexcept
-	{
+	const std::string &FileIncoming::getType() const noexcept {
 		return this->file_type;
 	}
 
-	size_t FileIncoming::getSize() const noexcept
-	{
+	size_t FileIncoming::getSize() const noexcept {
 		return this->file_size;
 	}
 
-	bool FileIncoming::isExists() const noexcept
-	{
+	bool FileIncoming::isExists() const noexcept {
 		std::ifstream file(this->file_tmp_name, std::ifstream::binary);
-
 		const bool is_exists = file.good();
-
 		file.close();
-
 		return is_exists;
 	}
-};
+}
 
 namespace Utils
 {
@@ -65,8 +57,7 @@ namespace Utils
 	{
 		packNumber(buf, map.size() );
 
-		for (auto it = map.cbegin(); map.cend() != it; ++it)
-		{
+		for (auto it = map.cbegin(); map.cend() != it; ++it) {
 			packString(buf, it->first);
 
 			const Transfer::FileIncoming &file = it->second;
@@ -83,8 +74,7 @@ namespace Utils
 		size_t count;
 		src = unpackNumber(&count, src);
 
-		for (size_t i = 0; i < count; ++i)
-		{
+		for (size_t i = 0; i < count; ++i) {
 			std::string key;
 			src = unpackString(key, src);
 
@@ -105,4 +95,4 @@ namespace Utils
 
 		return src;
 	}
-};
+}

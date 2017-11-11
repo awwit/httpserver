@@ -33,23 +33,18 @@ namespace Socket
 		::gnutls_alpn_set_protocols(this->session, protocols, sizeof(protocols) / sizeof(::gnutls_datum_t), 0);
 	}
 
-	AdapterTls::AdapterTls(const ::gnutls_session_t session) noexcept : session(session)
-	{
-
-	}
+	AdapterTls::AdapterTls(const ::gnutls_session_t session) noexcept : session(session) {}
 
 	bool AdapterTls::handshake() noexcept
 	{
 		int ret;
 
-		do
-		{
+		do {
 			ret = ::gnutls_handshake(this->session);
 		}
 		while (ret < 0 && ::gnutls_error_is_fatal(ret) == 0);
 
-		if (ret < 0)
-		{
+		if (ret < 0) {
 			Socket sock(this->get_handle() );
 
 			sock.close();
@@ -66,8 +61,7 @@ namespace Socket
 	//	size_t record_size = ::gnutls_record_get_max_size(this->session);
 		size_t record_size = length;
 
-		if (0 == record_size)
-		{
+		if (0 == record_size) {
 			return -1;
 		}
 
@@ -77,10 +71,8 @@ namespace Socket
 
 		size_t total = 0;
 
-		while (total < length)
-		{
-			if (record_size > length - total)
-			{
+		while (total < length) {
+			if (record_size > length - total) {
 				record_size = length - total;
 			}
 
@@ -88,14 +80,12 @@ namespace Socket
 
 			long send_size = 0;
 
-			do
-			{
+			do {
 				sock.nonblock_send_sync();
 			}
 			while (GNUTLS_E_AGAIN == (send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size) ) );
 
-			if (send_size < 0)
-			{
+			if (send_size < 0) {
 				return send_size;
 			}
 
@@ -105,18 +95,15 @@ namespace Socket
 		return static_cast<long>(total);
 	}
 
-	System::native_socket_type AdapterTls::get_handle() const noexcept
-	{
+	System::native_socket_type AdapterTls::get_handle() const noexcept {
 		return static_cast<System::native_socket_type>(::gnutls_transport_get_int(this->session) );
 	}
 
-	::gnutls_session_t AdapterTls::get_tls_session() const noexcept
-	{
+	::gnutls_session_t AdapterTls::get_tls_session() const noexcept {
 		return this->session;
 	}
 
-	Adapter *AdapterTls::copy() const noexcept
-	{
+	Adapter *AdapterTls::copy() const noexcept {
 		return new AdapterTls(this->session);
 	}
 
@@ -125,18 +112,23 @@ namespace Socket
 	//	::gnutls_record_set_timeout(this->session, static_cast<const unsigned int>(timeout.count() ) );
 
 		Socket sock(this->get_handle() );
-		sock.nonblock_recv_sync();
 
-		return ::gnutls_record_recv(this->session, buf, length);
+		long result;
+
+		do {
+			sock.nonblock_recv_sync();
+			result = ::gnutls_record_recv(this->session, buf, length);
+		}
+		while (result == GNUTLS_E_AGAIN || result == GNUTLS_E_INTERRUPTED);
+
+		return result;
 	}
 
-	long AdapterTls::nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
-	{
+	long AdapterTls::nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept {
 		return this->nonblock_send_all(buf, length, timeout);
 	}
 
-	void AdapterTls::close() noexcept
-	{
+	void AdapterTls::close() noexcept {
 		Socket sock(this->get_handle() );
 
 		// Wait for send all data to client
@@ -148,4 +140,4 @@ namespace Socket
 
 		::gnutls_deinit(this->session);
 	}
-};
+}

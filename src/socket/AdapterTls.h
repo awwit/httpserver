@@ -27,4 +27,4 @@ namespace Socket
 
 		virtual void close() noexcept override;
 	};
-};
+}

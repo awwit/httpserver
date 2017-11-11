@@ -12,17 +12,13 @@
 
 namespace Utils
 {
-	void toLower(std::string &str) noexcept
-	{
+	void toLower(std::string &str) noexcept {
 		std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 	}
 
-	std::string getLowerString(const std::string &str)
-	{
+	std::string getLowerString(const std::string &str) {
 		std::string copy = str;
-
 		toLower(copy);
-
 		return copy;
 	}
 
@@ -32,20 +28,16 @@ namespace Utils
 
 		const size_t last = str.find_last_not_of(whitespace.data() );
 
-		if (std::string::npos == last)
-		{
+		if (std::string::npos == last) {
 			return str.clear();
 		}
 
 		str.assign(str.cbegin() + str.find_first_not_of(whitespace.data() ), str.cbegin() + last + 1);
 	}
 
-	std::string getTrimmedString(const std::string &str)
-	{
+	std::string getTrimmedString(const std::string &str) {
 		std::string copy = str;
-
 		trim(copy);
-
 		return copy;
 	}
 
@@ -64,8 +56,7 @@ namespace Utils
 
 			pos = delimiter;
 
-			if (std::string::npos != pos)
-			{
+			if (std::string::npos != pos) {
 				++pos;
 			}
 		}
@@ -78,8 +69,7 @@ namespace Utils
 		std::string buf;
 		buf.reserve(str.length() );
 
-		for (size_t pos = 0; pos < str.length(); ++pos)
-		{
+		for (size_t pos = 0; pos < str.length(); ++pos) {
 			switch (str[pos])
 			{
 				case '&': buf.append("&amp;"); break;
@@ -102,8 +92,7 @@ namespace Utils
 
 		static const std::array<char, 17> hexDigits { "0123456789abcdef" };
 
-		for (size_t i = dataSize - 1; std::numeric_limits<size_t>::max() != i; --i)
-		{
+		for (size_t i = dataSize - 1; std::numeric_limits<size_t>::max() != i; --i) {
 			str[i * 2 + 0] = hexDigits[bin[i] >> 4];
 			str[i * 2 + 1] = hexDigits[bin[i] & 0x0F];
 		}
@@ -113,16 +102,13 @@ namespace Utils
 
 	static unsigned char hexStringToBinEncodeSymbol(const char c) noexcept
 	{
-		if (c >= '0' && c <= '9')
-		{
+		if (c >= '0' && c <= '9') {
 			return c - 0x30;
 		}
-		else if (c >= 'a' && c <= 'f')
-		{
+		else if (c >= 'a' && c <= 'f') {
 			return c - 0x57;
 		}
-		else if (c >= 'A' && c <= 'F')
-		{
+		else if (c >= 'A' && c <= 'F') {
 			return c - 0x37;
 		}
 
@@ -133,8 +119,7 @@ namespace Utils
 	{
 		std::string bin(hexStr.length() / 2, 0);
 
-		for (size_t i = 0; i < bin.length(); ++i)
-		{
+		for (size_t i = 0; i < bin.length(); ++i) {
 			const char a = hexStr[i * 2 + 0];
 			const char b = hexStr[i * 2 + 1];
 
@@ -161,14 +146,12 @@ namespace Utils
 			unsigned char c[sizeof(uint64_t)];
 		} x;
 
-		if (endian == Endianness::INIT)
-		{
+		if (endian == Endianness::INIT) {
 			x.ull = 0x01;
 			endian = (x.c[7] == 0x01ULL) ? Endianness::BIGE : Endianness::LITE;
 		}
 
-		if (endian == Endianness::BIGE)
-		{
+		if (endian == Endianness::BIGE) {
 			return host64;
 		}
 
@@ -184,8 +167,7 @@ namespace Utils
 		return x.ull;
 	}
 
-	uint64_t ntoh64(const uint64_t net64) noexcept
-	{
+	uint64_t ntoh64(const uint64_t net64) noexcept {
 		return hton64(net64);
 	}
 
@@ -198,20 +180,16 @@ namespace Utils
 			uint8_t c[sizeof(uint32_t)];
 		} x;
 
-		if (endian == Endianness::INIT)
-		{
+		if (endian == Endianness::INIT) {
 			x.ui = 0x01;
 			endian = (x.c[3] == 0x01) ? Endianness::BIGE : Endianness::LITE;
 		}
 
 		x.ui = src;
 
-		if (endian == Endianness::BIGE)
-		{
+		if (endian == Endianness::BIGE) {
 			x.ui <<= 8;
-		}
-		else
-		{
+		} else {
 			uint8_t c = x.c[0];
 			x.c[0] = x.c[2];
 			x.c[2] = c;
@@ -229,14 +207,12 @@ namespace Utils
 			uint8_t c[sizeof(uint32_t)];
 		} x;
 
-		if (endian == Endianness::INIT)
-		{
+		if (endian == Endianness::INIT) {
 			x.ui = 0x01;
 			endian = (x.c[3] == 0x01) ? Endianness::BIGE : Endianness::LITE;
 		}
 
-		if (endian == Endianness::BIGE)
-		{
+		if (endian == Endianness::BIGE) {
 			return *reinterpret_cast<const uint32_t *>(src24) >> 8;
 		}
 
@@ -251,55 +227,44 @@ namespace Utils
 		return x.ui;// *reinterpret_cast<uint32_t *>(x.c);
 	}
 
-	std::string getUniqueName()
-	{
+	std::string getUniqueName() {
 		size_t time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-
 		time = hton64(time);
-
 		return binToHexString(&time, sizeof(time) );
 	}
 
 	size_t getPackNumberSize(const size_t number) noexcept
 	{
-		if (number <= 253)
-		{
+		if (number <= 253) {
 			return sizeof(uint8_t);
 		}
-		else if (number <= std::numeric_limits<uint16_t>::max() )
-		{
+		else if (number <= std::numeric_limits<uint16_t>::max() ) {
 			return sizeof(uint8_t) + sizeof(uint16_t);
 		}
-		else if (number <= std::numeric_limits<uint32_t>::max() )
-		{
+		else if (number <= std::numeric_limits<uint32_t>::max() ) {
 			return sizeof(uint8_t) + sizeof(uint32_t);
 		}
 
 		return sizeof(uint8_t) + sizeof(size_t);
 	}
 
-	size_t getPackStringSize(const std::string &str) noexcept
-	{
+	size_t getPackStringSize(const std::string &str) noexcept {
 		return getPackNumberSize(str.length() ) + str.length();
 	}
 
-	uint8_t *packPointer(uint8_t *dest, void *pointer) noexcept
-	{
+	uint8_t *packPointer(uint8_t *dest, void *pointer) noexcept {
 		*reinterpret_cast<void **>(dest) = pointer;
-
 		return dest + sizeof(void *);
 	}
 
 	uint8_t *packNumber(uint8_t *dest, const size_t number) noexcept
 	{
-		if (number <= 252)
-		{
+		if (number <= 252) {
 			*dest = number;
 
 			dest += sizeof(uint8_t);
 		}
-		else if (number <= std::numeric_limits<uint16_t>::max() )
-		{
+		else if (number <= std::numeric_limits<uint16_t>::max() ) {
 			*dest = 253;
 
 			dest += sizeof(uint8_t);
@@ -308,8 +273,7 @@ namespace Utils
 
 			dest += sizeof(uint16_t);
 		}
-		else if (number <= std::numeric_limits<uint32_t>::max() )
-		{
+		else if (number <= std::numeric_limits<uint32_t>::max() ) {
 			*dest = 254;
 
 			dest += sizeof(uint8_t);
@@ -317,9 +281,7 @@ namespace Utils
 			*reinterpret_cast<uint32_t *>(dest) = static_cast<uint32_t>(number);
 
 			dest += sizeof(uint32_t);
-		}
-		else
-		{
+		} else {
 			*dest = 255;
 
 			dest += sizeof(uint8_t);
@@ -332,17 +294,13 @@ namespace Utils
 		return dest;
 	}
 
-	uint8_t *packString(uint8_t *dest, const std::string &str) noexcept
-	{
+	uint8_t *packString(uint8_t *dest, const std::string &str) noexcept {
 		dest = packNumber(dest, str.length() );
-
 		std::memcpy(dest, str.data(), str.length() );
-
 		return dest + str.length();
 	}
 
-	void packPointer(std::vector<char> &buf, void *pointer)
-	{
+	void packPointer(std::vector<char> &buf, void *pointer) {
 		buf.resize(buf.size() + sizeof(void *) );
 		uint8_t *dest = reinterpret_cast<uint8_t *>(buf.data() + buf.size() - sizeof(void *) );
 		*reinterpret_cast<void **>(dest) = pointer;
@@ -350,28 +308,23 @@ namespace Utils
 
 	void packNumber(std::vector<char> &buf, const size_t number)
 	{
-		if (number <= 252)
-		{
+		if (number <= 252) {
 			buf.emplace_back(number);
 		}
-		else if (number <= std::numeric_limits<uint16_t>::max() )
-		{
+		else if (number <= std::numeric_limits<uint16_t>::max() ) {
 			buf.emplace_back(253);
 
 			buf.resize(buf.size() + sizeof(uint16_t) );
 
 			*reinterpret_cast<uint16_t *>(buf.data() + buf.size() - sizeof(uint16_t) ) = static_cast<uint16_t>(number);
 		}
-		else if (number <= std::numeric_limits<uint32_t>::max() )
-		{
+		else if (number <= std::numeric_limits<uint32_t>::max() ) {
 			buf.emplace_back(254);
 
 			buf.resize(buf.size() + sizeof(uint32_t) );
 
 			*reinterpret_cast<uint32_t *>(buf.data() + buf.size() - sizeof(uint32_t) ) = static_cast<uint32_t>(number);
-		}
-		else
-		{
+		} else {
 			buf.emplace_back(255);
 
 			buf.resize(buf.size() + sizeof(size_t) );
@@ -384,16 +337,13 @@ namespace Utils
 	{
 		packNumber(buf, str.length() );
 
-		if (str.length() )
-		{
+		if (str.length() ) {
 			std::copy(str.cbegin(), str.cend(), std::back_inserter(buf) );
 		}
 	}
 
-	const uint8_t *unpackPointer(void **pointer, const uint8_t *src) noexcept
-	{
+	const uint8_t *unpackPointer(void **pointer, const uint8_t *src) noexcept {
 		*pointer = *reinterpret_cast<void **>(const_cast<void *>(static_cast<const void *>(src) ) );
-
 		return src + sizeof(void *);
 	}
 
@@ -403,26 +353,18 @@ namespace Utils
 
 		src += sizeof(uint8_t);
 
-		if (*number <= 252)
-		{
+		if (*number <= 252) {
 
 		}
-		else if (*number == 253)
-		{
+		else if (*number == 253) {
 			*number = *reinterpret_cast<const uint16_t *>(src);
-
 			src += sizeof(uint16_t);
 		}
-		else if (*number == 254)
-		{
+		else if (*number == 254) {
 			*number = *reinterpret_cast<const uint32_t *>(src);
-
 			src += sizeof(uint32_t);
-		}
-		else
-		{
+		} else {
 			*number = *reinterpret_cast<const size_t *>(src);
-
 			src += sizeof(size_t);
 		}
 
@@ -465,8 +407,7 @@ namespace Utils
 		size_t pos = strTime.find_first_not_of(' ');
 		size_t delimiter = strTime.find(',', pos);
 
-		if (std::string::npos == delimiter || delimiter - pos != 3)
-		{
+		if (std::string::npos == delimiter || delimiter - pos != 3) {
 			return ~0;
 		}
 
@@ -474,20 +415,16 @@ namespace Utils
 
 		auto const it_day = map_days.find(day);
 
-		if (map_days.cend() != it_day)
-		{
+		if (map_days.cend() != it_day) {
 			tc.tm_wday = it_day->second;
-		}
-		else
-		{
+		} else {
 			return ~0;
 		}
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			return ~0;
 		}
 
@@ -496,8 +433,7 @@ namespace Utils
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
 
-		if (std::string::npos == delimiter || delimiter - pos != 3)
-		{
+		if (std::string::npos == delimiter || delimiter - pos != 3) {
 			return ~0;
 		}
 
@@ -505,20 +441,16 @@ namespace Utils
 
 		auto const it_mon = map_months.find(month);
 
-		if (map_months.cend() != it_mon)
-		{
+		if (map_months.cend() != it_mon) {
 			tc.tm_mon = it_mon->second;
-		}
-		else
-		{
+		} else {
 			return ~0;
 		}
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			return ~0;
 		}
 
@@ -527,8 +459,7 @@ namespace Utils
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(':', pos);
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			return ~0;
 		}
 
@@ -537,8 +468,7 @@ namespace Utils
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(':', pos);
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			return ~0;
 		}
 
@@ -547,8 +477,7 @@ namespace Utils
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			return ~0;
 		}
 
@@ -557,13 +486,11 @@ namespace Utils
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			delimiter = strTime.length();
 		}
 
-		if (std::string::npos == pos || delimiter - pos > 5)
-		{
+		if (std::string::npos == pos || delimiter - pos > 5) {
 			return ~0;
 		}
 
@@ -573,8 +500,7 @@ namespace Utils
 
 		int timezone = 0;
 
-		if (map_zones.cend() != it_zone)
-		{
+		if (map_zones.cend() != it_zone) {
 			timezone = it_zone->second;
 		}
 		else if (zone.length() == 5 && ('+' == zone.front() || '-' == zone.front() ) )
@@ -588,13 +514,10 @@ namespace Utils
 			timezone = std::strtoul(hours.data(), nullptr, 10) * 3600;
 			timezone += std::strtoul(minutes.data(), nullptr, 10) * 60;
 
-			if ('-' == zone.front() )
-			{
+			if (zone.front() == '-') {
 				timezone *= -1;
 			}
-		}
-		else
-		{
+		} else {
 			return ~0;
 		}
 
@@ -629,8 +552,7 @@ namespace Utils
 
 		const char *ptrStr = std::strchr(strTime, ' ');
 
-		if (nullptr == ptrStr)
-		{
+		if (nullptr == ptrStr) {
 			return ~0;
 		}
 
@@ -638,27 +560,22 @@ namespace Utils
 
 		auto const it_mon = map_months.find(month);
 
-		if (map_months.cend() != it_mon)
-		{
+		if (map_months.cend() != it_mon) {
 			tc.tm_mon = it_mon->second;
-		}
-		else
-		{
+		} else {
 			return ~0;
 		}
 
 		++ptrStr;
 
 		// Fix for MS __DATE__
-		if (' ' == *ptrStr)
-		{
+		if (' ' == *ptrStr) {
 			++ptrStr;
 		}
 
 		strTime = std::strchr(ptrStr, ' ');
 
-		if (nullptr == strTime)
-		{
+		if (nullptr == strTime) {
 			return ~0;
 		}
 
@@ -668,8 +585,7 @@ namespace Utils
 
 		ptrStr = std::strchr(strTime, ' ');
 
-		if (nullptr == ptrStr)
-		{
+		if (nullptr == ptrStr) {
 			return ~0;
 		}
 
@@ -679,8 +595,7 @@ namespace Utils
 
 		strTime = std::strchr(ptrStr, ':');
 
-		if (nullptr == strTime)
-		{
+		if (nullptr == strTime) {
 			return ~0;
 		}
 
@@ -690,8 +605,7 @@ namespace Utils
 
 		ptrStr = std::strchr(strTime, ':');
 
-		if (nullptr == ptrStr)
-		{
+		if (nullptr == ptrStr) {
 			return ~0;
 		}
 
@@ -711,8 +625,7 @@ namespace Utils
 	{
 		std::array<char, 32> buf;
 
-		if (tTime == ~0)
-		{
+		if (tTime == ~0) {
 			std::time(&tTime);
 		}
 
@@ -739,8 +652,7 @@ namespace Utils
 		return std::string(buf.data(), buf.data() + len);
 	}
 
-	std::string predefinedDatetimeToRfc822(const char *strTime)
-	{
+	std::string predefinedDatetimeToRfc822(const char *strTime) {
 		const std::time_t time = predefinedDatetimeToTimestamp(strTime);
 		return getDatetimeAsString(time, false);
 	}
@@ -749,8 +661,7 @@ namespace Utils
 	{
 		size_t length = 0;
 
-		do
-		{
+		do {
 			++length;
 			number /= 10;
 		}
@@ -761,8 +672,7 @@ namespace Utils
 
 	bool parseCookies(const std::string &cookieHeader, std::unordered_multimap<std::string, std::string> &cookies)
 	{
-		if (cookieHeader.empty() )
-		{
+		if (cookieHeader.empty() ) {
 			return true;
 		}
 
@@ -772,8 +682,7 @@ namespace Utils
 
 			size_t delimiter = cookieHeader.find('=', cur_pos);
 
-			if (std::string::npos == delimiter || delimiter > next_value)
-			{
+			if (std::string::npos == delimiter || delimiter > next_value) {
 				return false;
 			}
 
@@ -789,8 +698,7 @@ namespace Utils
 
 			cookies.emplace(std::move(key), std::move(value) );
 
-			if (std::string::npos != next_value)
-			{
+			if (std::string::npos != next_value) {
 				++next_value;
 			}
 		}
@@ -798,8 +706,7 @@ namespace Utils
 		return true;
 	}
 
-	static inline bool isCharUrlAllowed(const char c) noexcept
-	{
+	static inline bool isCharUrlAllowed(const char c) noexcept {
 		return c == '-' || c == '_' || c == '.' || c == '~';
 	}
 
@@ -813,16 +720,12 @@ namespace Utils
 		{
 			const unsigned char c = str[i];
 
-			if (std::isalnum(c) || isCharUrlAllowed(c) )
-			{
+			if (std::isalnum(c) || isCharUrlAllowed(c) ) {
 				encoded.push_back(c);
 			}
-			else if (' ' == c)
-			{
+			else if (' ' == c) {
 				encoded.push_back('+');
-			}
-			else
-			{
+			} else {
 				const uint8_t a = c >> 4;
 				const uint8_t b = c & 0x0F;
 
@@ -843,10 +746,8 @@ namespace Utils
 		{
 			unsigned char c = str[i];
 
-			if ('%' == c)
-			{
-				if (i + 2 < str.length() )
-				{
+			if ('%' == c) {
+				if (i + 2 < str.length() ) {
 					const char a = str[++i];
 					const char b = str[++i];
 
@@ -855,8 +756,7 @@ namespace Utils
 					);
 				}
 			}
-			else if ('+' == c)
-			{
+			else if ('+' == c) {
 				c = ' ';
 			}
 

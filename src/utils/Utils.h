@@ -36,8 +36,7 @@ namespace Utils
 	{
 		size_t full_size = getPackNumberSize(container.size() );
 
-		for (auto const &pair : container)
-		{
+		for (auto const &pair : container) {
 			full_size += getPackStringSize(pair.first);
 			full_size += getPackStringSize(pair.second);
 		}
@@ -56,8 +55,7 @@ namespace Utils
 
 		addr = packNumber(addr, container.size() );
 
-		for (auto const &pair : container)
-		{
+		for (auto const &pair : container) {
 			addr = packString(addr, pair.first);
 			addr = packString(addr, pair.second);
 		}
@@ -74,8 +72,7 @@ namespace Utils
 	{
 		packNumber(buf, container.size() );
 
-		for (auto const &pair : container)
-		{
+		for (auto const &pair : container) {
 			packString(buf, pair.first);
 			packString(buf, pair.second);
 		}
@@ -91,8 +88,7 @@ namespace Utils
 		size_t count;
 		src = unpackNumber(&count, src);
 
-		for (size_t i = 0; i < count; ++i)
-		{
+		for (size_t i = 0; i < count; ++i) {
 			std::string key;
 			src = unpackString(key, src);
 
@@ -111,8 +107,7 @@ namespace Utils
 		size_t count;
 		src = unpackNumber(&count, src);
 
-		for (size_t i = 0; i < count; ++i)
-		{
+		for (size_t i = 0; i < count; ++i) {
 			std::string key;
 			src = unpackString(key, src);
 

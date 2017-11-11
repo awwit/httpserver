@@ -17,10 +17,8 @@ static HttpServer::Server *globalServerPtr = nullptr;
 /**
  * Terminate signal
  */
-static void handlerSigTerm(const int) noexcept
-{
-	if (globalServerPtr)
-	{
+static void handlerSigTerm(const int) noexcept {
+	if (globalServerPtr) {
 		globalServerPtr->stop();
 	}
 }
@@ -28,10 +26,8 @@ static void handlerSigTerm(const int) noexcept
 /**
  * Interrupt signal
  */
-static void handlerSigInt(const int) noexcept
-{
-	if (globalServerPtr)
-	{
+static void handlerSigInt(const int) noexcept {
+	if (globalServerPtr) {
 		globalServerPtr->stop();
 	}
 }
@@ -39,10 +35,8 @@ static void handlerSigInt(const int) noexcept
 /**
  * Signal to restart
  */
-static void handlerSigUsr1(const int) noexcept
-{
-	if (globalServerPtr)
-	{
+static void handlerSigUsr1(const int) noexcept {
+	if (globalServerPtr) {
 		globalServerPtr->restart();
 	}
 }
@@ -50,10 +44,8 @@ static void handlerSigUsr1(const int) noexcept
 /**
  * Signal to update modules
  */
-static void handlerSigUsr2(const int) noexcept
-{
-	if (globalServerPtr)
-	{
+static void handlerSigUsr2(const int) noexcept {
+	if (globalServerPtr) {
 		globalServerPtr->update();
 	}
 }
@@ -68,51 +60,44 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 {
 	switch (message)
 	{
-		case SIGTERM:
-		{
+		case SIGTERM: {
 			handlerSigTerm(message);
 			::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
 
 			break;
 		}
 
-		case SIGINT:
-		{
+		case SIGINT: {
 			handlerSigInt(message);
 			::PostMessage(hWnd, WM_QUIT, 0, 0); // Fuck ::PostQuitMessage(0);
 
 			break;
 		}
 
-		case SIGUSR1:
-		{
+		case SIGUSR1: {
 			handlerSigUsr1(message);
 			break;
 		}
 
-		case SIGUSR2:
-		{
+		case SIGUSR2: {
 			handlerSigUsr2(message);
 			break;
 		}
 
 		// Cases WM_QUERYENDSESSION and WM_ENDSESSION run before shutting down the system (or ending user session)
-		case WM_QUERYENDSESSION:
-		{
+		case WM_QUERYENDSESSION: {
 			handlerSigTerm(message);
 			break;
 		}
 
-		case WM_ENDSESSION:
-		{
+		case WM_ENDSESSION: {
 			const ::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
 			::WaitForSingleObject(hThread, INFINITE);
 			::CloseHandle(hThread);
 			break;
 		}
 
-		default:
-		{
+		default: {
 			return ::DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}
@@ -126,15 +111,13 @@ static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, Utils::Event * cons
 
 	eventWindowCreation->notify(); // After this action, eventWindowCreation will be destroyed (in the other thread)
 
-	if (0 == hWnd)
-	{
+	if (0 == hWnd) {
 		return 0;
 	}
 
 	::MSG msg;
 
-	while (::GetMessage(&msg, hWnd, 0, 0) )
-	{
+	while (::GetMessage(&msg, hWnd, 0, 0) ) {
 		::TranslateMessage(&msg);
 		::DispatchMessage(&msg);
 	}
@@ -152,8 +135,7 @@ static ::BOOL consoleSignalHandler(const ::DWORD ctrlType) noexcept
 	//  @see my function WndProc -> cases WM_QUERYENDSESSION and WM_ENDSESSION. Only they happen in this program, because the library user32.dll is connected.
 	//  @prooflink: https://msdn.microsoft.com/library/windows/desktop/ms686016(v=vs.85).aspx
 	case CTRL_LOGOFF_EVENT:
-	case CTRL_SHUTDOWN_EVENT:
-	{
+	case CTRL_SHUTDOWN_EVENT: {
 		handlerSigTerm(ctrlType);
 		const ::HANDLE hThread = ::OpenThread(SYNCHRONIZE, false, gMainThreadId);
 		::WaitForSingleObject(hThread, INFINITE);
@@ -161,9 +143,10 @@ static ::BOOL consoleSignalHandler(const ::DWORD ctrlType) noexcept
 		return true;
 	}
 
-	case CTRL_C_EVENT:
+	case CTRL_C_EVENT: {
 		handlerSigInt(ctrlType);
 		return true;
+	}
 
 	default:
 		return false;
@@ -194,8 +177,7 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 	wcex.hInstance = hInstance;
 	wcex.lpszClassName = myWndClassName;
 
-	if (0 == ::RegisterClassEx(&wcex) )
-	{
+	if (::RegisterClassEx(&wcex) == 0) {
 		return false;
 	}
 

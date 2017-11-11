@@ -200,4 +200,4 @@ namespace Http2
 		void lock();
 		void unlock() noexcept;
 	};
-};
+}

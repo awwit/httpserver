@@ -8,4 +8,4 @@ namespace Transfer
 		HTTP_1,
 		HTTP_2
 	};
-};
+}

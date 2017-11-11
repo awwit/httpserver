@@ -48,32 +48,19 @@ namespace Socket
 	#endif
 	}
 
-	Socket::Socket() noexcept : socket_handle(~0)
-	{
-		
-	}
+	Socket::Socket() noexcept : socket_handle(~0) {}
 
-	Socket::Socket(const System::native_socket_type fd) noexcept : socket_handle(fd)
-	{
-		
-	}
+	Socket::Socket(const System::native_socket_type fd) noexcept : socket_handle(fd) {}
 
-	Socket::Socket(const Socket &obj) noexcept : socket_handle(obj.socket_handle)
-	{
-		
-	}
+	Socket::Socket(const Socket &obj) noexcept : socket_handle(obj.socket_handle) {}
 
-	Socket::Socket(Socket &&obj) noexcept : socket_handle(obj.socket_handle)
-	{
+	Socket::Socket(Socket &&obj) noexcept : socket_handle(obj.socket_handle) {
 		obj.socket_handle = ~0;
 	}
 
-	bool Socket::open() noexcept
-	{
+	bool Socket::open() noexcept {
 		this->close();
-
 		this->socket_handle = ::socket(AF_INET, SOCK_STREAM, 0);
-
 		return this->is_open();
 	}
 
@@ -89,10 +76,8 @@ namespace Socket
 			#error "Undefine platform"
 		#endif
 
-			if (0 == result)
-			{
+			if (0 == result) {
 				this->socket_handle = ~0;
-
 				return true;
 			}
 		}
@@ -111,8 +96,7 @@ namespace Socket
 	#endif
 	}
 
-	System::native_socket_type Socket::get_handle() const noexcept
-	{
+	System::native_socket_type Socket::get_handle() const noexcept {
 		return this->socket_handle;
 	}
 
@@ -128,8 +112,7 @@ namespace Socket
 		return 0 == ::bind(this->socket_handle, reinterpret_cast<const sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
 	}
 
-	bool Socket::listen() const noexcept
-	{
+	bool Socket::listen() const noexcept {
 		return 0 == ::listen(this->socket_handle, SOMAXCONN);
 	}
 
@@ -155,8 +138,7 @@ namespace Socket
             0
         };
 
-        if (1 == ::WSAPoll(&event, 1, ~0) && event.revents & POLLRDNORM)
-		{
+		if (1 == ::WSAPoll(&event, 1, ~0) && event.revents & POLLRDNORM) {
 			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
 	#elif POSIX
@@ -166,8 +148,7 @@ namespace Socket
             0
         };
 
-        if (1 == ::poll(&event, 1, ~0) && event.revents & POLLIN)
-		{
+		if (1 == ::poll(&event, 1, ~0) && event.revents & POLLIN) {
 			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
 	#else
@@ -186,8 +167,7 @@ namespace Socket
             0
         };
 
-		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM)
-		{
+		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM) {
 			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 		}
 	#elif POSIX
@@ -197,8 +177,7 @@ namespace Socket
             0
         };
 
-		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN)
-		{
+		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN) {
 			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 		}
 	#else
@@ -262,8 +241,7 @@ namespace Socket
 	#endif
 	}
 
-	long Socket::recv(std::vector<std::string::value_type> &buf) const noexcept
-	{
+	long Socket::recv(std::vector<std::string::value_type> &buf) const noexcept {
 		return this->recv(buf.data(), buf.size() );
 	}
 
@@ -278,8 +256,7 @@ namespace Socket
 	#endif
 	}
 
-	long Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const noexcept
-	{
+	long Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const noexcept {
 		return this->nonblock_recv(buf.data(), buf.size(), timeout);
 	}
 
@@ -293,8 +270,7 @@ namespace Socket
 			0
 		};
 
-		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM)
-		{
+		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM) {
 			recv_len = ::recv(this->socket_handle, reinterpret_cast<char *>(buf), static_cast<const int>(length), 0);
 		}
 	#elif POSIX
@@ -304,8 +280,7 @@ namespace Socket
 			0
 		};
 
-		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN)
-		{
+		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN) {
 			recv_len = ::recv(this->socket_handle, buf, length, 0);
 		}
 	#else
@@ -319,7 +294,7 @@ namespace Socket
 	#ifdef WIN32
 		WSAPOLLFD event = {
 			this->socket_handle,
-			POLLRDNORM | POLLRDBAND,
+			POLLIN,
 			0
 		};
 
@@ -341,12 +316,10 @@ namespace Socket
 	{
 		size_t total = 0;
 
-		while (total < length)
-		{
+		while (total < length) {
 			const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, length - total, 0);
 
-			if (send_size < 0)
-			{
+			if (send_size < 0) {
 				return send_size;
 			}
 
@@ -356,13 +329,11 @@ namespace Socket
 		return static_cast<long>(total);
 	}
 
-	long Socket::send(const std::string &buf) const noexcept
-	{
+	long Socket::send(const std::string &buf) const noexcept {
 		return this->send(buf.data(), buf.length() );
 	}
 
-	long Socket::send(const void *buf, const size_t length) const noexcept
-	{
+	long Socket::send(const void *buf, const size_t length) const noexcept {
 		return send_all(this->socket_handle, buf, length);
 	}
 
@@ -373,25 +344,20 @@ namespace Socket
 	#ifdef WIN32
 		WSAPOLLFD event = {
 			socket_handle,
-			POLLWRNORM,
+			POLLOUT,
 			0
 		};
 
-		while (total < length)
-		{
-			if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLWRNORM)
-			{
+		while (total < length) {
+			if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLOUT) {
 				const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, static_cast<const int>(length - total), 0);
 
-				if (send_size < 0)
-				{
+				if (send_size < 0) {
 					return send_size;
 				}
 
 				total += send_size;
-			}
-			else
-			{
+			} else {
 				return -1;
 			}
 		}
@@ -403,21 +369,16 @@ namespace Socket
 			0
 		};
 
-		while (total < length)
-		{
-			if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLOUT)
-			{
+		while (total < length) {
+			if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLOUT) {
 				const long send_size = ::send(socket_handle, reinterpret_cast<const uint8_t *>(data) + total, length - total, 0);
 
-				if (send_size < 0)
-				{
+				if (send_size < 0) {
 					return send_size;
 				}
 
 				total += send_size;
-			}
-			else
-			{
+			} else {
 				return -1;
 			}
 		}
@@ -428,13 +389,11 @@ namespace Socket
 		return static_cast<long>(total);
 	}
 
-	long Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const noexcept
-	{
+	long Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const noexcept {
 		return this->nonblock_send(buf.data(), buf.length(), timeout);
 	}
 
-	long Socket::nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
-	{
+	long Socket::nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept {
 		return nonblock_send_all(this->socket_handle, buf, length, timeout);
 	}
 
@@ -443,7 +402,7 @@ namespace Socket
 	#ifdef WIN32
 		WSAPOLLFD event = {
 			this->socket_handle,
-			POLLWRNORM,
+			POLLOUT,
 			0
 		};
 
@@ -461,19 +420,16 @@ namespace Socket
 	#endif
 	}
 
-	Socket &Socket::operator=(const Socket &obj) noexcept
-	{
+	Socket &Socket::operator=(const Socket &obj) noexcept {
 		this->socket_handle = obj.socket_handle;
 		return *this;
 	}
 
-	bool Socket::operator ==(const Socket &obj) const noexcept
-	{
+	bool Socket::operator ==(const Socket &obj) const noexcept {
 		return this->socket_handle == obj.socket_handle;
 	}
 
-	bool Socket::operator !=(const Socket &obj) const noexcept
-	{
+	bool Socket::operator !=(const Socket &obj) const noexcept {
 		return this->socket_handle != obj.socket_handle;
 	}
-};
+}

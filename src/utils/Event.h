@@ -30,4 +30,4 @@ namespace Utils
 
 		bool notifed() const noexcept;
 	};
-};
+}

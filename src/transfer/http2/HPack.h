@@ -12,4 +12,4 @@ namespace HPack
 
 	// TODO: replace IncStream to DynamicTable if possible
 	bool unpack(const void *src, const size_t srcSize, Http2::IncStream &stream);
-};
+}

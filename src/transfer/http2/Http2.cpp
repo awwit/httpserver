@@ -4,23 +4,19 @@
 
 namespace Http2
 {
-	bool operator &(const FrameFlag left, const FrameFlag right) noexcept
-	{
+	bool operator &(const FrameFlag left, const FrameFlag right) noexcept {
 		return static_cast<const uint8_t>(left) & static_cast<const uint8_t>(right);
 	}
 
-	FrameFlag operator |(const FrameFlag left, const FrameFlag right) noexcept
-	{
+	FrameFlag operator |(const FrameFlag left, const FrameFlag right) noexcept {
 		return static_cast<FrameFlag>(static_cast<const uint8_t>(left) | static_cast<const uint8_t>(right) );
 	}
 
-	FrameFlag operator |=(FrameFlag &left, const FrameFlag right) noexcept
-	{
+	FrameFlag operator |=(FrameFlag &left, const FrameFlag right) noexcept {
 		return static_cast<FrameFlag>(*reinterpret_cast<uint8_t *>(&left) |= static_cast<const uint8_t>(right) );
 	}
 
-	ConnectionSettings ConnectionSettings::defaultSettings() noexcept
-	{
+	ConnectionSettings ConnectionSettings::defaultSettings() noexcept {
 		return ConnectionSettings {
 			4096,
 			1,
@@ -37,16 +33,14 @@ namespace Http2
 
 	}
 
-	size_t DynamicTable::size() const noexcept
-	{
+	size_t DynamicTable::size() const noexcept {
 		return this->list.size();
 	}
 
 	DynamicTable::DynamicTable(const uint32_t headerTableSize, const uint32_t maxHeaderListSize, std::deque<std::pair<std::string, std::string> > &&list) noexcept
 		: list(std::move(list) ), header_table_size(headerTableSize), max_header_list_size(maxHeaderListSize), cur_header_list_size(0)
 	{
-		for (auto const &pair : list)
-		{
+		for (auto const &pair : list) {
 			this->cur_header_list_size += pair.first.length() + pair.second.length();
 		}
 	}
@@ -87,8 +81,7 @@ namespace Http2
 	{
 		this->header_table_size = headerTableSize;
 
-		while (this->list.size() > this->header_table_size)
-		{
+		while (this->list.size() > this->header_table_size) {
 			auto const &pair = this->list.back();
 
 			this->cur_header_list_size -= pair.first.length() + pair.second.length();
@@ -111,18 +104,15 @@ namespace Http2
 		}
 	}
 
-	const std::pair<std::string, std::string> &DynamicTable::operator[](const size_t index) const noexcept
-	{
+	const std::pair<std::string, std::string> &DynamicTable::operator[](const size_t index) const noexcept {
 		return this->list[index];
 	}
 
-	std::pair<std::string, std::string> &DynamicTable::operator[](const size_t index) noexcept
-	{
+	std::pair<std::string, std::string> &DynamicTable::operator[](const size_t index) noexcept {
 		return this->list[index];
 	}
 
-	const std::deque<std::pair<std::string, std::string> > &DynamicTable::getList() const noexcept
-	{
+	const std::deque<std::pair<std::string, std::string> > &DynamicTable::getList() const noexcept {
 		return this->list;
 	}
 
@@ -144,13 +134,11 @@ namespace Http2
 		return (addr + Http2::FRAME_HEADER_SIZE);
 	}
 
-	void IncStream::lock()
-	{
+	void IncStream::lock() {
 		this->conn.sync.mtx.lock();
 	}
 
-	void IncStream::unlock() noexcept
-	{
+	void IncStream::unlock() noexcept {
 		this->conn.sync.mtx.unlock();
 	}
 
@@ -190,13 +178,11 @@ namespace Http2
 		return (addr + Http2::FRAME_HEADER_SIZE);
 	}
 
-	void OutStream::lock()
-	{
+	void OutStream::lock() {
 		this->mtx->lock();
 	}
 
-	void OutStream::unlock() noexcept
-	{
+	void OutStream::unlock() noexcept {
 		this->mtx->unlock();
 	}
-};
+}

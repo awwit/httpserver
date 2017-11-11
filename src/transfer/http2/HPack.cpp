@@ -5214,8 +5214,7 @@ namespace HPack
 		{"www-authenticate", ""},
 	};
 
-	static constexpr size_t getStaticTableSize() noexcept
-	{
+	static constexpr size_t getStaticTableSize() noexcept {
 		return sizeof(staticTable) / sizeof(*staticTable);
 	}
 
@@ -5225,8 +5224,7 @@ namespace HPack
 
 		size_t n = 0;
 
-		for (size_t i = 0; i < length; ++i)
-		{
+		for (size_t i = 0; i < length; ++i) {
 			n += huffmanSymbolTable[data[i] ].nbits;
 		}
 
@@ -5237,10 +5235,8 @@ namespace HPack
 	{
 		uint8_t nbits = sym.nbits;
 
-		for (;;)
-		{
-			if (rembits > nbits)
-			{
+		for (;;) {
+			if (rembits > nbits) {
 				dest.back() |= uint8_t(sym.code << (rembits - nbits) );
 				rembits -= nbits;
 				break;
@@ -5251,8 +5247,7 @@ namespace HPack
 			nbits -= rembits;
 			rembits = 8;
 
-			if (0 == nbits)
-			{
+			if (0 == nbits) {
 				break;
 			}
 
@@ -5268,22 +5263,18 @@ namespace HPack
 
 		uint8_t rembits = 8;
 
-		for (size_t i = 0; i < srcSize; ++i)
-		{
+		for (size_t i = 0; i < srcSize; ++i) {
 			const HuffmanSymbol &sym = huffmanSymbolTable[data[i] ];
 
-			if (8 == rembits)
-			{
+			if (8 == rembits) {
 				dest.emplace_back(0);
 			}
 
 			rembits = huffmanEncodeSymbol(dest, rembits, sym);
 		}
 
-		if (rembits < 8)
-		{
+		if (rembits < 8) {
 			const HuffmanSymbol &sym = huffmanSymbolTable[256];
-
 			dest.back() |= uint8_t(sym.code >> (sym.nbits - rembits) );
 		}
 	}
@@ -5312,13 +5303,11 @@ namespace HPack
 			{
 				const HuffmanDecodeNode &node = huffmanDecodeTable[state][x];
 
-				if (node.flags & HuffmanDecode::FAIL)
-				{
+				if (node.flags & HuffmanDecode::FAIL) {
 					return false;
 				}
 
-				if (node.flags & HuffmanDecode::SYMBOL)
-				{
+				if (node.flags & HuffmanDecode::SYMBOL) {
 					dest.emplace_back(node.symbol);
 				}
 
@@ -5336,8 +5325,7 @@ namespace HPack
 	{
 		uint64_t k = (1 << prefix) - 1;
 
-		if (num < k)
-		{
+		if (num < k) {
 			dest.emplace_back(num);
 			return;
 		}
@@ -5346,10 +5334,8 @@ namespace HPack
 
 		num -= k;
 
-		for (;;)
-		{
-			if (num < 128)
-			{
+		for (;;) {
+			if (num < 128) {
 				dest.emplace_back(num);
 				break;
 			}
@@ -5358,19 +5344,15 @@ namespace HPack
 
 			num >>= 7;
 
-			if (0 == num)
-			{
+			if (0 == num) {
 				break;
 			}
 		}
 	}
 
-	static void packIndex(std::vector<char> &dest, const size_t index)
-	{
+	static void packIndex(std::vector<char> &dest, const size_t index) {
 		const size_t head = dest.size();
-
 		packInteger(dest, index, 7);
-
 		dest[head] |= 0x80;
 	}
 
@@ -5383,39 +5365,30 @@ namespace HPack
 		size_t &index = std::get<size_t>(result);
 		bool &is_full_match = std::get<bool>(result);
 
-		for (size_t i = 0; i < getStaticTableSize(); ++i)
-		{
+		for (size_t i = 0; i < getStaticTableSize(); ++i) {
 			auto const &pair = staticTable[i];
 
-			if (pair.first == header.first)
-			{
+			if (pair.first == header.first) {
 				index = i + 1;
 
-				if (pair.second == header.second)
-				{
+				if (pair.second == header.second) {
 					is_full_match = true;
-
 					return result;
 				}
 			}
-			else if (0 != index)
-			{
+			else if (0 != index) {
 				break;
 			}
 		}
 
-		for (size_t i = 0; i < dynamicTable.size(); ++i)
-		{
+		for (size_t i = 0; i < dynamicTable.size(); ++i) {
 			auto const &pair = dynamicTable[i];
 
-			if (pair.first == header.first)
-			{
+			if (pair.first == header.first) {
 				index = i + getStaticTableSize() + 1;
 
-				if (pair.second == header.second)
-				{
+				if (pair.second == header.second) {
 					is_full_match = true;
-
 					break;
 				}
 			}
@@ -5426,13 +5399,11 @@ namespace HPack
 
 	static uint8_t packFirstByte(const bool indexing) noexcept
 	{
-		if (indexing)
-		{
+		if (indexing) {
 			return 0x40;
 		}
 
-	/*	if (never_indexing)
-		{
+	/*	if (never_indexing) {
 			return 0x10;
 		}*/
 
@@ -5443,17 +5414,14 @@ namespace HPack
 	{
 		const size_t huffman_length = huffmanEncodeLength(str.data(), str.length() );
 
-		if (huffman_length < str.length() )
-		{
+		if (huffman_length < str.length() ) {
 			const size_t head = dest.size();
 
 			packInteger(dest, huffman_length, 7);
 			encode(dest, str.data(), str.length() );
 
 			dest[head] |= 0x80;
-		}
-		else
-		{
+		} else {
 			packInteger(dest, str.length(), 7);
 			std::copy(str.cbegin(), str.cend(), std::back_inserter(dest) );
 		}
@@ -5483,8 +5451,7 @@ namespace HPack
 	{
 	/*	const std::string &key = header.first;
 
-		if ("content-length" == key || "set-cookie" == key)
-		{
+		if ("content-length" == key || "set-cookie" == key) {
 			return true;
 		}*/
 
@@ -5498,26 +5465,20 @@ namespace HPack
 
 		std::tie(index, is_full_match) = findHeaderInTable(header, dynamicTable);
 
-		if (is_full_match)
-		{
+		if (is_full_match) {
 			packIndex(dest, index);
-
 			return;
 		}
 
 		const bool indexing = shouldIndexing(header);
 
-		if (indexing)
-		{
+		if (indexing) {
 			dynamicTable.addHeader(header);
 		}
 
-		if (0 == index)
-		{
+		if (0 == index) {
 			packFullHeader(dest, header, indexing);
-		}
-		else
-		{
+		} else {
 			packHeaderValue(dest, index, header, indexing);
 		}
 	}
@@ -5533,8 +5494,7 @@ namespace HPack
 */
 	void pack(std::vector<char> &dest, const std::vector<std::pair<std::string, std::string> > &headers, Http2::DynamicTable &dynamicTable)
 	{
-		for (auto const &header : headers)
-		{
+		for (auto const &header : headers) {
 			packHeader(dest, header, dynamicTable);
 		}
 	}
@@ -5562,32 +5522,27 @@ namespace HPack
 		READ_VALUE,
 	};
 
-	static size_t getMaxTableIndex(const Http2::IncStream &stream) noexcept
-	{
+	static size_t getMaxTableIndex(const Http2::IncStream &stream) noexcept {
 		return getStaticTableSize() + stream.conn.decoding_dynamic_table.size();
 	}
 
 	static const std::pair<std::string, std::string> *getHeaderFromTable(const size_t index, const Http2::IncStream &stream) noexcept
 	{
-		if (getStaticTableSize() >= index)
-		{
+		if (getStaticTableSize() >= index) {
 			return &staticTable[index - 1];
 		}
-		else if (stream.conn.decoding_dynamic_table.size() + getStaticTableSize() >= index)
-		{
+		else if (stream.conn.decoding_dynamic_table.size() + getStaticTableSize() >= index) {
 			return &stream.conn.decoding_dynamic_table[index - getStaticTableSize() - 1];
 		}
 
 		return nullptr;
 	}
 
-	static const std::pair<std::string, std::string> *unpackIndexed(const size_t index, const Http2::IncStream &stream) noexcept
-	{
+	static const std::pair<std::string, std::string> *unpackIndexed(const size_t index, const Http2::IncStream &stream) noexcept {
 		return getHeaderFromTable(index, stream);
 	}
 
-	static bool checkHuffmanEncoded(const uint8_t c) noexcept
-	{
+	static bool checkHuffmanEncoded(const uint8_t c) noexcept {
 		return c & (1 << 7);
 	}
 
@@ -5597,8 +5552,7 @@ namespace HPack
 			left, false
 		};
 
-		if (dataSize < left)
-		{
+		if (dataSize < left) {
 			std::get<uint64_t>(result) = dataSize;
 		}
 
@@ -5609,8 +5563,7 @@ namespace HPack
 
 	static uint64_t unpackString(std::vector<char> &dest, const uint8_t *data, const size_t dataSize, uint64_t left)
 	{
-		if (dataSize < left)
-		{
+		if (dataSize < left) {
 			left = dataSize;
 		}
 
@@ -5637,17 +5590,14 @@ namespace HPack
 
 			++nread;
 
-			if (k != (c & k) )
-			{
+			if (k != (c & k) ) {
 				num = c & k;
-
 				return result;
 			}
 
 			num = k;
 
-			if (nread == dataSize)
-			{
+			if (nread == dataSize) {
 				return result;
 			}
 		}
@@ -5658,34 +5608,28 @@ namespace HPack
 
 			uint32_t add = c & 0x7f;
 
-			if (add > (std::numeric_limits<uint32_t>::max() >> shift) )
-			{
+			if (add > (std::numeric_limits<uint32_t>::max() >> shift) ) {
 				std::get<bool>(result) = false;
-
 				return result;
 			}
 
 			add <<= shift;
 
-			if (std::numeric_limits<uint32_t>::max() - add < num)
-			{
+			if (std::numeric_limits<uint32_t>::max() - add < num) {
 				std::get<bool>(result) = false;
-
 				return result;
 			}
 
 			num += add;
 
-			if (0 == (c & (1 << 7) ) )
-			{
+			if (0 == (c & (1 << 7) ) ) {
 				break;
 			}
 
 			shift += 7;
 		}
 
-		if (nread != dataSize)
-		{
+		if (nread != dataSize) {
 			++nread;
 		}
 
@@ -5720,8 +5664,7 @@ namespace HPack
 
 			this->buf.clear();
 
-			if (this->index_required)
-			{
+			if (this->index_required) {
 				stream.conn.decoding_dynamic_table.addHeader(header);
 			}
 
@@ -5732,8 +5675,7 @@ namespace HPack
 		{
 			auto entry = getHeaderFromTable(this->key_index, stream);
 
-			if (nullptr == entry)
-			{
+			if (nullptr == entry) {
 				return std::pair<std::string, std::string>();
 			}
 
@@ -5745,8 +5687,7 @@ namespace HPack
 			this->key_index = 0;
 			this->buf.clear();
 
-			if (this->index_required)
-			{
+			if (this->index_required) {
 				stream.conn.decoding_dynamic_table.addHeader(header);
 			}
 
@@ -5770,27 +5711,20 @@ namespace HPack
 				{
 					const uint8_t c = data[cur];
 
-					if (0x20 == (c & 0xe0) )
-					{
+					if (0x20 == (c & 0xe0) ) {
 						dec.opcode = HuffmanDecodeOpcode::INDEXED;
 						dec.state = HuffmanDecodeState::READ_TABLE_SIZE;
 					}
-					else if (c & 0x80)
-					{
+					else if (c & 0x80) {
 						dec.opcode = HuffmanDecodeOpcode::INDEXED;
 						dec.state = HuffmanDecodeState::READ_INDEX;
-					}
-					else
-					{
-						if (0 == c || 0x40 == c || 0x10 == c)
-						{
+					} else {
+						if (0 == c || 0x40 == c || 0x10 == c) {
 							dec.opcode = HuffmanDecodeOpcode::NOT_INDEXED;
 							dec.state = HuffmanDecodeState::CHECK_KEY_LENGTH;
 
 							++cur;
-						}
-						else
-						{
+						} else {
 							dec.opcode = HuffmanDecodeOpcode::INDEXED_KEY;
 							dec.state = HuffmanDecodeState::READ_INDEX;
 						}
@@ -5813,13 +5747,11 @@ namespace HPack
 
 					cur += nread;
 
-					if (false == success)
-					{
+					if (false == success) {
 						return false;
 					}
 
-					if (dec.left > stream.conn.client_settings.header_table_size)
-					{
+					if (dec.left > stream.conn.client_settings.header_table_size) {
 						// TODO: invalid max table size error code
 						return false;
 					}
@@ -5835,16 +5767,12 @@ namespace HPack
 				{
 					uint8_t prefixlen;
 
-					if (HuffmanDecodeOpcode::INDEXED == dec.opcode)
-					{
+					if (HuffmanDecodeOpcode::INDEXED == dec.opcode) {
 						prefixlen = 7;
 					}
-					else if (dec.index_required)
-					{
+					else if (dec.index_required) {
 						prefixlen = 6;
-					}
-					else
-					{
+					} else {
 						prefixlen = 4;
 					}
 
@@ -5855,21 +5783,15 @@ namespace HPack
 
 					cur += nread;
 
-					if (false == success || 0 == dec.left || dec.left > getMaxTableIndex(stream) )
-					{
+					if (false == success || 0 == dec.left || dec.left > getMaxTableIndex(stream) ) {
 						return false;
 					}
 
-					if (HuffmanDecodeOpcode::INDEXED == dec.opcode)
-					{
+					if (HuffmanDecodeOpcode::INDEXED == dec.opcode) {
 						stream.incoming_headers.emplace(*unpackIndexed(dec.left, stream) );
-
 						dec.state = HuffmanDecodeState::OPCODE;
-					}
-					else
-					{
+					} else {
 						dec.key_index = dec.left;
-
 						dec.state = HuffmanDecodeState::CHECK_VALUE_LENGTH;
 					}
 
@@ -5893,8 +5815,7 @@ namespace HPack
 
 					cur += nread;
 
-					if (false == success)
-					{
+					if (false == success) {
 						return false;
 					}
 
@@ -5915,8 +5836,7 @@ namespace HPack
 					cur += nread;
 					dec.left -= nread;
 
-					if (false == success || dec.left > 0)
-					{
+					if (false == success || dec.left > 0) {
 						return false;
 					}
 
@@ -5934,8 +5854,7 @@ namespace HPack
 					cur += nread;
 					dec.left -= nread;
 
-					if (dec.left > 0)
-					{
+					if (dec.left > 0) {
 						return false;
 					}
 
@@ -5963,8 +5882,7 @@ namespace HPack
 
 					cur += nread;
 
-					if (false == success)
-					{
+					if (false == success) {
 						return false;
 					}
 
@@ -5996,8 +5914,7 @@ namespace HPack
 					cur += nread;
 					dec.left -= nread;
 
-					if (false == success || dec.left > 0)
-					{
+					if (false == success || dec.left > 0) {
 						return false;
 					}
 
@@ -6017,8 +5934,7 @@ namespace HPack
 					cur += nread;
 					dec.left -= nread;
 
-					if (dec.left > 0)
-					{
+					if (dec.left > 0) {
 						return false;
 					}
 
@@ -6035,4 +5951,4 @@ namespace HPack
 
 		return true;
 	}
-};
+}

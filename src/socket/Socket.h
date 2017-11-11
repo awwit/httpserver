@@ -66,16 +66,14 @@ namespace Socket
 		bool operator ==(const Socket &obj) const noexcept;
 		bool operator !=(const Socket &obj) const noexcept;
 	};
-};
+}
 
 namespace std
 {
 	// Hash for Socket
-	template<> struct hash<Socket::Socket>
-	{
-		std::size_t operator()(const Socket::Socket &obj) const noexcept
-		{
+	template<> struct hash<Socket::Socket> {
+		std::size_t operator()(const Socket::Socket &obj) const noexcept {
 			return std::hash<System::native_socket_type>{}(obj.get_handle() );
 		}
 	};
-};
+}
