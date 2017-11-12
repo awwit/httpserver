@@ -38,10 +38,8 @@ namespace HttpServer
 		std::unique_ptr<ServerProtocol> prot;
 
 		// If request is HTTP/2 Stream
-		if (stream)
-		{
+		if (stream) {
 			prot.reset(new ServerHttp2Stream(sock, settings, controls, stream) );
-
 			return prot;
 		}
 
@@ -53,12 +51,10 @@ namespace HttpServer
 			{
 				const std::string protocol(reinterpret_cast<char *>(datum.data), datum.size);
 
-				if ("h2" == protocol)
-				{
+				if ("h2" == protocol) {
 					prot.reset(new ServerHttp2(sock, settings, controls, sockets) );
 				}
-				else if ("http/1.1" == protocol)
-				{
+				else if ("http/1.1" == protocol) {
 					prot.reset(new ServerHttp1(sock, settings, controls) );
 				}
 			}
@@ -78,15 +74,12 @@ namespace HttpServer
 	{
 		std::unique_ptr<ServerProtocol> prot = getProtocolVariant(sock, this->settings, this->controls, sockets, stream);
 
-		if (prot)
-		{
+		if (prot) {
 			// Check if switching protocol
-			for (ServerProtocol *ret = nullptr; ; )
-			{
+			for (ServerProtocol *ret = nullptr; ; ) {
 				ret = prot->process();
 
-				if (prot.get() == ret)
-				{
+				if (prot.get() == ret) {
 					break;
 				}
 
@@ -110,15 +103,13 @@ namespace HttpServer
 
 			eventThreadCycle.wait();
 
-			if (false == this->controls.process_flag)
-			{
+			if (this->controls.process_flag == false) {
 				break;
 			}
 
 			sockets.lock();
 
-			if (sockets.size() )
-			{
+			if (sockets.size() ) {
 				std::tie(sock, stream) = sockets.front();
 /*
 				sockaddr_in addr {};
@@ -128,10 +119,8 @@ namespace HttpServer
 				sockets.pop();
 			}
 
-			if (sockets.empty() )
-			{
+			if (sockets.empty() ) {
 				eventThreadCycle.reset();
-
 				this->controls.eventNotFullQueue->notify();
 			}
 
@@ -168,8 +157,7 @@ namespace HttpServer
 							std::get<gnutls_certificate_credentials_t>(data)
 						);
 
-						if (socket_adapter.handshake() )
-						{
+						if (socket_adapter.handshake() ) {
 							this->threadRequestProc(socket_adapter, sockets, nullptr);
 						}
 					}
@@ -195,19 +183,15 @@ namespace HttpServer
 
 		size_t threads_max_count = 0;
 
-		if (this->settings.global.cend() != it_option)
-		{
+		if (this->settings.global.cend() != it_option) {
 			const std::string &option = it_option->second;
-
 			threads_max_count = std::strtoull(option.c_str(), nullptr, 10);
 		}
 
-		if (0 == threads_max_count)
-		{
+		if (0 == threads_max_count) {
 			threads_max_count = std::thread::hardware_concurrency();
 
-			if (0 == threads_max_count)
-			{
+			if (0 == threads_max_count) {
 				threads_max_count = 1;
 			}
 
@@ -225,16 +209,13 @@ namespace HttpServer
 		active_threads.reserve(threads_max_count);
 
 		// For update applications modules
-		do
-		{
-			if (this->controls.eventUpdateModule->notifed() )
-			{
+		do {
+			if (this->controls.eventUpdateModule->notifed() ) {
 				updateModules();
 			}
 
 			// Cycle creation threads applications requests
-			do
-			{
+			do {
 				while (this->threads_working_count == active_threads.size() && active_threads.size() < threads_max_count && sockets.empty() == false)
 				{
 					active_threads.emplace_back(serverThreadRequestCycle, this, std::ref(sockets), std::ref(eventThreadCycle) );
@@ -242,8 +223,7 @@ namespace HttpServer
 
 				size_t notify_count = active_threads.size() - this->threads_working_count;
 
-				if (notify_count > sockets.size() )
-				{
+				if (notify_count > sockets.size() ) {
 					notify_count = sockets.size();
 				}
 
@@ -257,11 +237,9 @@ namespace HttpServer
 
 			eventThreadCycle.notify();
 
-			if (false == active_threads.empty() )
-			{
+			if (active_threads.empty() == false) {
 				// Join threads (wait completion)
-				for (auto &th : active_threads)
-				{
+				for (auto &th : active_threads) {
 					th.join();
 				}
 
@@ -285,16 +263,13 @@ namespace HttpServer
 			{
 				same.emplace(app);
 
-				try
-				{
-					if (app->application_final)
-					{
+				try {
+					if (app->application_final) {
 						const std::string root = app->root_dir;
 						app->application_final(root.data() );
 					}
 				}
-				catch (std::exception &exc)
-				{
+				catch (std::exception &exc) {
 					std::cout << "Warning: an exception was thrown when the application '" << app->server_module << "' was finishes: " << exc.what() << std::endl;
 				}
 
@@ -314,16 +289,14 @@ namespace HttpServer
 	#ifdef WIN32
 		std::ifstream src(app->server_module_update, std::ifstream::binary);
 
-		if ( ! src)
-		{
+		if ( ! src) {
 			std::cout << "Error: file '" << app->server_module_update << "' cannot be open;" << std::endl;
 			return false;
 		}
 
 		std::ofstream dst(module_name, std::ofstream::binary | std::ofstream::trunc);
 
-		if ( ! dst)
-		{
+		if ( ! dst) {
 			std::cout << "Error: file '" << module_name << "' cannot be open;" << std::endl;
 			return false;
 		}
@@ -345,27 +318,22 @@ namespace HttpServer
 
 		std::string module_name_temp;
 
-		if (std::string::npos != ext_pos && (std::string::npos == dir_pos || dir_pos < ext_pos) )
-		{
+		if (std::string::npos != ext_pos && (std::string::npos == dir_pos || dir_pos < ext_pos) ) {
 			module_name_temp = module_name.substr(0, ext_pos) + '-' + Utils::getUniqueName() + module_name.substr(ext_pos);
-		}
-		else
-		{
+		} else {
 			module_name_temp = module_name + '-' + Utils::getUniqueName();
 		}
 
 		std::ifstream src(app->server_module_update, std::ifstream::binary);
 
-		if ( ! src)
-		{
+		if ( ! src) {
 			std::cout << "Error: file '" << app->server_module_update << "' cannot be open;" << std::endl;
 			return false;
 		}
 
 		std::ofstream dst(module_name_temp, std::ofstream::binary | std::ofstream::trunc);
 
-		if ( ! dst)
-		{
+		if ( ! dst) {
 			std::cout << "Error: file '" << module_name << "' cannot be open;" << std::endl;
 			return false;
 		}
@@ -379,14 +347,12 @@ namespace HttpServer
 		// Open updated module
 		module.open(module_name_temp);
 
-		if (0 != std::remove(module_name.c_str() ) )
-		{
+		if (0 != std::remove(module_name.c_str() ) ) {
 			std::cout << "Error: file '" << module_name << "' could not be removed;" << std::endl;
 			return false;
 		}
 
-		if (0 != std::rename(module_name_temp.c_str(), module_name.c_str() ) )
-		{
+		if (0 != std::rename(module_name_temp.c_str(), module_name.c_str() ) ) {
 			std::cout << "Error: file '" << module_name_temp << "' could not be renamed;" << std::endl;
 			return false;
 		}
@@ -394,30 +360,26 @@ namespace HttpServer
 		#error "Undefined platform"
 	#endif
 
-		if (false == module.is_open() )
-		{
+		if (module.is_open() == false) {
 			std::cout << "Error: the application module '" << module_name << "' can not be opened;" << std::endl;
 			return false;
 		}
 
 		void *(*addr)(void *) = nullptr;
 
-		if (false == module.find("application_call", &addr) )
-		{
+		if (module.find("application_call", &addr) == false) {
 			std::cout << "Error: function 'application_call' was not found in the module '" << module_name << "';" << std::endl;
 			return false;
 		}
 
 		std::function<int(Transfer::app_request *, Transfer::app_response *)> app_call = reinterpret_cast<int(*)(Transfer::app_request *, Transfer::app_response *)>(addr);
 
-		if ( ! app_call)
-		{
+		if ( ! app_call) {
 			std::cout << "Error: invalid function 'application_call' is in the module '" << module_name << "';" << std::endl;
 			return false;
 		}
 
-		if (false == module.find("application_clear", &addr) )
-		{
+		if (module.find("application_clear", &addr) == false) {
 			std::cout << "Error: function 'application_clear' was not found in the module '" << module_name << "';" << std::endl;
 			return false;
 		}
@@ -426,15 +388,13 @@ namespace HttpServer
 
 		std::function<bool(const char *)> app_init = std::function<bool(const char *)>();
 
-		if (module.find("application_init", &addr) )
-		{
+		if (module.find("application_init", &addr) ) {
 			app_init = reinterpret_cast<bool(*)(const char *)>(addr);
 		}
 
 		std::function<void(const char *)> app_final = std::function<void(const char *)>();
 
-		if (module.find("application_final", &addr) )
-		{
+		if (module.find("application_final", &addr) ) {
 			app_final = reinterpret_cast<void(*)(const char *)>(addr);
 		}
 
@@ -445,16 +405,13 @@ namespace HttpServer
 			app->application_init = app_init;
 			app->application_final = app_final;
 
-			try
-			{
-				if (app->application_init)
-				{
+			try {
+				if (app->application_init) {
 					const std::string root = app->root_dir;
 					app->application_init(root.data() );
 				}
 			}
-			catch (std::exception &exc)
-			{
+			catch (std::exception &exc) {
 				std::cout << "Warning: an exception was thrown when the application '" << module_name << "' was initialized: " << exc.what() << std::endl;
 			}
 		}
@@ -478,7 +435,7 @@ namespace HttpServer
 			// If module is not updated (not checked)
 			if (updated.cend() == updated.find(module_index) )
 			{
-				if (false == app->server_module_update.empty() && app->server_module_update != app->server_module)
+				if (app->server_module_update.empty() == false && app->server_module_update != app->server_module)
 				{
 					size_t module_size_new = 0;
 					time_t module_time_new = 0;
@@ -490,10 +447,8 @@ namespace HttpServer
 
 						System::Module &module = this->modules[module_index];
 
-						if (System::getFileSizeAndTimeGmt(app->server_module, &module_size_cur, &module_time_cur) )
-						{
-							if (module_size_cur != module_size_new || module_time_cur < module_time_new)
-							{
+						if (System::getFileSizeAndTimeGmt(app->server_module, &module_size_cur, &module_time_cur) ) {
+							if (module_size_cur != module_size_new || module_time_cur < module_time_new) {
 								this->updateModule(module, applications, module_index);
 							}
 						}
@@ -532,10 +487,8 @@ namespace HttpServer
 	{
 		this->controls.clear();
 
-		if (false == this->tls_data.empty() )
-		{
-			for (auto &pair : this->tls_data)
-			{
+		if (this->tls_data.empty() == false) {
+			for (auto &pair : this->tls_data) {
 				std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data = pair.second;
 
 				::gnutls_certificate_free_credentials(std::get<gnutls_certificate_credentials_t>(data) );
@@ -545,10 +498,8 @@ namespace HttpServer
 
 		this->settings.clear();
 
-		if (false == this->modules.empty() )
-		{
-			for (auto &module : this->modules)
-			{
+		if (this->modules.empty() == false) {
+			for (auto &module : this->modules) {
 				module.close();
 			}
 
@@ -566,48 +517,41 @@ namespace HttpServer
 
 		int ret = ::gnutls_certificate_allocate_credentials(&x509_cred);
 
-		if (ret < 0)
-		{
+		if (ret < 0) {
 			std::cout << "Error [tls]: certificate credentials has not been allocated;" << std::endl;
-
 			return false;
 		}
 
-		if (false == app.chain_file.empty() )
+		if (app.chain_file.empty() == false)
 		{
 			ret = ::gnutls_certificate_set_x509_trust_file(x509_cred, app.chain_file.c_str(), GNUTLS_X509_FMT_PEM);
 
-			if (ret < 0)
-			{
+			if (ret < 0) {
 				std::cout << "Warning [tls]: (CA) chain file has not been accepted;" << std::endl;
 			}
 		}
 
-		if (false == app.crl_file.empty() )
+		if (app.crl_file.empty() == false)
 		{
 			ret = ::gnutls_certificate_set_x509_crl_file(x509_cred, app.crl_file.c_str(), GNUTLS_X509_FMT_PEM);
 
-			if (ret < 0)
-			{
+			if (ret < 0) {
 				std::cout << "Warning [tls]: (CLR) clr file has not been accepted;" << std::endl;
 			}
 		}
 
 		ret = ::gnutls_certificate_set_x509_key_file(x509_cred, app.cert_file.c_str(), app.key_file.c_str(), GNUTLS_X509_FMT_PEM);
 
-		if (ret < 0)
-		{
+		if (ret < 0) {
 			std::cout << "Error [tls]: (CERT) cert file or/and (KEY) key file has not been accepted;" << std::endl;
-
 			return false;
 		}
 
-		if (false == app.stapling_file.empty() )
+		if (app.stapling_file.empty() == false)
 		{
 			ret = ::gnutls_certificate_set_ocsp_status_request_file(x509_cred, app.stapling_file.c_str(), 0);
 
-			if (ret < 0)
-			{
+			if (ret < 0) {
 				std::cout << "Warning [tls]: (OCSP) stapling file has not been accepted;" << std::endl;
 			}
 		}
@@ -651,12 +595,9 @@ namespace HttpServer
 			dh_file.close();
 		}
 
-		if (ret < 0)
-		{
+		if (ret < 0) {
 			::gnutls_certificate_free_credentials(x509_cred);
-
 			std::cout << "Error [tls]: DH params were not loaded;" << std::endl;
-
 			return false;
 		}
 
@@ -666,12 +607,9 @@ namespace HttpServer
 
 		ret = ::gnutls_priority_init(&priority_cache, "NORMAL", nullptr);
 
-		if (ret < 0)
-		{
+		if (ret < 0) {
 			::gnutls_certificate_free_credentials(x509_cred);
-
 			std::cout << "Error [tls]: priority cache cannot be init;" << std::endl;
-
 			return false;
 		}
 
@@ -683,27 +621,23 @@ namespace HttpServer
 	bool Server::tryBindPort(const int port, std::unordered_set<int> &ports)
 	{
 		// Only unique ports
-		if (ports.cend() != ports.find(port) )
-		{
+		if (ports.cend() != ports.find(port) ) {
 			return false;
 		}
 
 		Socket::Socket sock;
 
-		if (false == sock.open() )
-		{
+		if (sock.open() == false) {
 			std::cout << "Error: socket cannot be open; errno " << Socket::Socket::getLastError() << ";" << std::endl;
 			return false;
 		}
 
-		if (false == sock.bind(port) )
-		{
+		if (sock.bind(port) == false) {
 			std::cout << "Error: port " << port << " cannot be bind; errno " << Socket::Socket::getLastError() << ";" << std::endl;
 			return false;
 		}
 
-		if (false == sock.listen() )
-		{
+		if (sock.listen() == false) {
 			std::cout << "Error: socket " << port << " cannot be listen; errno " << Socket::Socket::getLastError() << ";" << std::endl;
 			return false;
 		}
@@ -732,16 +666,12 @@ namespace HttpServer
 		{
 			const std::unordered_set<int> &tls = app->tls_ports;
 
-			if (false == tls.empty() )
-			{
+			if (tls.empty() == false) {
 				std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> data;
 
-				if (tlsInit(*app, data) )
-				{
-					for (const int port : tls)
-					{
-						if (this->tryBindPort(port, ports) )
-						{
+				if (tlsInit(*app, data) ) {
+					for (const int port : tls) {
+						if (this->tryBindPort(port, ports) ) {
 							this->tls_data.emplace(port, data);
 						}
 					}
@@ -750,8 +680,7 @@ namespace HttpServer
 
 			const std::unordered_set<int> &list = app->ports;
 
-			for (const int port : list)
-			{
+			for (const int port : list) {
 				this->tryBindPort(port, ports);
 			}
 		}
@@ -759,15 +688,13 @@ namespace HttpServer
 
 	int Server::run()
 	{
-		if (false == this->init() )
-		{
+		if (this->init() == false) {
 			return 0x10;
 		}
 
 		this->initAppsPorts();
 
-		if (this->liseners.empty() )
-		{
+		if (this->liseners.empty() ) {
 			std::cout << "Error: any socket was not open;" << std::endl;
 			this->clear();
 			return 0x20;
@@ -777,8 +704,7 @@ namespace HttpServer
 
 		sockets_list.create(this->liseners.size() );
 
-		for (auto const &sock : this->liseners)
-		{
+		for (auto const &sock : this->liseners) {
 			sockets_list.addSocket(sock);
 		}
 
@@ -799,8 +725,7 @@ namespace HttpServer
 		std::vector<Socket::Socket> accept_sockets;
 
 		// Cycle for receiving new connections
-		do
-		{
+		do {
 			if (sockets_list.accept(accept_sockets) )
 			{
 				sockets.lock();
@@ -827,8 +752,7 @@ namespace HttpServer
 
 				this->controls.eventProcessQueue->notify();
 
-				if (sockets.size() >= queue_max_length)
-				{
+				if (sockets.size() >= queue_max_length) {
 					this->controls.eventNotFullQueue->reset();
 				}
 
@@ -845,10 +769,8 @@ namespace HttpServer
 
 		sockets_list.destroy();
 
-		if (false == this->liseners.empty() )
-		{
-			for (Socket::Socket &sock : this->liseners)
-			{
+		if (this->liseners.empty() == false) {
+			for (Socket::Socket &sock : this->liseners) {
 				sock.close();
 			}
 
@@ -866,32 +788,26 @@ namespace HttpServer
 	{
 		for (int i = 1; i < argc; ++i)
 		{
-			if (0 == ::strcmp(argv[i], "--start") )
-			{
+			if (0 == ::strcmp(argv[i], "--start") ) {
 
 			}
-			else if (0 == ::strcmp(argv[i], "--force") )
-			{
+			else if (0 == ::strcmp(argv[i], "--force") ) {
 				st->force = true;
 			}
-			else if (argv[i] == ::strstr(argv[i], "--config-path=") )
-			{
+			else if (argv[i] == ::strstr(argv[i], "--config-path=") ) {
 				st->config_path = std::string(argv[i] + sizeof("--config-path=") - 1);
 			}
-			else if (argv[i] == ::strstr(argv[i], "--server-name=") )
-			{
+			else if (argv[i] == ::strstr(argv[i], "--server-name=") ) {
 				st->server_name = std::string(argv[i] + sizeof("--server-name=") - 1);
 			}
 			else
 			{
 				std::cout << "Argument '" << argv[i] << "' can't be applied with --start;" << std::endl;
-
 				return false;
 			}
 		}
 
-		if (st->server_name.empty() )
-		{
+		if (st->server_name.empty() ) {
 			st->server_name = argv[0];
 		}
 
@@ -904,23 +820,18 @@ namespace HttpServer
 	{
 		struct server_start_args st = {};
 
-		if (false == Server::get_start_args(argc, argv, &st) )
-		{
+		if (Server::get_start_args(argc, argv, &st) == false) {
 			return 0x1;
 		}
 
-		if (false == st.config_path.empty() )
-		{
-			if (false == System::changeCurrentDirectory(st.config_path) )
-			{
+		if (st.config_path.empty() == false) {
+			if (System::changeCurrentDirectory(st.config_path) == false) {
 				std::cout << "Configuration path '" << st.config_path << "' has not been found;" << std::endl;
-
 				return 0x2;
 			}
 		}
 
-		if (st.force)
-		{
+		if (st.force) {
 			System::SharedMemory::destroy(st.server_name);
 			System::GlobalMutex::destory(st.server_name);
 		}
@@ -930,16 +841,13 @@ namespace HttpServer
 
 		bool is_exists = false;
 
-		if (glob_mtx.open(st.server_name) )
-		{
+		if (glob_mtx.open(st.server_name) ) {
 			glob_mtx.lock();
 
-			if (glob_mem.open(st.server_name) )
-			{
+			if (glob_mem.open(st.server_name) ) {
 				System::native_processid_type pid = 0;
 
-				if (glob_mem.read(&pid, sizeof(pid) ) )
-				{
+				if (glob_mem.read(&pid, sizeof(pid) ) ) {
 					is_exists = System::isProcessExists(pid);
 				}
 			}
@@ -947,46 +855,34 @@ namespace HttpServer
 			glob_mtx.unlock();
 		}
 
-		if (is_exists)
-		{
+		if (is_exists) {
 			std::cout << "Server instance with the name '" << st.server_name << "' is already running;" << std::endl;
-
 			return 0x3;
 		}
 
-		if (false == glob_mtx.open(st.server_name) )
-		{
-			if (false == glob_mtx.create(st.server_name) )
-			{
+		if (glob_mtx.open(st.server_name) == false) {
+			if (glob_mtx.create(st.server_name) == false) {
 				std::cout << "Global mutex could not been created;" << std::endl;
-
 				return 0x4;
 			}
 		}
 
 		glob_mtx.lock();
 
-		if (false == glob_mem.open(st.server_name) )
-		{
-			if (false == glob_mem.create(st.server_name, sizeof(System::native_processid_type) ) )
-			{
+		if (glob_mem.open(st.server_name) == false) {
+			if (glob_mem.create(st.server_name, sizeof(System::native_processid_type) ) == false) {
 				glob_mtx.unlock();
-
 				std::cout << "Shared memory could not been allocated;" << std::endl;
-
 				return 0x5;
 			}
 		}
 
 		System::native_processid_type pid = System::getProcessId();
 
-		if (false == glob_mem.write(&pid, sizeof(pid) ) )
-		{
+		if (glob_mem.write(&pid, sizeof(pid) ) == false) {
 			glob_mem.destroy();
 			glob_mtx.unlock();
-
 			std::cout << "Writing data to shared memory has failed;" << std::endl;
-
 			return 0x6;
 		}
 
@@ -994,8 +890,7 @@ namespace HttpServer
 
 		int code = EXIT_FAILURE;
 
-		do
-		{
+		do {
 			this->controls.setProcess(false);
 			this->controls.setRestart(false);
 
@@ -1011,8 +906,7 @@ namespace HttpServer
 
 	static void close_liseners(std::vector<Socket::Socket> &liseners)
 	{
-		for (auto &sock : liseners)
-		{
+		for (auto &sock : liseners) {
 			sock.close();
 		}
 	}
@@ -1051,8 +945,7 @@ namespace HttpServer
 
 			glob_mtx.lock();
 
-			if (glob_mem.open(serverName) )
-			{
+			if (glob_mem.open(serverName) ) {
 				glob_mem.read(&pid, sizeof(pid) );
 			}
 
@@ -1084,17 +977,14 @@ namespace HttpServer
 	{
 		std::string server_name;
 
-		for (int i = 1; i < argc; ++i)
-		{
-			if (argv[i] == ::strstr(argv[i], "--server-name=") )
-			{
+		for (int i = 1; i < argc; ++i) {
+			if (argv[i] == ::strstr(argv[i], "--server-name=") ) {
 				server_name = std::string(argv[i] + sizeof("--server-name=") - 1);
 				break;
 			}
 		}
 
-		if (server_name.empty() )
-		{
+		if (server_name.empty() ) {
 			server_name = argv[0];
 		}
 
@@ -1107,8 +997,7 @@ namespace HttpServer
 	{
 		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc, argv) );
 
-		if (1 < pid && System::sendSignal(pid, SIGUSR1) )
-		{
+		if (1 < pid && System::sendSignal(pid, SIGUSR1) ) {
 			return EXIT_SUCCESS;
 		}
 
@@ -1119,8 +1008,7 @@ namespace HttpServer
 	{
 		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc, argv) );
 
-		if (1 < pid && System::sendSignal(pid, SIGTERM) )
-		{
+		if (1 < pid && System::sendSignal(pid, SIGTERM) ) {
 			return EXIT_SUCCESS;
 		}
 
@@ -1131,11 +1019,10 @@ namespace HttpServer
 	{
 		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc, argv) );
 
-		if (1 < pid && System::sendSignal(pid, SIGUSR2) )
-		{
+		if (1 < pid && System::sendSignal(pid, SIGUSR2) ) {
 			return EXIT_SUCCESS;
 		}
 
 		return EXIT_FAILURE;
 	}
-};
+}

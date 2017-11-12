@@ -13,8 +13,7 @@ namespace HttpServer
 
 	}
 
-	void ServerHttp2::close()
-	{
+	void ServerHttp2::close() {
 		this->sock.close();
 	}
 
@@ -32,8 +31,7 @@ namespace HttpServer
 	{
 		auto it = streams.find(streamId);
 
-		if (streams.end() != it)
-		{
+		if (streams.end() != it) {
 			return it->second;
 		}
 
@@ -56,18 +54,15 @@ namespace HttpServer
 
 	static Http2::ErrorCode parseHttp2Data(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
 	{
-		if (0 == meta.stream_id)
-		{
+		if (0 == meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
-		if (Http2::StreamState::OPEN != stream.state)
-		{
+		if (Http2::StreamState::OPEN != stream.state) {
 			return Http2::ErrorCode::STREAM_CLOSED;
 		}
 
-		if (stream.window_size_inc <= 0)
-		{
+		if (stream.window_size_inc <= 0) {
 			return Http2::ErrorCode::FLOW_CONTROL_ERROR;
 		}
 
@@ -77,8 +72,7 @@ namespace HttpServer
 		{
 			padding = *src;
 
-			if (padding >= meta.length)
-			{
+			if (padding >= meta.length) {
 				return Http2::ErrorCode::PROTOCOL_ERROR;
 			}
 
@@ -134,8 +128,7 @@ namespace HttpServer
 		{
 			padding = *src;
 
-			if (padding >= meta.length)
-			{
+			if (padding >= meta.length) {
 				return Http2::ErrorCode::PROTOCOL_ERROR;
 			}
 
@@ -155,8 +148,7 @@ namespace HttpServer
 			src += sizeof(uint8_t);
 		}
 
-		if (false == HPack::unpack(src, end - src - padding, stream) )
-		{
+		if (HPack::unpack(src, end - src - padding, stream) == false) {
 			return Http2::ErrorCode::COMPRESSION_ERROR;
 		}
 
@@ -165,27 +157,23 @@ namespace HttpServer
 
 	static Http2::ErrorCode parseHttp2rstStream(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
 	{
-		if (Http2::StreamState::IDLE == stream.state)
-		{
+		if (Http2::StreamState::IDLE == stream.state) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
 		stream.state = Http2::StreamState::CLOSED;
 
-		if (0 == meta.stream_id)
-		{
+		if (0 == meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
-		if (sizeof(uint32_t) != meta.length)
-		{
+		if (sizeof(uint32_t) != meta.length) {
 			return Http2::ErrorCode::FRAME_SIZE_ERROR;
 		}
 
 		const Http2::ErrorCode error_code = static_cast<const Http2::ErrorCode>(::ntohl(*reinterpret_cast<const uint32_t *>(src) ) );
 
-		if (Http2::ErrorCode::NO_ERROR != error_code)
-		{
+		if (Http2::ErrorCode::NO_ERROR != error_code) {
 			// DEBUG
 		}
 
@@ -194,18 +182,15 @@ namespace HttpServer
 
 	static Http2::ErrorCode parseHttp2Settings(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
 	{
-		if (0 != meta.stream_id)
-		{
+		if (0 != meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
-		if (meta.length % (sizeof(uint16_t) + sizeof(uint32_t) ) )
-		{
+		if (meta.length % (sizeof(uint16_t) + sizeof(uint32_t) ) ) {
 			return Http2::ErrorCode::FRAME_SIZE_ERROR;
 		}
 
-		if (Http2::StreamState::OPEN != stream.state)
-		{
+		if (Http2::StreamState::OPEN != stream.state) {
 			stream.state = Http2::StreamState::OPEN;
 		}
 
@@ -229,8 +214,7 @@ namespace HttpServer
 
 			case Http2::ConnectionSetting::SETTINGS_ENABLE_PUSH:
 			{
-				if (value > 1)
-				{
+				if (value > 1) {
 					return Http2::ErrorCode::PROTOCOL_ERROR;
 				}
 
@@ -245,8 +229,7 @@ namespace HttpServer
 
 			case Http2::ConnectionSetting::SETTINGS_INITIAL_WINDOW_SIZE:
 			{
-				if (value >= uint32_t(1 << 31) )
-				{
+				if (value >= uint32_t(1 << 31) ) {
 					return Http2::ErrorCode::FLOW_CONTROL_ERROR;
 				}
 
@@ -257,8 +240,7 @@ namespace HttpServer
 
 			case Http2::ConnectionSetting::SETTINGS_MAX_FRAME_SIZE:
 			{
-				if (value < (1 << 14) || value >= (1 << 24) )
-				{
+				if (value < (1 << 14) || value >= (1 << 24) ) {
 					return Http2::ErrorCode::PROTOCOL_ERROR;
 				}
 
@@ -281,8 +263,7 @@ namespace HttpServer
 
 	static Http2::ErrorCode parseHttp2GoAway(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
 	{
-		if (0 != meta.stream_id)
-		{
+		if (0 != meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
@@ -290,8 +271,7 @@ namespace HttpServer
 
 		const uint32_t last_stream_id = ::ntohl(*reinterpret_cast<const uint32_t *>(src) );
 
-		if (last_stream_id > 0)
-		{
+		if (last_stream_id > 0) {
 
 		}
 
@@ -299,8 +279,7 @@ namespace HttpServer
 
 		const Http2::ErrorCode error_code = static_cast<Http2::ErrorCode>(::ntohl(*reinterpret_cast<const uint32_t *>(src) ) );
 
-		if (Http2::ErrorCode::NO_ERROR != error_code)
-		{
+		if (Http2::ErrorCode::NO_ERROR != error_code) {
 
 		}
 
@@ -327,13 +306,11 @@ namespace HttpServer
 
 	static Http2::ErrorCode parseHttp2Ping(Http2::FrameMeta &meta)
 	{
-		if (0 != meta.stream_id)
-		{
+		if (0 != meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
-		if (sizeof(uint64_t) != meta.length)
-		{
+		if (sizeof(uint64_t) != meta.length) {
 			return Http2::ErrorCode::FRAME_SIZE_ERROR;
 		}
 
@@ -342,38 +319,30 @@ namespace HttpServer
 
 	static Http2::ErrorCode parseHttp2WindowUpdate(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
 	{
-		if (Http2::StreamState::RESERVED == stream.state)
-		{
+		if (Http2::StreamState::RESERVED == stream.state) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
-		else if (Http2::StreamState::OPEN != stream.state)
-		{
+		else if (Http2::StreamState::OPEN != stream.state) {
 			return Http2::ErrorCode::NO_ERROR;
 		}
 
-		if (sizeof(uint32_t) != meta.length)
-		{
+		if (sizeof(uint32_t) != meta.length) {
 			return Http2::ErrorCode::FRAME_SIZE_ERROR;
 		}
 
 		const uint32_t window_size_increment = ::ntohl(*reinterpret_cast<const uint32_t *>(src) );
 
-		if (0 == window_size_increment)
-		{
+		if (0 == window_size_increment) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
-		else if (window_size_increment >= uint32_t(1 << 31) )
-		{
+		else if (window_size_increment >= uint32_t(1 << 31) ) {
 			return Http2::ErrorCode::FLOW_CONTROL_ERROR;
 		}
 
-		if (0 == meta.stream_id)
-		{
+		if (0 == meta.stream_id) {
 			// TODO: update all streams
 			stream.window_size_out += window_size_increment;
-		}
-		else
-		{
+		} else {
 			stream.window_size_out += window_size_increment;
 		}
 
@@ -439,8 +408,7 @@ namespace HttpServer
 
 		const long read_size = sock.nonblock_recv(buf.data(), buf.size(), timeout);
 
-		if (read_size != buf.size() )
-		{
+		if (read_size != buf.size() ) {
 			return false;
 		}
 
@@ -478,15 +446,13 @@ namespace HttpServer
 	{
 		if (read_size <= static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) )
 		{
-			if (read_size == static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) )
-			{
+			if (read_size == static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) ) {
 				read_size = 0;
 			}
 
 			read_size = sock.nonblock_recv(buf.data() + read_size, buf.size() - read_size, timeout);
 
-			if (read_size < static_cast<long>(Http2::FRAME_HEADER_SIZE) )
-			{
+			if (read_size < static_cast<long>(Http2::FRAME_HEADER_SIZE) ) {
 				return false;
 			}
 		}
@@ -517,12 +483,9 @@ namespace HttpServer
 
 		sendEmptySettings(this->sock, req.timeout, conn, Http2::FrameFlag::EMPTY);
 
-		if (false == getClientPreface(this->sock, req.timeout) )
-		{
+		if (getClientPreface(this->sock, req.timeout) == false) {
 			constexpr uint32_t last_stream_id = 0;
-
 			goAway(this->sock, req.timeout, conn, last_stream_id, Http2::ErrorCode::PROTOCOL_ERROR);
-
 			return this;
 		}
 
@@ -544,32 +507,26 @@ namespace HttpServer
 		Http2::FrameMeta meta {};
 		long read_size = 0;
 
-		do
-		{
-			if (false == getNextHttp2FrameMeta(this->sock, req.timeout, buf, meta, read_size) )
-			{
+		do {
+			if (getNextHttp2FrameMeta(this->sock, req.timeout, buf, meta, read_size) == false) {
 				break;
 			}
 
 			const uint8_t *addr = reinterpret_cast<const uint8_t *>(buf.data() ) + Http2::FRAME_HEADER_SIZE;
 			const uint8_t *end = addr + meta.length;
 
-			if (meta.stream_id > last_stream_id)
-			{
+			if (meta.stream_id > last_stream_id) {
 				last_stream_id = meta.stream_id;
 			}
 
 			Http2::IncStream &stream = getStreamData(streams, meta.stream_id, conn);
 
-			if (Http2::StreamState::CLOSED == stream.state)
-			{
+			if (Http2::StreamState::CLOSED == stream.state) {
 				rstStream(this->sock, req.timeout, stream, Http2::ErrorCode::STREAM_CLOSED);
-
 				continue;
 			}
 
-			if (meta.type != Http2::FrameType::CONTINUATION)
-			{
+			if (meta.type != Http2::FrameType::CONTINUATION) {
 				stream.frame_type = meta.type;
 			}
 
@@ -591,8 +548,7 @@ namespace HttpServer
 					{
 						size_t update_size = conn.server_settings.initial_window_size + (dr->full_size - dr->recv_total) - stream.window_size_inc;
 
-						if (update_size > Http2::MAX_WINDOW_UPDATE)
-						{
+						if (update_size > Http2::MAX_WINDOW_UPDATE) {
 							update_size = Http2::MAX_WINDOW_UPDATE;
 						}
 
@@ -616,10 +572,8 @@ namespace HttpServer
 
 					stream.reserved = createDataReceiver(rd, this->settings.variants);
 
-					if (stream.reserved)
-					{
+					if (stream.reserved) {
 						DataVariant::DataReceiver *dr = reinterpret_cast<DataVariant::DataReceiver *>(stream.reserved);
-
 						dr->reserved = new std::string();
 					}
 				}
@@ -661,7 +615,6 @@ namespace HttpServer
 				if (Http2::ErrorCode::NO_ERROR == result && false == (meta.flags & Http2::FrameFlag::ACK) )
 				{
 					const uint64_t ping_data = *reinterpret_cast<const uint64_t *>(addr);
-
 					ping(this->sock, req.timeout, conn, ping_data);
 				}
 
@@ -711,18 +664,16 @@ namespace HttpServer
 		}
 		while (Http2::StreamState::CLOSED != primary.state);
 
-		while (conn.sync.completed.load() < streams_process_count)
-		{
+		while (conn.sync.completed.load() < streams_process_count) {
 			conn.sync.event.wait();
 		}
 
 		goAway(this->sock, req.timeout, conn, last_stream_id, Http2::ErrorCode::NO_ERROR);
 
-		for (auto &pair : streams)
-		{
+		for (auto &pair : streams) {
 			destroyDataReceiver(pair.second.reserved);
 		}
 
 		return this;
 	}
-};
+}

@@ -40,4 +40,4 @@ namespace Socket
 
 		bool recv(std::vector<Socket> &sockets, std::vector<Socket> &errors, std::chrono::milliseconds timeout = std::chrono::milliseconds(~0) ) const noexcept;
 	};
-};
+}

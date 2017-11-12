@@ -289,7 +289,7 @@ namespace Socket
 		return recv_len;
 	}
 
-	void Socket::nonblock_recv_sync() const noexcept
+	void Socket::nonblock_recv_sync(const std::chrono::milliseconds &timeout) const noexcept
 	{
 	#ifdef WIN32
 		WSAPOLLFD event = {
@@ -298,7 +298,7 @@ namespace Socket
 			0
 		};
 
-		::WSAPoll(&event, 1, ~0);
+		::WSAPoll(&event, 1, timeout.count() );
 	#elif POSIX
 		struct ::pollfd event = {
 			this->socket_handle,
@@ -306,7 +306,7 @@ namespace Socket
 			0
 		};
 
-		::poll(&event, 1, ~0);
+		::poll(&event, 1, timeout.count() );
 	#else
 		#error "Undefine platform"
 	#endif

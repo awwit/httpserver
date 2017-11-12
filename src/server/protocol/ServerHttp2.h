@@ -18,4 +18,4 @@ namespace HttpServer
 		virtual ServerProtocol *process() override;
 		virtual void close() override;
 	};
-};
+}

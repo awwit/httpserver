@@ -34,8 +34,7 @@ namespace Socket
 	#endif
 	}
 
-	List::~List() noexcept
-	{
+	List::~List() noexcept {
 		this->destroy();
 	}
 
@@ -46,8 +45,7 @@ namespace Socket
 	#ifdef WIN32
 		this->obj_list = (HANDLE) 1;
 
-		if (startListSize > 0)
-		{
+		if (startListSize > 0) {
 			this->poll_events.reserve(startListSize);
 		}
 
@@ -55,13 +53,11 @@ namespace Socket
 	#elif POSIX
 		this->obj_list = ::epoll_create(startListSize);
 
-		if (this->obj_list == ~0)
-		{
+		if (this->obj_list == ~0) {
 			return false;
 		}
 
-		if (startListSize > 0)
-		{
+		if (startListSize > 0) {
 			this->epoll_events.reserve(startListSize);
 		}
 
@@ -101,8 +97,7 @@ namespace Socket
 
 	bool List::addSocket(const Socket &sock) noexcept
 	{
-		if (false == this->is_created() )
-		{
+		if (this->is_created() == false) {
 			return false;
 		}
 
@@ -124,8 +119,7 @@ namespace Socket
 
 		const int result = ::epoll_ctl(this->obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
 
-		if (result == ~0)
-		{
+		if (result == ~0) {
 			return false;
 		}
 
@@ -139,16 +133,13 @@ namespace Socket
 
 	bool List::removeSocket(const Socket &sock) noexcept
 	{
-		if (false == this->is_created() )
-		{
+		if (this->is_created() == false) {
 			return false;
 		}
 
 	#ifdef WIN32
-		for (size_t i = 0; i < poll_events.size(); ++i)
-		{
-			if (sock.get_handle() == poll_events[i].fd)
-			{
+		for (size_t i = 0; i < poll_events.size(); ++i) {
+			if (sock.get_handle() == poll_events[i].fd) {
 				poll_events.erase(poll_events.begin() + i);
 				return true;
 			}
@@ -158,8 +149,7 @@ namespace Socket
 	#elif POSIX
 		const int result = ::epoll_ctl(this->obj_list, EPOLL_CTL_DEL, sock.get_handle(), nullptr);
 
-		if (result == ~0)
-		{
+		if (result == ~0) {
 			return false;
 		}
 
@@ -178,8 +168,7 @@ namespace Socket
 		#ifdef WIN32
 			const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), ~0);
 
-			if (SOCKET_ERROR == count)
-			{
+			if (SOCKET_ERROR == count) {
 				return false;
 			}
 
@@ -191,12 +180,10 @@ namespace Socket
 				{
 					System::native_socket_type client_socket = ~0;
 
-					do
-					{
+					do {
 						client_socket = ::accept(event.fd, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
 
-						if (~0 != client_socket)
-						{
+						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
 						}
 					}
@@ -208,8 +195,7 @@ namespace Socket
 		#elif POSIX
 			const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
 
-			if (count == ~0)
-			{
+			if (count == ~0) {
 				return false;
 			}
 
@@ -221,12 +207,10 @@ namespace Socket
 				{
 					System::native_socket_type client_socket = ~0;
 
-					do
-					{
+					do {
 						client_socket = ::accept(event.data.fd, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
 
-						if (~0 != client_socket)
-						{
+						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
 						}
 					}
@@ -250,8 +234,7 @@ namespace Socket
 		#ifdef WIN32
 			const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), ~0);
 
-			if (SOCKET_ERROR == count)
-			{
+			if (SOCKET_ERROR == count) {
 				return false;
 			}
 
@@ -263,15 +246,13 @@ namespace Socket
 				{
 					System::native_socket_type client_socket = ~0;
 
-					do
-					{
+					do {
 						::sockaddr_in client_addr {};
 						socklen_t client_addr_len = sizeof(client_addr);
 
 						client_socket = ::accept(event.fd, reinterpret_cast<::sockaddr *>(&client_addr), &client_addr_len);
 
-						if (~0 != client_socket)
-						{
+						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
 							socketsAddress.emplace_back(client_addr);
 						}
@@ -284,8 +265,7 @@ namespace Socket
 		#elif POSIX
 			const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
 
-			if (count == ~0)
-			{
+			if (count == ~0) {
 				return false;
 			}
 
@@ -297,15 +277,13 @@ namespace Socket
 				{
 					System::native_socket_type client_socket = ~0;
 
-					do
-					{
+					do {
 						::sockaddr_in client_addr {};
 						socklen_t client_addr_len = sizeof(client_addr);
 
 						client_socket = ::accept(event.data.fd, reinterpret_cast<::sockaddr *>(&client_addr), &client_addr_len);
 
-						if (~0 != client_socket)
-						{
+						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
 							socketsAddress.emplace_back(client_addr);
 						}
@@ -325,16 +303,14 @@ namespace Socket
 
 	bool List::recv(std::vector<Socket> &sockets, std::vector<Socket> &disconnected, std::chrono::milliseconds timeout) const noexcept
 	{
-		if (false == this->is_created() )
-		{
+		if (this->is_created() == false) {
 			return false;
 		}
 
 	#ifdef WIN32
 		const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), static_cast<::INT>(timeout.count() ) );
 
-		if (SOCKET_ERROR == count)
-		{
+		if (SOCKET_ERROR == count) {
 			return false;
 		}
 
@@ -342,12 +318,10 @@ namespace Socket
 		{
 			const WSAPOLLFD &event = this->poll_events[i];
 
-			if (event.revents & POLLRDNORM)
-			{
+			if (event.revents & POLLRDNORM) {
 				sockets.emplace_back(Socket(event.fd) );
 			}
-			else if (event.revents & POLLHUP)
-			{
+			else if (event.revents & POLLHUP) {
 				disconnected.emplace_back(Socket(event.fd) );
 			}
 		}
@@ -356,8 +330,7 @@ namespace Socket
 	#elif POSIX
 		const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), timeout.count() );
 
-		if (count == ~0)
-		{
+		if (count == ~0) {
 			return false;
 		}
 
@@ -365,12 +338,10 @@ namespace Socket
 		{
 			const epoll_event &event = this->epoll_events[i];
 
-			if (event.events & EPOLLIN)
-			{
+			if (event.events & EPOLLIN) {
 				sockets.emplace_back(Socket(event.data.fd) );
 			}
-			else if (event.events & EPOLLRDHUP)
-			{
+			else if (event.events & EPOLLRDHUP) {
 				disconnected.emplace_back(Socket(event.data.fd) );
 			}
 		}
@@ -380,4 +351,4 @@ namespace Socket
 		#error "Undefine platform"
 	#endif
 	}
-};
+}

@@ -82,8 +82,9 @@ namespace Socket
 
 			do {
 				sock.nonblock_send_sync();
+				send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size);
 			}
-			while (GNUTLS_E_AGAIN == (send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size) ) );
+			while (GNUTLS_E_AGAIN == send_size);
 
 			if (send_size < 0) {
 				return send_size;
@@ -116,10 +117,10 @@ namespace Socket
 		long result;
 
 		do {
-			sock.nonblock_recv_sync();
+			sock.nonblock_recv_sync(timeout);
 			result = ::gnutls_record_recv(this->session, buf, length);
 		}
-		while (result == GNUTLS_E_AGAIN || result == GNUTLS_E_INTERRUPTED);
+		while (result == GNUTLS_E_INTERRUPTED);
 
 		return result;
 	}
