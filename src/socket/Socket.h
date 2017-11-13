@@ -51,7 +51,7 @@ namespace Socket
 		long nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const noexcept;
 		long nonblock_recv(void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept;
 
-		void nonblock_recv_sync(const std::chrono::milliseconds &timeout) const noexcept;
+		bool nonblock_recv_sync(const std::chrono::milliseconds &timeout) const noexcept;
 
 		long send(const std::string &buf) const noexcept;
 		long send(const void *buf, const size_t length) const noexcept;

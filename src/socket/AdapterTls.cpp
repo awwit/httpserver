@@ -76,8 +76,6 @@ namespace Socket
 				record_size = length - total;
 			}
 
-		//	const long send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size);
-
 			long send_size = 0;
 
 			do {
@@ -110,17 +108,18 @@ namespace Socket
 
 	long AdapterTls::nonblock_recv(void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
 	{
-	//	::gnutls_record_set_timeout(this->session, static_cast<const unsigned int>(timeout.count() ) );
-
 		Socket sock(this->get_handle() );
 
 		long result;
 
 		do {
-			sock.nonblock_recv_sync(timeout);
+			if (sock.nonblock_recv_sync(timeout) == false) {
+				break;
+			}
+
 			result = ::gnutls_record_recv(this->session, buf, length);
 		}
-		while (result == GNUTLS_E_INTERRUPTED);
+		while (GNUTLS_E_AGAIN == result ||GNUTLS_E_INTERRUPTED == result);
 
 		return result;
 	}
