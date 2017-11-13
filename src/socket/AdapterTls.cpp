@@ -114,12 +114,14 @@ namespace Socket
 
 		do {
 			if (sock.nonblock_recv_sync(timeout) == false) {
+				// Timeout
+				result = -1;
 				break;
 			}
 
 			result = ::gnutls_record_recv(this->session, buf, length);
 		}
-		while (GNUTLS_E_AGAIN == result ||GNUTLS_E_INTERRUPTED == result);
+		while (GNUTLS_E_AGAIN == result || GNUTLS_E_INTERRUPTED == result);
 
 		return result;
 	}
