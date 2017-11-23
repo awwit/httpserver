@@ -24,7 +24,7 @@ $(BUILDDIR):
 	$(MKDIR) $@
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CXX)  $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(OBJECTS) : $(OBJDIR)/%.o : $(SOURCEDIR)/%.cpp
 	@$(MKDIR) $(dir $@)
