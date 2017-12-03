@@ -7,6 +7,13 @@
 
 namespace HttpServer
 {
+	enum  ConfigFileDataState
+	{
+		CONFIGFILEDATASNONE = 0,
+		CONFIGFILEDATASNOTE,     //comment
+		CONFIGFILEDATASTYPE, 
+		
+	};
 	class ConfigParser
 	{
 	private:

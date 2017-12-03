@@ -412,58 +412,92 @@ namespace HttpServer
 		const std::string str_buf(buf.cbegin(), buf.cend() );
 
 		size_t cur_pos = 0;
-		size_t end_pos = str_buf.find('\n', cur_pos);
 
-		while (std::string::npos != end_pos)
+		ConfigFileDataState dataState = CONFIGFILEDATASNONE;
+
+		while (std::string::npos != cur_pos)
 		{
-			cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-			size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
-
-			if (delimiter < end_pos)
+			//std::cout << "parse Mine dataState: " << dataState << std::endl;
+			switch(dataState)
 			{
-				std::string mime_type = str_buf.substr(cur_pos, delimiter - cur_pos);
+				case CONFIGFILEDATASNONE:
 
-				if ('#' != mime_type.front() )
-				{
-					delimiter = str_buf.find_first_not_of(whitespace, delimiter);
-
-					if (delimiter < end_pos)
+				case CONFIGFILEDATASNOTE:
+					
 					{
-						std::string ext = str_buf.substr(delimiter, end_pos - delimiter);
-
-						delimiter = ext.find_first_of(whitespace);
-
-						if (std::string::npos != delimiter)
+						cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
+						if (cur_pos < 0)
 						{
-							for (size_t ext_pos = 0; std::string::npos != ext_pos; )
+							return true;
+						}
+
+						//start from next line
+						if ('#' == buf[cur_pos])
+						{
+							//last line
+							cur_pos = str_buf.find_first_of("\n", cur_pos);
+							if (cur_pos < 0)
 							{
-								std::string ext_unit = ext.substr(ext_pos, std::string::npos != delimiter ? delimiter - ext_pos : std::string::npos);
-
-								if (false == ext_unit.empty() )
-								{
-									mimes_types.emplace(std::move(ext_unit), mime_type);
-								}
-
-								ext_pos = ext.find_first_not_of(whitespace, delimiter);
-
-								delimiter = ext.find_first_of(whitespace, ext_pos);
+								return true;
 							}
+
+							cur_pos += 1;
+
+							dataState = CONFIGFILEDATASNOTE;
+						}
+						else if ('\n' == buf[cur_pos])
+						{
+							cur_pos += 1;
+							dataState = CONFIGFILEDATASNONE;
 						}
 						else
 						{
-							mimes_types.emplace(std::move(ext), std::move(mime_type) );
+							dataState = CONFIGFILEDATASTYPE;
 						}
 					}
-				}
+					break;
+				case CONFIGFILEDATASTYPE:
+					{
+						size_t delimiter = str_buf.find_first_of("\n", cur_pos);
+						std::string strLine = str_buf.substr(cur_pos, delimiter - cur_pos);
+						
+						//get mimetypes 
+						{
+							size_t ext_pos = strLine.find_first_of(whitespace, 0);
+							if (ext_pos < 0)
+							{
+								return false;
+							}
+							std::string strExt = strLine.substr(0, ext_pos);
+							size_t extUnitPos = strLine.find_first_not_of(whitespace, ext_pos);
+							std::string strExtUnit =  strLine.substr(extUnitPos, strLine.length() - extUnitPos);
+
+							mimes_types.emplace(std::move(strExt), std::move(strExtUnit));
+
+							//std::cout << strExt << " " << strExtUnit << std::endl;
+						}
+						
+						//change line 
+						cur_pos = str_buf.find_first_of("\n", cur_pos);
+						if (cur_pos < 0)
+						{
+							return true;
+						}
+
+						cur_pos += 1;
+
+						dataState = CONFIGFILEDATASNONE;
+						
+					}
+					break;
+				default:
+					break;
 			}
-
-			cur_pos = end_pos + 1;
-
-			end_pos = str_buf.find('\n', cur_pos);
 		}
-
+		
 		return true;
 	}
+
 
 	static size_t findBlockEnd(const std::string &str_buf, size_t str_pos)
 	{
