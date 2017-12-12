@@ -12,8 +12,16 @@ namespace HttpServer
 		CONFIGFILEDATASNONE = 0,
 		CONFIGFILEDATASNOTE,     //comment
 		CONFIGFILEDATASTYPE, 
-		
+		//CONFIGFILEDATAGLOBAL,
+		CONFIGFILEDATAINBLOCK,       //in block
 	};
+	enum InBlockDataState
+	{
+		INBLOCKNONE,  //in block none 
+		INBLOCKNOTE,  //in block note
+		INBLOCKTPYE,  //in block type
+	};
+		
 	class ConfigParser
 	{
 	private:
