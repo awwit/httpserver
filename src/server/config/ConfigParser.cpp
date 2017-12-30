@@ -7,6 +7,8 @@
 #include <iostream>
 #include <fstream>
 
+const long FILESIZE = 1024 * 1024;
+
 namespace HttpServer
 {
 	/**
@@ -14,6 +16,7 @@ namespace HttpServer
 	 */
 	bool ConfigParser::includeConfigFile(const std::string &fileName, std::string &strBuf, const std::size_t offset)
 	{
+		std:: cout << "config file name: " << fileName << std::endl;
 		std::ifstream file(fileName);
 
 		if ( ! file)
@@ -29,7 +32,7 @@ namespace HttpServer
 		std::streamsize file_size = file.tellg();
 		file.seekg(0, std::ifstream::beg);
 
-		constexpr std::streamsize file_size_max = 2 * 1024 * 1024;
+		constexpr std::streamsize file_size_max = 2 * FILESIZE;
 
 		if (file_size_max < file_size)
 		{
@@ -412,58 +415,92 @@ namespace HttpServer
 		const std::string str_buf(buf.cbegin(), buf.cend() );
 
 		size_t cur_pos = 0;
-		size_t end_pos = str_buf.find('\n', cur_pos);
 
-		while (std::string::npos != end_pos)
+		ConfigFileDataState dataState = CONFIGFILEDATASNONE;
+
+		while (std::string::npos != cur_pos)
 		{
-			cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-			size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
-
-			if (delimiter < end_pos)
+			//std::cout << "parse Mine dataState: " << dataState << std::endl;
+			switch(dataState)
 			{
-				std::string mime_type = str_buf.substr(cur_pos, delimiter - cur_pos);
+				case CONFIGFILEDATASNONE:
 
-				if ('#' != mime_type.front() )
-				{
-					delimiter = str_buf.find_first_not_of(whitespace, delimiter);
-
-					if (delimiter < end_pos)
+				case CONFIGFILEDATASNOTE:
+					
 					{
-						std::string ext = str_buf.substr(delimiter, end_pos - delimiter);
-
-						delimiter = ext.find_first_of(whitespace);
-
-						if (std::string::npos != delimiter)
+						cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
+						if (cur_pos == std::string::npos)
 						{
-							for (size_t ext_pos = 0; std::string::npos != ext_pos; )
+							return true;
+						}
+
+						//start from next line
+						if ('#' == buf[cur_pos])
+						{
+							//last line
+							cur_pos = str_buf.find_first_of("\n", cur_pos);
+							if (cur_pos == std::string::npos)
 							{
-								std::string ext_unit = ext.substr(ext_pos, std::string::npos != delimiter ? delimiter - ext_pos : std::string::npos);
-
-								if (false == ext_unit.empty() )
-								{
-									mimes_types.emplace(std::move(ext_unit), mime_type);
-								}
-
-								ext_pos = ext.find_first_not_of(whitespace, delimiter);
-
-								delimiter = ext.find_first_of(whitespace, ext_pos);
+								return true;
 							}
+
+							cur_pos += 1;
+
+							dataState = CONFIGFILEDATASNOTE;
+						}
+						else if ('\n' == buf[cur_pos])
+						{
+							cur_pos += 1;
+							dataState = CONFIGFILEDATASNONE;
 						}
 						else
 						{
-							mimes_types.emplace(std::move(ext), std::move(mime_type) );
+							dataState = CONFIGFILEDATASTYPE;
 						}
 					}
-				}
+					break;
+				case CONFIGFILEDATASTYPE:
+					{
+						size_t delimiter = str_buf.find_first_of("\n", cur_pos);
+						std::string strLine = str_buf.substr(cur_pos, delimiter - cur_pos);
+						
+						//get mimetypes 
+						{
+							size_t ext_pos = strLine.find_first_of(whitespace, 0);
+							if (ext_pos == std::string::npos)
+							{
+								return false;
+							}
+							std::string strExt = strLine.substr(0, ext_pos);
+							size_t extUnitPos = strLine.find_first_not_of(whitespace, ext_pos);
+							std::string strExtUnit =  strLine.substr(extUnitPos, strLine.length() - extUnitPos);
+
+							mimes_types.emplace(std::move(strExt), std::move(strExtUnit));
+
+							//std::cout << strExt << " " << strExtUnit << std::endl;
+						}
+						
+						//change line 
+						cur_pos = str_buf.find_first_of("\n", cur_pos);
+						if (cur_pos == std::string::npos)
+						{
+							return true;
+						}
+
+						cur_pos += 1;
+
+						dataState = CONFIGFILEDATASNONE;
+						
+					}
+					break;
+				default:
+					break;
 			}
-
-			cur_pos = end_pos + 1;
-
-			end_pos = str_buf.find('\n', cur_pos);
 		}
-
+		
 		return true;
 	}
+
 
 	static size_t findBlockEnd(const std::string &str_buf, size_t str_pos)
 	{
@@ -500,6 +537,7 @@ namespace HttpServer
 	 */
 	bool ConfigParser::loadConfig(const std::string &conf_file_name, ServerSettings &settings, std::vector<System::Module> &modules)
 	{
+		//std::cout << "enter loadCofig" << std::endl;
 		std::string str_buf;
 
 		if (false == includeConfigFile(conf_file_name, str_buf) )
@@ -516,163 +554,238 @@ namespace HttpServer
 		const std::string whitespace(" \t\n\v\f\r");
 
 		size_t cur_pos = 0;
-		size_t end_pos = str_buf.find(';', cur_pos);
-		size_t block_pos = 0;
 
-		while (std::string::npos != end_pos)
+		ConfigFileDataState dataState = CONFIGFILEDATASNONE;
+		InBlockDataState inBlockState = INBLOCKNONE;
+
+		std::unordered_multimap<std::string, std::string> app;
+
+		int iStatus = 0;
+		while (std::string::npos != cur_pos)
 		{
-			block_pos = str_buf.find('{', cur_pos);
-
-			if (end_pos < block_pos)
+			//std::cout << "parse Mine dataState: " << dataState << std::endl;
+			if (iStatus == 1 || iStatus == 2)
 			{
-				cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-				size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
-
-				if (delimiter < end_pos)
-				{
-					std::string param_name = str_buf.substr(cur_pos, delimiter - cur_pos);
-
-					if ('#' != param_name.front() )
-					{
-						cur_pos = str_buf.find_first_not_of(whitespace, delimiter + 1);
-						delimiter = str_buf.find_last_not_of(whitespace, end_pos);
-
-						std::string param_value = str_buf.substr(cur_pos, delimiter - cur_pos);
-
-						if ("include" == param_name)
-						{
-							this->includeConfigFile(param_value, str_buf, end_pos + 1);
-						}
-						else
-						{
-							global.emplace(std::move(param_name), std::move(param_value) );
-						}
-					}
-					else // if comment line
-					{
-						end_pos = str_buf.find_first_of("\r\n", cur_pos);
-					}
-				}
-
-				cur_pos = end_pos;
-
-				if (std::string::npos != cur_pos)
-				{
-					++cur_pos;
-				}
+				break;
 			}
-			else if (std::string::npos != block_pos)
+
+			switch (dataState)
 			{
-				cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-				size_t delimiter = str_buf.find_first_of(whitespace, cur_pos);
+				case CONFIGFILEDATASNONE:
 
-				const std::string block_type_name = str_buf.substr(cur_pos, delimiter - cur_pos);
-
-				if ('#' != block_type_name.front() )
-				{
-					delimiter = str_buf.find_first_not_of(whitespace, delimiter);
-
-					cur_pos = block_pos + 1;
-					size_t block_end = findBlockEnd(str_buf, cur_pos);
-
-					if (std::string::npos == block_end)
+				case CONFIGFILEDATASNOTE:
 					{
-						std::cout << "Error: symbol '}' after '" << block_type_name << "' has not been found;" << std::endl
-							<< "Parsing config aborted;" << std::endl;
-
-						return false;
-					}
-					else if (delimiter == block_pos)
-					{
-						if ("server" == block_type_name)
+						cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
+						if (cur_pos == std::string::npos)
 						{
-							std::unordered_multimap<std::string, std::string> app;
+							iStatus = 1;
+						}
 
-							end_pos = str_buf.find(';', cur_pos);
-
-							while (block_end > end_pos)
+						//start from next line
+						if ('#' == str_buf[cur_pos])
+						{
+							//last line
+							cur_pos = str_buf.find_first_of("\n", cur_pos);
+							if (cur_pos == std::string::npos)
 							{
-								cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
-								delimiter = str_buf.find_first_of(whitespace, cur_pos);
-
-								if (delimiter < end_pos)
-								{
-									std::string param_name = str_buf.substr(cur_pos, delimiter - cur_pos);
-
-									if ('#' != param_name.front() )
-									{
-										cur_pos = str_buf.find_first_not_of(whitespace, delimiter + 1);
-										delimiter = str_buf.find_last_not_of(whitespace, end_pos);
-
-										std::string param_value = str_buf.substr(cur_pos, delimiter - cur_pos);
-
-										if ("include" == param_name)
-										{
-											cur_pos = end_pos + 1;
-											this->includeConfigFile(param_value, str_buf, cur_pos);
-											block_end = findBlockEnd(str_buf, cur_pos);
-										}
-										else
-										{
-											app.emplace(std::move(param_name), std::move(param_value) );
-										}
-									}
-									else // if comment line
-									{
-										end_pos = str_buf.find_first_of("\r\n", cur_pos);
-									}
-								}
-
-								if (std::string::npos != end_pos)
-								{
-									++end_pos;
-								}
-
-								cur_pos = end_pos;
-
-								end_pos = str_buf.find(';', cur_pos);
+								iStatus = 1;
 							}
 
-							applications.emplace_back(std::move(app) );
+							cur_pos += 1;
+
+							dataState = CONFIGFILEDATASNOTE;
+						}
+						else if ('\n' == str_buf[cur_pos])
+						{
+							cur_pos += 1;
+							dataState = CONFIGFILEDATASNONE;
 						}
 						else
 						{
-							std::cout << "Warning: " << block_type_name << " - unknown block type;" << std::endl;
+							dataState = CONFIGFILEDATASTYPE;
 						}
 					}
-					else
+					break;
+				case CONFIGFILEDATASTYPE:
 					{
-						std::cout << "Warning: after " << block_type_name << " expected '{' ;" << std::endl;
+						//in app and main config file "; and \n " has different meaning
+						size_t delimiter = str_buf.find_first_of("\n", cur_pos);
+						//std:: cout << "str_buf.length()" << str_buf.length() << " delimiter " << delimiter
+						//		   << " cur_pos " << cur_pos << std::endl;
+						//std::cout << "npos: " << std::string::npos << std::endl;
+						if (delimiter == std::string::npos)
+						{
+							iStatus = 1;
+						}
+
+						std::string strLine = str_buf.substr(cur_pos, delimiter - cur_pos);
+						//std::cout << "strLine: " << strLine << std::endl;
+						do {
+							size_t ext_pos = strLine.find_first_of(whitespace, 0);
+							if (ext_pos == std::string::npos)
+							{
+								iStatus = 2;
+							}
+							std::string param_name = strLine.substr(0, ext_pos);
+							size_t extUnitPos = strLine.find_first_not_of(whitespace, ext_pos);
+
+							//mines the last ";"
+							std::string param_value;
+							if (strLine[strLine.length() - 1] == ';')
+							{
+								param_value =  strLine.substr(extUnitPos, strLine.length() - extUnitPos - 1);
+							}
+							else
+							{
+								param_value =  strLine.substr(extUnitPos, strLine.length() - extUnitPos);
+							}
+
+							//std::cout << param_name << " " << param_value << std::endl;
+							if (param_name == "server" && param_value == "{")
+							{
+								dataState = CONFIGFILEDATAINBLOCK;
+								inBlockState = INBLOCKNONE;
+							}
+							else if(param_name == "include")
+							{
+								this->loadConfig(param_value, settings, modules);
+								dataState = CONFIGFILEDATASNONE;
+							}
+							else
+							{
+								global.emplace(std::move(param_name), std::move(param_value) );
+								dataState = CONFIGFILEDATASNONE;
+							}
+							break;
+						} while (1);
+
+						//change line 
+						cur_pos = str_buf.find_first_of("\n", cur_pos);
+						if (cur_pos == std::string::npos)
+						{
+							iStatus = 1;
+						}
+
+						cur_pos += 1;
 					}
-
-					cur_pos = block_end;
-
-					if (std::string::npos != cur_pos)
+					break;
+				case CONFIGFILEDATAINBLOCK:
 					{
-						++cur_pos;
+						switch(inBlockState)
+						{
+							case INBLOCKNONE:
+							case INBLOCKNOTE:
+								{
+									cur_pos = str_buf.find_first_not_of(whitespace, cur_pos);
+									if (cur_pos == std::string::npos)
+									{
+										iStatus = 1;
+									}
+
+									//start from next line
+									if ('#' == str_buf[cur_pos])
+									{
+										//last line
+										cur_pos = str_buf.find_first_of("\n", cur_pos);
+										if (cur_pos == std::string::npos)
+										{
+											iStatus = 1;
+										}
+
+										cur_pos += 1;
+
+										inBlockState = INBLOCKNOTE;
+									}
+									else if ('\n' == str_buf[cur_pos])
+									{
+										cur_pos += 1;
+										inBlockState = INBLOCKNONE;
+									}
+									else
+									{
+										inBlockState = INBLOCKTPYE;
+									}
+								}
+								break;
+							case INBLOCKTPYE:
+								{
+									size_t delimiter = str_buf.find_first_of("\n", cur_pos);
+									std::string strLine = str_buf.substr(cur_pos, delimiter - cur_pos);
+									
+									//std::cout << "inblockLineStr: " << strLine << std::endl;
+									
+									do {
+										if ("}" == strLine)
+										{
+											dataState = CONFIGFILEDATASNOTE;
+											applications.push_back(app);
+											app.clear();
+											break;
+										}
+									
+										size_t ext_pos = strLine.find_first_of(whitespace, 0);
+										if (ext_pos == std::string::npos)
+										{
+											iStatus = 2;
+										}
+										std::string strExt = strLine.substr(0, ext_pos);
+										size_t extUnitPos = strLine.find_first_not_of(whitespace, ext_pos);
+										std::string strExtUnit =  strLine.substr(extUnitPos, strLine.length() - extUnitPos - 1);
+										
+										//std::cout << "inblockLine " << strExt << " " << strExtUnit << std::endl;
+										app.emplace(std::move(strExt), std::move(strExtUnit));
+										
+										break;
+
+									} while(1);
+									
+									//change line 
+									cur_pos = str_buf.find_first_of("\n", cur_pos);
+									if (cur_pos == std::string::npos)
+									{
+										iStatus = 2;
+									}
+
+									cur_pos += 1;
+
+									inBlockState = INBLOCKNONE;
+								}
+								break;
+							default:
+								break;
+						}
 					}
-				}
-				else // if comment line
-				{
-					cur_pos = str_buf.find_first_of("\r\n", cur_pos);
-				}
+					break;
+				default:
+					break;
 			}
-
-			end_pos = str_buf.find(';', cur_pos);
 		}
+
+		// std::cout << "app value start" << std::endl;
+		// for (size_t i = 0; i < applications.size(); ++i)
+		// {
+		// 	std::unordered_multimap<std::string, std::string> sa = applications[i];
+		// 	for (auto iter = sa.begin(); iter != sa.end(); iter++)
+		// 	{
+		// 		std::cout << iter->first << "  " << iter->second << std::endl;
+		// 	}
+
+		// }
+		// std::cout << "app value end" << std::endl;
 
 		auto const it_mimes = global.find("mimes");
 
 		if (global.cend() != it_mimes)
 		{
 			this->parseMimes(it_mimes->second, mimes_types);
+			//std::cout << "parse mimes end" << std::endl;
 		}
 		else
 		{
 			std::cout << "Warning: mime types file is not set in configuration;" << std::endl;
 		}
 
-		if (false == applications.empty() )
+		if (!applications.empty())
 		{
 			auto const it_default_temp_dir = global.find("default_temp_dir");
 
@@ -690,6 +803,7 @@ namespace HttpServer
 			for (auto const &app : applications)
 			{
 				this->addApplication(app, defaults, modules, apps_tree);
+				std::cout << "addApplication end" << std::endl;
 			}
 		}
 
@@ -698,6 +812,7 @@ namespace HttpServer
 			std::cout << "Notice: server does not contain applications;" << std::endl;
 		}
 
-		return true;
+		//std::cout << "out loadCofig" << std::endl;
+		return iStatus == 1;
 	}
 };
