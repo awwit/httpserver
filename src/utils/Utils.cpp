@@ -233,9 +233,14 @@ namespace Utils
 		return binToHexString(&time, sizeof(time) );
 	}
 
+	constexpr uint8_t PACK_NUMBER_SIZE_BYTE = 252;
+	constexpr uint8_t PACK_NUMBER_SIZE_16 = 253;
+	constexpr uint8_t PACK_NUMBER_SIZE_32 = 254;
+	constexpr uint8_t PACK_NUMBER_SIZE_MAX = 255;
+
 	size_t getPackNumberSize(const size_t number) noexcept
 	{
-		if (number <= 253) {
+		if (number <= PACK_NUMBER_SIZE_BYTE) {
 			return sizeof(uint8_t);
 		}
 		else if (number <= std::numeric_limits<uint16_t>::max() ) {
@@ -259,13 +264,13 @@ namespace Utils
 
 	uint8_t *packNumber(uint8_t *dest, const size_t number) noexcept
 	{
-		if (number <= 252) {
+		if (number <= PACK_NUMBER_SIZE_BYTE) {
 			*dest = number;
 
 			dest += sizeof(uint8_t);
 		}
 		else if (number <= std::numeric_limits<uint16_t>::max() ) {
-			*dest = 253;
+			*dest = PACK_NUMBER_SIZE_16;
 
 			dest += sizeof(uint8_t);
 
@@ -274,7 +279,7 @@ namespace Utils
 			dest += sizeof(uint16_t);
 		}
 		else if (number <= std::numeric_limits<uint32_t>::max() ) {
-			*dest = 254;
+			*dest = PACK_NUMBER_SIZE_32;
 
 			dest += sizeof(uint8_t);
 
@@ -282,7 +287,7 @@ namespace Utils
 
 			dest += sizeof(uint32_t);
 		} else {
-			*dest = 255;
+			*dest = PACK_NUMBER_SIZE_MAX;
 
 			dest += sizeof(uint8_t);
 
@@ -308,24 +313,24 @@ namespace Utils
 
 	void packNumber(std::vector<char> &buf, const size_t number)
 	{
-		if (number <= 252) {
+		if (number <= PACK_NUMBER_SIZE_BYTE) {
 			buf.emplace_back(number);
 		}
 		else if (number <= std::numeric_limits<uint16_t>::max() ) {
-			buf.emplace_back(253);
+			buf.emplace_back(PACK_NUMBER_SIZE_16);
 
 			buf.resize(buf.size() + sizeof(uint16_t) );
 
 			*reinterpret_cast<uint16_t *>(buf.data() + buf.size() - sizeof(uint16_t) ) = static_cast<uint16_t>(number);
 		}
 		else if (number <= std::numeric_limits<uint32_t>::max() ) {
-			buf.emplace_back(254);
+			buf.emplace_back(PACK_NUMBER_SIZE_32);
 
 			buf.resize(buf.size() + sizeof(uint32_t) );
 
 			*reinterpret_cast<uint32_t *>(buf.data() + buf.size() - sizeof(uint32_t) ) = static_cast<uint32_t>(number);
 		} else {
-			buf.emplace_back(255);
+			buf.emplace_back(PACK_NUMBER_SIZE_MAX);
 
 			buf.resize(buf.size() + sizeof(size_t) );
 
@@ -353,14 +358,14 @@ namespace Utils
 
 		src += sizeof(uint8_t);
 
-		if (*number <= 252) {
+		if (*number <= PACK_NUMBER_SIZE_BYTE) {
 
 		}
-		else if (*number == 253) {
+		else if (*number == PACK_NUMBER_SIZE_16) {
 			*number = *reinterpret_cast<const uint16_t *>(src);
 			src += sizeof(uint16_t);
 		}
-		else if (*number == 254) {
+		else if (*number == PACK_NUMBER_SIZE_32) {
 			*number = *reinterpret_cast<const uint32_t *>(src);
 			src += sizeof(uint32_t);
 		} else {
