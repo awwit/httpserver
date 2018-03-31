@@ -22,4 +22,4 @@ namespace HttpServer
 
 		void clear();
 	};
-};
+}

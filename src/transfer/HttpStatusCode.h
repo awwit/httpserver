@@ -2,8 +2,7 @@
 
 namespace Http
 {
-	enum class StatusCode
-	{
+	enum class StatusCode {
 		EMPTY = 0,
 
 		CONTINUE = 100,

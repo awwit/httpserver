@@ -37,7 +37,10 @@ namespace Socket
 
 		Socket accept() const noexcept;
 		Socket nonblock_accept() const noexcept;
-		Socket nonblock_accept(const std::chrono::milliseconds &timeout) const noexcept;
+
+		Socket nonblock_accept(
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
 
 		bool shutdown() const noexcept;
 
@@ -45,19 +48,43 @@ namespace Socket
 	//	bool is_nonblock() const noexcept;
 		bool tcp_nodelay(const bool nodelay = true) const noexcept;
 
-		long recv(std::vector<std::string::value_type> &buf) const noexcept;
-		long recv(void *buf, const size_t length) const noexcept;
+		long recv(
+			std::vector<std::string::value_type> &buf
+		) const noexcept;
 
-		long nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const noexcept;
-		long nonblock_recv(void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept;
+		long recv(
+			void *buf,
+			const size_t length
+		) const noexcept;
 
-		bool nonblock_recv_sync(const std::chrono::milliseconds &timeout) const noexcept;
+		long nonblock_recv(
+			std::vector<std::string::value_type> &buf,
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
+
+		long nonblock_recv(
+			void *buf,
+			const size_t length,
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
+
+		bool nonblock_recv_sync(
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
 
 		long send(const std::string &buf) const noexcept;
 		long send(const void *buf, const size_t length) const noexcept;
 
-		long nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const noexcept;
-		long nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept;
+		long nonblock_send(
+			const std::string &buf,
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
+
+		long nonblock_send(
+			const void *buf,
+			const size_t length,
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
 
 		void nonblock_send_sync() const noexcept;
 

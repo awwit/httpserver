@@ -32,7 +32,9 @@ namespace Utils
 		if (this->signaled.load() == false) {
 			std::unique_lock<std::mutex> lck(this->mtx);
 
-			is_timeout = this->cv.wait_for(lck, ms, [this] { return this->notifed(); } ) == false;
+			is_timeout = false == this->cv.wait_for(lck, ms, [this] {
+				return this->notifed();
+			});
 		}
 
 		if (false == this->manually) {
@@ -42,8 +44,9 @@ namespace Utils
 		return is_timeout;
 	}
 
-	bool Event::wait_until(const std::chrono::high_resolution_clock::time_point &tp)
-	{
+	bool Event::wait_until(
+		const std::chrono::high_resolution_clock::time_point &tp
+	) {
 		bool is_timeout = false;
 
 		if (this->signaled.load() == false) {

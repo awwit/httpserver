@@ -19,7 +19,7 @@ namespace System
 	#elif POSIX
 		::sem_t *mtx_desc;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		std::string mtx_name;
@@ -42,4 +42,4 @@ namespace System
 		bool try_lock() const noexcept;
 		bool unlock() const noexcept;
 	};
-};
+}

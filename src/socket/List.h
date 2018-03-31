@@ -19,7 +19,7 @@ namespace Socket
 		int obj_list;
 		mutable std::vector<struct ::epoll_event> epoll_events;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 	public:
@@ -35,9 +35,19 @@ namespace Socket
 		bool addSocket(const Socket &sock) noexcept;
 		bool removeSocket(const Socket &sock) noexcept;
 
-		bool accept(std::vector<Socket> &sockets) const noexcept;
-		bool accept(std::vector<Socket> &sockets, std::vector<struct sockaddr_in> &socketsAddress) const noexcept;
+		bool accept(
+			std::vector<Socket> &sockets
+		) const noexcept;
 
-		bool recv(std::vector<Socket> &sockets, std::vector<Socket> &errors, std::chrono::milliseconds timeout = std::chrono::milliseconds(~0) ) const noexcept;
+		bool accept(
+			std::vector<Socket> &sockets,
+			std::vector<struct sockaddr_in> &socketsAddress
+		) const noexcept;
+
+		bool recv(
+			std::vector<Socket> &sockets,
+			std::vector<Socket> &errors,
+			std::chrono::milliseconds timeout = std::chrono::milliseconds(~0)
+		) const noexcept;
 	};
 }

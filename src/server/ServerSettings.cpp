@@ -5,29 +5,29 @@
 
 namespace HttpServer
 {
-	ServerSettings::~ServerSettings()
-	{
+	ServerSettings::~ServerSettings() {
 		this->clear();
 	}
 
-	void ServerSettings::addDataVariant(DataVariant::Abstract *dataVariant)
-	{
-		this->variants.emplace(dataVariant->getName(), dataVariant);
+	void ServerSettings::addDataVariant(DataVariant::Abstract *dataVariant) {
+		this->variants.emplace(
+			dataVariant->getName(),
+			dataVariant
+		);
 	}
 
 	void ServerSettings::clear()
 	{
-		if (false == this->variants.empty() )
+		if (this->variants.empty() == false)
 		{
-			for (auto &variant : this->variants)
-			{
+			for (auto &variant : this->variants) {
 				delete variant.second;
 			}
 
 			this->variants.clear();
 		}
 
-		if (false == this->apps_tree.empty() )
+		if (this->apps_tree.empty() == false)
 		{
 			std::unordered_set<ServerApplicationSettings *> applications;
 			this->apps_tree.collectApplicationSettings(applications);
@@ -36,8 +36,7 @@ namespace HttpServer
 			{
 				try
 				{
-					if (app->application_final)
-					{
+					if (app->application_final) {
 						const std::string root = app->root_dir;
 						app->application_final(root.data() );
 					}
@@ -54,9 +53,8 @@ namespace HttpServer
 			this->apps_tree.clear();
 		}
 
-		if (false == this->global.empty() )
-		{
+		if (this->global.empty() == false) {
 			this->global.clear();
 		}
 	}
-};
+}

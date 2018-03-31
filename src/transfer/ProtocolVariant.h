@@ -2,8 +2,7 @@
 
 namespace Transfer
 {
-	enum class ProtocolVariant
-	{
+	enum class ProtocolVariant {
 		UNKNOWN = 0,
 		HTTP_1,
 		HTTP_2

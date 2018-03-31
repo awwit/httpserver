@@ -34,4 +34,4 @@ namespace HttpServer
 		void setUpdateModule();
 		void setProcessQueue();
 	};
-};
+}

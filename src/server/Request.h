@@ -8,8 +8,7 @@
 
 namespace HttpServer
 {
-	enum ConnectionParams
-	{
+	enum ConnectionParams {
 		CONNECTION_CLOSE = 0,
 		CONNECTION_REUSE = 1,
 		CONNECTION_LEAVE_OPEN = 2
@@ -36,9 +35,8 @@ namespace HttpServer
 		void clear() noexcept;
 	};
 
-	struct DataTransfer
-	{
+	struct DataTransfer {
 		size_t full_size;
 		size_t send_total;
 	};
-};
+}

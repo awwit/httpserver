@@ -56,8 +56,12 @@ static void handlerSigUsr2(const int) noexcept {
  *  It doesn't work in case the program was launched and was
  *  attempted to finish under different remote sessions.
  */
-static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const ::WPARAM wParam, const ::LPARAM lParam) noexcept
-{
+static ::LRESULT CALLBACK WndProc(
+	const ::HWND hWnd,
+	const ::UINT message,
+	const ::WPARAM wParam,
+	const ::LPARAM lParam
+) noexcept {
 	switch (message)
 	{
 		case SIGTERM: {
@@ -105,9 +109,23 @@ static ::LRESULT CALLBACK WndProc(const ::HWND hWnd, const ::UINT message, const
 	return 0;
 }
 
-static ::WPARAM mainMessageLoop(const ::HINSTANCE hInstance, Utils::Event * const eventWindowCreation) noexcept
-{
-	const ::HWND hWnd = ::CreateWindow(myWndClassName, nullptr, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, nullptr, nullptr, hInstance, nullptr);
+static ::WPARAM mainMessageLoop(
+	const ::HINSTANCE hInstance,
+	Utils::Event * const eventWindowCreation
+) noexcept {
+	const ::HWND hWnd = ::CreateWindow(
+		myWndClassName,
+		nullptr,
+		0,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		0,
+		0,
+		nullptr,
+		nullptr,
+		hInstance,
+		nullptr
+	);
 
 	eventWindowCreation->notify(); // After this action, eventWindowCreation will be destroyed (in the other thread)
 
@@ -207,7 +225,7 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 	::signal(SIGPIPE, SIG_IGN);
 
 #else
-	#error "Undefine platform"
+	#error "Undefined platform"
 #endif
 
 	return true;

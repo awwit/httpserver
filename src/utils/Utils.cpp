@@ -32,7 +32,11 @@ namespace Utils
 			return str.clear();
 		}
 
-		str.assign(str.cbegin() + str.find_first_not_of(whitespace.data() ), str.cbegin() + last + 1);
+		str.assign(
+			str,
+			str.find_first_not_of(whitespace.data() ),
+			last + 1
+		);
 	}
 
 	std::string getTrimmedString(const std::string &str) {
@@ -103,13 +107,13 @@ namespace Utils
 	static unsigned char hexStringToBinEncodeSymbol(const char c) noexcept
 	{
 		if (c >= '0' && c <= '9') {
-			return c - 0x30;
+			return static_cast<unsigned char>(c - 0x30);
 		}
 		else if (c >= 'a' && c <= 'f') {
-			return c - 0x57;
+			return static_cast<unsigned char>(c - 0x57);
 		}
 		else if (c >= 'A' && c <= 'F') {
-			return c - 0x37;
+			return static_cast<unsigned char>(c - 0x37);
 		}
 
 		return 0;
@@ -123,7 +127,7 @@ namespace Utils
 			const char a = hexStr[i * 2 + 0];
 			const char b = hexStr[i * 2 + 1];
 
-			bin[i] = (
+			bin[i] = char(
 				(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
 			);
 		}
@@ -224,12 +228,16 @@ namespace Utils
 		x.c[1] = addr[1];
 		x.c[2] = addr[0];
 
-		return x.ui;// *reinterpret_cast<uint32_t *>(x.c);
+		return x.ui;
 	}
 
 	std::string getUniqueName() {
-		size_t time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+		size_t time = size_t(
+			std::chrono::high_resolution_clock::now().time_since_epoch().count()
+		);
+
 		time = hton64(time);
+
 		return binToHexString(&time, sizeof(time) );
 	}
 
@@ -265,7 +273,7 @@ namespace Utils
 	uint8_t *packNumber(uint8_t *dest, const size_t number) noexcept
 	{
 		if (number <= PACK_NUMBER_SIZE_BYTE) {
-			*dest = number;
+			*dest = static_cast<uint8_t>(number);
 
 			dest += sizeof(uint8_t);
 		}
@@ -343,12 +351,21 @@ namespace Utils
 		packNumber(buf, str.length() );
 
 		if (str.length() ) {
-			std::copy(str.cbegin(), str.cend(), std::back_inserter(buf) );
+			buf.insert(
+				buf.end(),
+				str.cbegin(),
+				str.cend()
+			);
 		}
 	}
 
 	const uint8_t *unpackPointer(void **pointer, const uint8_t *src) noexcept {
-		*pointer = *reinterpret_cast<void **>(const_cast<void *>(static_cast<const void *>(src) ) );
+		*pointer = *reinterpret_cast<void **>(
+			const_cast<void *>(
+				static_cast<const void *>(src)
+			)
+		);
+
 		return src + sizeof(void *);
 	}
 
@@ -403,8 +420,7 @@ namespace Utils
 	/**
 	 * Parse RFC 882 (ddd, dd MMM yyyy HH:mm:ss K)
 	 */
-	time_t rfc822DatetimeToTimestamp(const std::string &strTime)
-	{
+	time_t rfc822DatetimeToTimestamp(const std::string &strTime) {
 		std::tm tc {};
 
 		// Parse RFC 882 (ddd, dd MMM yyyy HH:mm:ss K)
@@ -433,7 +449,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_mday = std::strtoul(strTime.data() + pos, nullptr, 10);
+		tc.tm_mday = std::atoi(strTime.data() + pos);
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
@@ -459,7 +475,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_year = std::strtoul(strTime.data() + pos, nullptr, 10) - 1900;
+		tc.tm_year = std::atoi(strTime.data() + pos) - 1900;
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(':', pos);
@@ -468,7 +484,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_hour = std::strtoul(strTime.data() + pos, nullptr, 10);
+		tc.tm_hour = std::atoi(strTime.data() + pos);
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(':', pos);
@@ -477,7 +493,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_min = std::strtoul(strTime.data() + pos, nullptr, 10);
+		tc.tm_min = std::atoi(strTime.data() + pos);
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
@@ -486,7 +502,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_sec = std::strtoul(strTime.data() + pos, nullptr, 10);
+		tc.tm_sec = std::atoi(strTime.data() + pos);
 
 		pos = strTime.find_first_not_of(' ', delimiter + 1);
 		delimiter = strTime.find_first_of(' ', pos);
@@ -516,8 +532,8 @@ namespace Utils
 			zone.copy(hours.data(), 2, 1);
 			zone.copy(minutes.data(), 2, 3);
 
-			timezone = std::strtoul(hours.data(), nullptr, 10) * 3600;
-			timezone += std::strtoul(minutes.data(), nullptr, 10) * 60;
+			timezone = std::atoi(hours.data()) * 3600;
+			timezone += std::atoi(minutes.data()) * 60;
 
 			if (zone.front() == '-') {
 				timezone *= -1;
@@ -584,7 +600,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_mday = std::strtoul(ptrStr, nullptr, 10);
+		tc.tm_mday = std::atoi(ptrStr);
 
 		++strTime;
 
@@ -594,7 +610,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_year = std::strtoul(strTime, nullptr, 10) - 1900;
+		tc.tm_year = std::atoi(strTime) - 1900;
 
 		++ptrStr;
 
@@ -604,7 +620,7 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_hour = std::strtoul(ptrStr, nullptr, 10);
+		tc.tm_hour = std::atoi(ptrStr);
 
 		++strTime;
 
@@ -614,11 +630,11 @@ namespace Utils
 			return ~0;
 		}
 
-		tc.tm_min = std::strtoul(strTime, nullptr, 10);
+		tc.tm_min = std::atoi(strTime);
 
 		++ptrStr;
 
-		tc.tm_sec = std::strtoul(ptrStr, nullptr, 10);
+		tc.tm_sec = std::atoi(ptrStr);
 
 		return localToGmt(std::mktime(&tc) );
 	}
@@ -637,21 +653,29 @@ namespace Utils
 	#ifdef WIN32
 		std::tm stm {};
 
-		isGmtTime ?
-			::localtime_s(&stm, &tTime) :
-			::gmtime_s(&stm, &tTime);
+		isGmtTime
+			? ::localtime_s(&stm, &tTime)
+			: ::gmtime_s(&stm, &tTime);
 
-		// RFC 822
-		auto const len = std::strftime(buf.data(), buf.size(), "%a, %d %b %Y %H:%M:%S GMT", &stm);
+		auto const len = std::strftime(
+			buf.data(),
+			buf.size(),
+			"%a, %d %b %Y %H:%M:%S GMT", // RFC 822
+			&stm
+		);
 	#else
 		std::tm stm {};
 
-		isGmtTime ?
-			::localtime_r(&tTime, &stm) :
-			::gmtime_r(&tTime, &stm);
+		isGmtTime
+			? ::localtime_r(&tTime, &stm)
+			: ::gmtime_r(&tTime, &stm);
 
-		// RFC 822
-		auto const len = std::strftime(buf.data(), buf.size(), "%a, %d %b %G %H:%M:%S GMT", &stm);
+		auto const len = std::strftime(
+			buf.data(),
+			buf.size(),
+			"%a, %d %b %G %H:%M:%S GMT", // RFC 822
+			&stm
+		);
 	#endif
 
 		return std::string(buf.data(), buf.data() + len);
@@ -675,14 +699,19 @@ namespace Utils
 		return length;
 	}
 
-	bool parseCookies(const std::string &cookieHeader, std::unordered_multimap<std::string, std::string> &cookies)
-	{
+	bool parseCookies(
+		const std::string &cookieHeader,
+		std::unordered_multimap<std::string, std::string> &cookies
+	) {
 		if (cookieHeader.empty() ) {
 			return true;
 		}
 
-		for (size_t cur_pos = 0, next_value; std::string::npos != cur_pos; cur_pos = next_value)
-		{
+		for (
+			size_t cur_pos = 0, next_value;
+			std::string::npos != cur_pos;
+			cur_pos = next_value
+		) {
 			next_value = cookieHeader.find(';', cur_pos);
 
 			size_t delimiter = cookieHeader.find('=', cur_pos);
@@ -691,17 +720,30 @@ namespace Utils
 				return false;
 			}
 
-			std::string key = cookieHeader.substr(cur_pos, delimiter - cur_pos);
+			std::string key = cookieHeader.substr(
+				cur_pos,
+				delimiter - cur_pos
+			);
+
 			trim(key);
 			key = urlDecode(key);
 
 			++delimiter;
 
-			std::string value = cookieHeader.substr(delimiter, std::string::npos != next_value ? next_value - delimiter : next_value);
+			std::string value = cookieHeader.substr(
+				delimiter,
+				std::string::npos != next_value
+					? next_value - delimiter
+					: next_value
+			);
+
 			trim(value);
 			value = urlDecode(value);
 
-			cookies.emplace(std::move(key), std::move(value) );
+			cookies.emplace(
+				std::move(key),
+				std::move(value)
+			);
 
 			if (std::string::npos != next_value) {
 				++next_value;
@@ -723,10 +765,10 @@ namespace Utils
 
 		for (size_t i = 0; i < str.length(); ++i)
 		{
-			const unsigned char c = str[i];
+			const unsigned char c = static_cast<unsigned char>(str[i]);
 
-			if (std::isalnum(c) || isCharUrlAllowed(c) ) {
-				encoded.push_back(c);
+			if (std::isalnum(c) || isCharUrlAllowed(char(c) ) ) {
+				encoded.push_back(char(c) );
 			}
 			else if (' ' == c) {
 				encoded.push_back('+');
@@ -749,14 +791,14 @@ namespace Utils
 
 		for (size_t i = 0; i < str.length(); ++i)
 		{
-			unsigned char c = str[i];
+			unsigned char c = static_cast<unsigned char>(str[i]);
 
 			if ('%' == c) {
 				if (i + 2 < str.length() ) {
 					const char a = str[++i];
 					const char b = str[++i];
 
-					c = (
+					c = static_cast<unsigned char>(
 						(hexStringToBinEncodeSymbol(a) << 4) | hexStringToBinEncodeSymbol(b)
 					);
 				}
@@ -765,7 +807,7 @@ namespace Utils
 				c = ' ';
 			}
 
-			decoded.push_back(c);
+			decoded.push_back(char(c) );
 		}
 
 		return decoded;

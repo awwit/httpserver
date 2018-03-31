@@ -17,32 +17,23 @@ int main(const int argc, const char *argv[])
 
 	int exitcode = EXIT_FAILURE;
 
-	if (1 < argc)
-	{
+	if (1 < argc) {
 		auto const command = commands.find(argv[1]);
 
-		if (commands.cend() != command)
-		{
+		if (commands.cend() != command) {
 			HttpServer::Server server;
 
-			if (bindSignalHandlers(&server) )
-			{
+			if (bindSignalHandlers(&server) ) {
 				exitcode = command->second(&server, argc, argv);
-
 				stopSignalHandlers();
 			}
-		}
-		else
-		{
+		} else {
 			std::cout << "Unknown parameter, see --help" << std::endl;
 		}
 	}
-	else if (1 == argc)
-	{
+	else if (1 == argc) {
 		std::cout << "Try to run with the parameter --help" << std::endl;
-	}
-	else
-	{
+	} else {
 		std::cout << "The number of arguments cannot be equal to zero. Enter the parameter --help" << std::endl;
 	}
 

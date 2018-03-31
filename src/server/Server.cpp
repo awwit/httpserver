@@ -33,8 +33,7 @@ namespace HttpServer
 		ServerControls &controls,
 		SocketsQueue &sockets,
 		Http2::IncStream *stream
-	)
-	{
+	) {
 		std::unique_ptr<ServerProtocol> prot;
 
 		// If request is HTTP/2 Stream
@@ -43,11 +42,13 @@ namespace HttpServer
 			return prot;
 		}
 
-		if (sock.get_tls_session() )
+		if (sock.get_tls_session() != nullptr)
 		{
 			::gnutls_datum_t datum;
 
-			if (0 == ::gnutls_alpn_get_selected_protocol(sock.get_tls_session(), &datum) )
+			const int ret = ::gnutls_alpn_get_selected_protocol(sock.get_tls_session(), &datum);
+
+			if (GNUTLS_E_SUCCESS == ret)
 			{
 				const std::string protocol(reinterpret_cast<char *>(datum.data), datum.size);
 
@@ -57,6 +58,9 @@ namespace HttpServer
 				else if ("http/1.1" == protocol) {
 					prot.reset(new ServerHttp1(sock, settings, controls) );
 				}
+			}
+			else if (GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE == ret) {
+				prot.reset(new ServerHttp1(sock, settings, controls) );
 			}
 
 			return prot;
@@ -70,9 +74,18 @@ namespace HttpServer
 	/**
 	 * Метод для обработки запроса
 	 */
-	void Server::threadRequestProc(Socket::Adapter &sock, SocketsQueue &sockets, Http2::IncStream *stream) const
-	{
-		std::unique_ptr<ServerProtocol> prot = getProtocolVariant(sock, this->settings, this->controls, sockets, stream);
+	void Server::threadRequestProc(
+		Socket::Adapter &sock,
+		SocketsQueue &sockets,
+		Http2::IncStream *stream
+	) const {
+		std::unique_ptr<ServerProtocol> prot = getProtocolVariant(
+			sock,
+			this->settings,
+			this->controls,
+			sockets,
+			stream
+		);
 
 		if (prot) {
 			// Check if switching protocol
@@ -94,8 +107,10 @@ namespace HttpServer
 	 * Метод для обработки запросов (запускается в отдельном потоке)
 	 *	извлекает сокет клиенты из очереди и передаёт его на обслуживание
 	 */
-	void Server::threadRequestCycle(SocketsQueue &sockets, Utils::Event &eventThreadCycle) const
-	{
+	void Server::threadRequestCycle(
+		SocketsQueue &sockets,
+		Utils::Event &eventThreadCycle
+	) const {
 		while (true)
 		{
 			Socket::Socket sock;
@@ -114,7 +129,11 @@ namespace HttpServer
 /*
 				sockaddr_in addr {};
 				socklen_t addr_size = sizeof(sockaddr_in);
-				::getpeername(sock.get_handle(), reinterpret_cast<sockaddr *>(&addr), &addr_size);
+				::getpeername(
+					sock.get_handle(),
+					reinterpret_cast<sockaddr *>(&addr),
+					&addr_size
+				);
 */
 				sockets.pop();
 			}
@@ -133,7 +152,11 @@ namespace HttpServer
 				::sockaddr_in sock_addr {};
 				::socklen_t sock_addr_len = sizeof(sock_addr);
 
-				::getsockname(sock.get_handle(), reinterpret_cast<sockaddr *>(&sock_addr), &sock_addr_len);
+				::getsockname(
+					sock.get_handle(),
+					reinterpret_cast<sockaddr *>(&sock_addr),
+					&sock_addr_len
+				);
 
 				const int port = ntohs(sock_addr.sin_port);
 
@@ -141,14 +164,17 @@ namespace HttpServer
 
 				if (this->tls_data.cend() != it) // if TLS connection
 				{
-					if (stream)
-					{
-						Socket::AdapterTls socket_adapter(reinterpret_cast<gnutls_session_t>(stream->reserved) );
+					if (stream) {
+						Socket::AdapterTls socket_adapter(
+							reinterpret_cast<gnutls_session_t>(stream->reserved)
+						);
 
-						this->threadRequestProc(socket_adapter, sockets, stream);
-					}
-					else
-					{
+						this->threadRequestProc(
+							socket_adapter,
+							sockets,
+							stream
+						);
+					} else {
 						const std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data = it->second;
 
 						Socket::AdapterTls socket_adapter(
@@ -158,15 +184,21 @@ namespace HttpServer
 						);
 
 						if (socket_adapter.handshake() ) {
-							this->threadRequestProc(socket_adapter, sockets, nullptr);
+							this->threadRequestProc(
+								socket_adapter,
+								sockets,
+								nullptr
+							);
 						}
 					}
-				}
-				else
-				{
+				} else {
 					Socket::AdapterDefault socket_adapter(sock);
 
-					this->threadRequestProc(socket_adapter, sockets, stream);
+					this->threadRequestProc(
+						socket_adapter,
+						sockets,
+						stream
+					);
 				}
 
 				--this->threads_working_count;
@@ -202,8 +234,9 @@ namespace HttpServer
 
 		Utils::Event eventThreadCycle(false, true);
 
-		std::function<void(Server *, SocketsQueue &, Utils::Event &)> serverThreadRequestCycle
-			= std::mem_fn(&Server::threadRequestCycle);
+		std::function<void(
+			Server *, SocketsQueue &, Utils::Event &
+		)> serverThreadRequestCycle = std::mem_fn(&Server::threadRequestCycle);
 
 		std::vector<std::thread> active_threads;
 		active_threads.reserve(threads_max_count);
@@ -216,9 +249,17 @@ namespace HttpServer
 
 			// Cycle creation threads applications requests
 			do {
-				while (this->threads_working_count == active_threads.size() && active_threads.size() < threads_max_count && sockets.empty() == false)
-				{
-					active_threads.emplace_back(serverThreadRequestCycle, this, std::ref(sockets), std::ref(eventThreadCycle) );
+				while (
+					this->threads_working_count == active_threads.size() &&
+					active_threads.size() < threads_max_count &&
+					sockets.empty() == false
+				) {
+					active_threads.emplace_back(
+						serverThreadRequestCycle,
+						this,
+						std::ref(sockets),
+						std::ref(eventThreadCycle)
+					);
 				}
 
 				size_t notify_count = active_threads.size() - this->threads_working_count;
@@ -253,8 +294,11 @@ namespace HttpServer
 		return 0;
 	}
 
-	bool Server::updateModule(System::Module &module, std::unordered_set<ServerApplicationSettings *> &applications, const size_t moduleIndex)
-	{
+	bool Server::updateModule(
+		System::Module &module,
+		std::unordered_set<ServerApplicationSettings *> &applications,
+		const size_t moduleIndex
+	) {
 		std::unordered_set<ServerApplicationSettings *> same;
 
 		for (auto &app : applications)
@@ -270,7 +314,8 @@ namespace HttpServer
 					}
 				}
 				catch (std::exception &exc) {
-					std::cout << "Warning: an exception was thrown when the application '" << app->server_module << "' was finishes: " << exc.what() << std::endl;
+					std::cout << "Warning: an exception was thrown when the application '"
+						<< app->server_module << "' was finishes: " << exc.what() << std::endl;
 				}
 
 				app->application_call = std::function<int(Transfer::app_request *, Transfer::app_response *)>();
@@ -347,12 +392,12 @@ namespace HttpServer
 		// Open updated module
 		module.open(module_name_temp);
 
-		if (0 != std::remove(module_name.c_str() ) ) {
+		if (std::remove(module_name.c_str() ) != 0) {
 			std::cout << "Error: file '" << module_name << "' could not be removed;" << std::endl;
 			return false;
 		}
 
-		if (0 != std::rename(module_name_temp.c_str(), module_name.c_str() ) ) {
+		if (std::rename(module_name_temp.c_str(), module_name.c_str() ) != 0) {
 			std::cout << "Error: file '" << module_name_temp << "' could not be renamed;" << std::endl;
 			return false;
 		}
@@ -372,7 +417,11 @@ namespace HttpServer
 			return false;
 		}
 
-		std::function<int(Transfer::app_request *, Transfer::app_response *)> app_call = reinterpret_cast<int(*)(Transfer::app_request *, Transfer::app_response *)>(addr);
+		std::function<int(
+			Transfer::app_request *, Transfer::app_response *
+		)> app_call = reinterpret_cast<int(*)(
+			Transfer::app_request *, Transfer::app_response *
+		)>(addr);
 
 		if ( ! app_call) {
 			std::cout << "Error: invalid function 'application_call' is in the module '" << module_name << "';" << std::endl;
@@ -511,48 +560,67 @@ namespace HttpServer
 		Socket::Socket::Cleanup();
 	}
 
-	static bool tlsInit(const ServerApplicationSettings &app, std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data)
-	{
+	static bool tlsInit(
+		const ServerApplicationSettings &app,
+		std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data
+	) {
 		::gnutls_certificate_credentials_t x509_cred;
 
 		int ret = ::gnutls_certificate_allocate_credentials(&x509_cred);
 
 		if (ret < 0) {
-			std::cout << "Error [tls]: certificate credentials has not been allocated;" << std::endl;
+			std::cout << "Error [tls]: certificate credentials has not been allocated; code: " << ret << std::endl;
 			return false;
 		}
 
 		if (app.chain_file.empty() == false)
 		{
-			ret = ::gnutls_certificate_set_x509_trust_file(x509_cred, app.chain_file.c_str(), GNUTLS_X509_FMT_PEM);
+			ret = ::gnutls_certificate_set_x509_trust_file(
+				x509_cred,
+				app.chain_file.c_str(),
+				GNUTLS_X509_FMT_PEM
+			);
 
 			if (ret < 0) {
-				std::cout << "Warning [tls]: (CA) chain file has not been accepted;" << std::endl;
+				std::cout << "Warning [tls]: (CA) chain file has not been accepted; code: " << ret << std::endl;
 			}
 		}
 
 		if (app.crl_file.empty() == false)
 		{
-			ret = ::gnutls_certificate_set_x509_crl_file(x509_cred, app.crl_file.c_str(), GNUTLS_X509_FMT_PEM);
+			ret = ::gnutls_certificate_set_x509_crl_file(
+				x509_cred,
+				app.crl_file.c_str(),
+				GNUTLS_X509_FMT_PEM
+			);
 
 			if (ret < 0) {
-				std::cout << "Warning [tls]: (CLR) clr file has not been accepted;" << std::endl;
+				std::cout << "Warning [tls]: (CLR) clr file has not been accepted; code: " << ret << std::endl;
 			}
 		}
 
-		ret = ::gnutls_certificate_set_x509_key_file(x509_cred, app.cert_file.c_str(), app.key_file.c_str(), GNUTLS_X509_FMT_PEM);
+		ret = ::gnutls_certificate_set_x509_key_file(
+			x509_cred,
+			app.cert_file.c_str(),
+			app.key_file.c_str(),
+			GNUTLS_X509_FMT_PEM
+		);
 
 		if (ret < 0) {
-			std::cout << "Error [tls]: (CERT) cert file or/and (KEY) key file has not been accepted;" << std::endl;
+			std::cout << "Error [tls]: (CERT) cert file or/and (KEY) key file has not been accepted; code: " << ret << std::endl;
 			return false;
 		}
 
 		if (app.stapling_file.empty() == false)
 		{
-			ret = ::gnutls_certificate_set_ocsp_status_request_file(x509_cred, app.stapling_file.c_str(), 0);
+			ret = ::gnutls_certificate_set_ocsp_status_request_file(
+				x509_cred,
+				app.stapling_file.c_str(),
+				0
+			);
 
 			if (ret < 0) {
-				std::cout << "Warning [tls]: (OCSP) stapling file has not been accepted;" << std::endl;
+				std::cout << "Warning [tls]: (OCSP) stapling file has not been accepted; code: " << ret << std::endl;
 			}
 		}
 
@@ -560,35 +628,40 @@ namespace HttpServer
 
 		::gnutls_dh_params_init(&dh_params);
 
-		if (app.dh_file.empty() )
-		{
-			const unsigned int bits = ::gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_HIGH);
+		if (app.dh_file.empty() ) {
+			const unsigned int bits = ::gnutls_sec_param_to_pk_bits(
+				GNUTLS_PK_DH, GNUTLS_SEC_PARAM_HIGH
+			);
 
-			ret = ::gnutls_dh_params_generate2(dh_params, bits);
-		}
-		else
-		{
+			ret = ::gnutls_dh_params_generate2(
+				dh_params,
+				bits
+			);
+		} else {
 			std::ifstream dh_file(app.dh_file);
 
-			if (dh_file)
-			{
+			if (dh_file) {
 				const size_t max_file_size = 1024 * 1024;
 
 				std::vector<char> buf(max_file_size);
 
-				dh_file.read(buf.data(), buf.size() );
+				dh_file.read(
+					buf.data(),
+					std::streamsize(buf.size())
+				);
 
 				gnutls_datum_t datum {
 					reinterpret_cast<unsigned char *>(buf.data() ),
 					static_cast<unsigned int>(dh_file.gcount() )
 				};
 
-				ret = ::gnutls_dh_params_import_pkcs3(dh_params, &datum, GNUTLS_X509_FMT_PEM);
-			}
-			else
-			{
+				ret = ::gnutls_dh_params_import_pkcs3(
+					dh_params,
+					&datum,
+					GNUTLS_X509_FMT_PEM
+				);
+			} else {
 				ret = -1;
-
 				std::cout << "Error [tls]: DH params file has not been opened;" << std::endl;;
 			}
 
@@ -597,7 +670,7 @@ namespace HttpServer
 
 		if (ret < 0) {
 			::gnutls_certificate_free_credentials(x509_cred);
-			std::cout << "Error [tls]: DH params were not loaded;" << std::endl;
+			std::cout << "Error [tls]: DH params were not loaded; code: " << ret << std::endl;
 			return false;
 		}
 
@@ -609,17 +682,22 @@ namespace HttpServer
 
 		if (ret < 0) {
 			::gnutls_certificate_free_credentials(x509_cred);
-			std::cout << "Error [tls]: priority cache cannot be init;" << std::endl;
+			std::cout << "Error [tls]: priority cache cannot be init; code: " << ret << std::endl;
 			return false;
 		}
 
-		data = std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> { x509_cred, priority_cache };
+		data = std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> {
+			x509_cred,
+			priority_cache
+		};
 
 		return true;
 	}
 
-	bool Server::tryBindPort(const int port, std::unordered_set<int> &ports)
-	{
+	bool Server::tryBindPort(
+		const int port,
+		std::unordered_set<int> &ports
+	) {
 		// Only unique ports
 		if (ports.cend() != ports.find(port) ) {
 			return false;
@@ -726,16 +804,13 @@ namespace HttpServer
 
 		// Cycle for receiving new connections
 		do {
-			if (sockets_list.accept(accept_sockets) )
-			{
+			if (sockets_list.accept(accept_sockets) ) {
 				sockets.lock();
 
-				for (size_t i = 0; i < accept_sockets.size(); ++i)
-				{
+				for (size_t i = 0; i < accept_sockets.size(); ++i) {
 					const Socket::Socket &sock = accept_sockets[i];
 
-					if (sock.is_open() )
-					{
+					if (sock.is_open() ) {
 						sock.nonblock(true);
 						sock.tcp_nodelay(true);
 
@@ -784,8 +859,11 @@ namespace HttpServer
 		return EXIT_SUCCESS;
 	}
 
-	bool Server::get_start_args(const int argc, const char *argv[], struct server_start_args *st)
-	{
+	bool Server::get_start_args(
+		const int argc,
+		const char *argv[],
+		struct server_start_args *st
+	) {
 		for (int i = 1; i < argc; ++i)
 		{
 			if (0 == ::strcmp(argv[i], "--start") ) {
@@ -904,30 +982,26 @@ namespace HttpServer
 		return code;
 	}
 
-	static void close_liseners(std::vector<Socket::Socket> &liseners)
-	{
+	static void close_liseners(std::vector<Socket::Socket> &liseners) {
 		for (auto &sock : liseners) {
 			sock.close();
 		}
 	}
 
-	void Server::stop()
-	{
+	void Server::stop() {
 		this->controls.stopProcess();
 
 		close_liseners(this->liseners);
 	}
 
-	void Server::restart()
-	{
+	void Server::restart() {
 		this->controls.setRestart();
 		this->controls.stopProcess();
 
 		close_liseners(this->liseners);
 	}
 
-	void Server::update()
-	{
+	void Server::update() {
 		this->controls.setUpdateModule();
 		this->controls.setProcess(false);
 		this->controls.setProcessQueue();
@@ -939,8 +1013,7 @@ namespace HttpServer
 
 		System::GlobalMutex glob_mtx;
 
-		if (glob_mtx.open(serverName) )
-		{
+		if (glob_mtx.open(serverName) ) {
 			System::SharedMemory glob_mem;
 
 			glob_mtx.lock();

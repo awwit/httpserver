@@ -10,4 +10,4 @@ namespace HttpServer
 		std::string config_path;
 		bool force;
 	};
-};
+}

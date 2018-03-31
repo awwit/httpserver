@@ -31,4 +31,4 @@ namespace HttpServer
 
 		void clear() noexcept;
 	};
-};
+}

@@ -13,7 +13,8 @@
 
 namespace System
 {
-	GlobalMutex::GlobalMutex() noexcept : mtx_desc(nullptr)
+	GlobalMutex::GlobalMutex() noexcept
+		: mtx_desc(nullptr)
 	{
 
 	}
@@ -40,22 +41,25 @@ namespace System
 
 		this->mtx_desc = ::CreateMutex(nullptr, false, mutex_name.c_str() );
 
-		if (nullptr == this->mtx_desc)
-		{
+		if (nullptr == this->mtx_desc) {
 			return false;
 		}
 	#elif POSIX
-		::sem_t *sem = ::sem_open(mutexName.c_str(), O_CREAT, 0666, 1);
+		::sem_t *sem = ::sem_open(
+			mutexName.c_str(),
+			O_CREAT,
+			0666,
+			1
+		);
 
-		if (SEM_FAILED == sem)
-		{
+		if (SEM_FAILED == sem) {
 			return false;
 		}
 
 		this->mtx_desc = sem;
 		this->mtx_name = mutexName;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		return true;
@@ -79,7 +83,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::sem_unlink(mutexName.c_str() );
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -101,13 +105,15 @@ namespace System
 
 		return ret;
 	#elif POSIX
-		 const int ret = ::sem_unlink(this->mtx_name.c_str() );
+		const int ret = ::sem_unlink(
+			this->mtx_name.c_str()
+		);
 
-		 this->close();
+		this->close();
 
-		 return 0 == ret;
+		return 0 == ret;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -128,21 +134,22 @@ namespace System
 
 		this->mtx_desc = ::OpenMutex(SYNCHRONIZE, false, mutex_name.c_str() );
 
-		if (nullptr == this->mtx_desc)
-		{
+		if (nullptr == this->mtx_desc) {
 			return false;
 		}
 	#elif POSIX
-		::sem_t *sem = ::sem_open(mutexName.c_str(), 0);
+		::sem_t *sem = ::sem_open(
+			mutexName.c_str(),
+			0
+		);
 
-		if (SEM_FAILED == sem)
-		{
+		if (SEM_FAILED == sem) {
 			return false;
 		}
 
 		this->mtx_desc = sem;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		this->mtx_name = mutexName;
@@ -161,7 +168,7 @@ namespace System
 			::sem_close(this->mtx_desc);
 			this->mtx_desc = nullptr;
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 
 			this->mtx_name.clear();
@@ -179,7 +186,7 @@ namespace System
 	#elif POSIX
 		return nullptr != this->mtx_desc;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -190,7 +197,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::sem_wait(this->mtx_desc);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -201,7 +208,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::sem_trywait(this->mtx_desc);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -212,7 +219,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::sem_post(this->mtx_desc);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
-};
+}

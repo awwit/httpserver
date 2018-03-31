@@ -8,13 +8,11 @@ namespace HttpServer
 
 	}
 
-	ServerApplicationsTree::~ServerApplicationsTree() noexcept
-	{
+	ServerApplicationsTree::~ServerApplicationsTree() noexcept {
 		this->clear();
 	}
 
-	bool ServerApplicationsTree::empty() const noexcept
-	{
+	bool ServerApplicationsTree::empty() const noexcept {
 		return this->list.empty();
 	}
 
@@ -32,8 +30,7 @@ namespace HttpServer
 			{
 				std::string part = name.substr(cur_pos, delimiter - cur_pos);
 
-				if ("" == part)
-				{
+				if (part.empty() ) {
 					part = "*";
 				}
 
@@ -45,9 +42,7 @@ namespace HttpServer
 			// Emplace last part
 			std::string part = name.substr(cur_pos);
 			name_parts.emplace_back(std::move(part) );
-		}
-		else
-		{
+		} else {
 			name_parts.emplace_back(name);
 		}
 
@@ -56,24 +51,18 @@ namespace HttpServer
 
 	void ServerApplicationsTree::addApplication(std::vector<std::string> &nameParts, ServerApplicationSettings *sets)
 	{
-		if (nameParts.empty() )
-		{
+		if (nameParts.empty() ) {
 			this->app_sets = sets;
-		}
-		else
-		{
+		} else {
 			std::string &part = nameParts.back();
 
 			auto it = this->list.find(part);
 
 			ServerApplicationsTree *sub;
 
-			if (this->list.cend() != it)
-			{
+			if (this->list.cend() != it) {
 				sub = it->second;
-			}
-			else
-			{
+			} else {
 				sub = new ServerApplicationsTree();
 				this->list.emplace(std::move(part), sub);
 			}
@@ -104,9 +93,7 @@ namespace HttpServer
 
 			std::string part = name.substr(cur_pos);
 			name_parts.emplace_back(std::move(part) );
-		}
-		else
-		{
+		} else {
 			name_parts.emplace_back(name);
 		}
 
@@ -115,29 +102,22 @@ namespace HttpServer
 
 	const ServerApplicationSettings *ServerApplicationsTree::find(std::vector<std::string> &nameParts) const
 	{
-		if (nameParts.empty() )
-		{
+		if (nameParts.empty() ) {
 			return this->app_sets;
-		}
-		else
-		{
+		} else {
 			const std::string part = std::move(nameParts.back() );
 
 			nameParts.pop_back();
 
 			auto it = this->list.find(part);
 
-			if (this->list.cend() == it)
-			{
+			if (this->list.cend() == it) {
 				it = this->list.find("*");
 
-				if (this->list.end() != it)
-				{
+				if (this->list.end() != it) {
 					return this->app_sets;
 				}
-			}
-			else
-			{
+			} else {
 				return it->second->find(nameParts);
 			}
 
@@ -151,8 +131,7 @@ namespace HttpServer
 		{
 			const ServerApplicationsTree *tree = node.second;
 
-			if (nullptr != tree->app_sets)
-			{
+			if (nullptr != tree->app_sets) {
 				set.emplace(tree->app_sets);
 			}
 
@@ -162,14 +141,13 @@ namespace HttpServer
 
 	void ServerApplicationsTree::clear() noexcept
 	{
-		if (false == this->list.empty() )
+		if (this->list.empty() == false)
 		{
-			for (auto &it : this->list)
-			{
+			for (auto &it : this->list) {
 				delete it.second;
 			}
 
 			this->list.clear();
 		}
 	}
-};
+}

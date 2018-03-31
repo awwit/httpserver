@@ -11,8 +11,7 @@
 
 namespace HPack
 {
-	struct HuffmanSymbol
-	{
+	struct HuffmanSymbol {
 		int nbits;
 		uint32_t code;
 	};
@@ -277,8 +276,7 @@ namespace HPack
 		{30, 0x3fffffff},
 	};
 
-	struct HuffmanDecodeNode
-	{
+	struct HuffmanDecodeNode {
 		uint8_t state;
 		uint8_t flags;
 		uint8_t symbol;
@@ -5218,22 +5216,27 @@ namespace HPack
 		return sizeof(staticTable) / sizeof(*staticTable);
 	}
 
-	static size_t huffmanEncodeLength(const void *dest, const size_t length) noexcept
-	{
+	static size_t huffmanEncodeLength(
+		const void *dest,
+		const size_t length
+	) noexcept {
 		const uint8_t *data = reinterpret_cast<const uint8_t *>(dest);
 
 		size_t n = 0;
 
 		for (size_t i = 0; i < length; ++i) {
-			n += huffmanSymbolTable[data[i] ].nbits;
+			n += size_t(huffmanSymbolTable[data[i] ].nbits);
 		}
 
 		return (n + 7) / 8;
 	}
 
-	static uint8_t huffmanEncodeSymbol(std::vector<char> &dest, uint8_t rembits, const HuffmanSymbol &sym)
-	{
-		uint8_t nbits = sym.nbits;
+	static uint8_t huffmanEncodeSymbol(
+		std::vector<char> &dest,
+		uint8_t rembits,
+		const HuffmanSymbol &sym
+	) {
+		uint8_t nbits = uint8_t(sym.nbits);
 
 		for (;;) {
 			if (rembits > nbits) {
@@ -5257,8 +5260,11 @@ namespace HPack
 		return rembits;
 	}
 
-	static void encode(std::vector<char> &dest, const void* src, const size_t srcSize)
-	{
+	static void encode(
+		std::vector<char> &dest,
+		const void* src,
+		const size_t srcSize
+	) {
 		const uint8_t *data = reinterpret_cast<const uint8_t *>(src);
 
 		uint8_t rembits = 8;
@@ -5279,15 +5285,17 @@ namespace HPack
 		}
 	}
 
-	enum HuffmanDecode
-	{
+	enum HuffmanDecode {
 		ACCEPT = 0x1,
 		SYMBOL = 0x2,
 		FAIL = 0x4
 	};
 
-	static bool decode(std::vector<char> &dest, const void* src, const size_t srcSize)
-	{
+	static bool decode(
+		std::vector<char> &dest,
+		const void* src,
+		const size_t srcSize
+	) {
 		const uint8_t *data = reinterpret_cast<const uint8_t *>(src);
 		const uint8_t *end = data + srcSize;
 
@@ -5321,9 +5329,12 @@ namespace HPack
 		return accept;
 	}
 
-	static void packInteger(std::vector<char> &dest, uint64_t num, const uint8_t prefix)
-	{
-		uint64_t k = (1 << prefix) - 1;
+	static void packInteger(
+		std::vector<char> &dest,
+		uint64_t num,
+		const uint8_t prefix
+	) {
+		const uint64_t k = (1 << prefix) - 1;
 
 		if (num < k) {
 			dest.emplace_back(num);
@@ -5350,14 +5361,19 @@ namespace HPack
 		}
 	}
 
-	static void packIndex(std::vector<char> &dest, const size_t index) {
+	static void packIndex(
+		std::vector<char> &dest,
+		const size_t index
+	) {
 		const size_t head = dest.size();
 		packInteger(dest, index, 7);
 		dest[head] |= 0x80;
 	}
 
-	static std::tuple<size_t, bool> findHeaderInTable(const std::pair<std::string, std::string> &header, const Http2::DynamicTable &dynamicTable)
-	{
+	static std::tuple<size_t, bool> findHeaderInTable(
+		const std::pair<std::string, std::string> &header,
+		const Http2::DynamicTable &dynamicTable
+	) {
 		std::tuple<size_t, bool> result {
 			0, false
 		};
@@ -5423,19 +5439,31 @@ namespace HPack
 			dest[head] |= 0x80;
 		} else {
 			packInteger(dest, str.length(), 7);
-			std::copy(str.cbegin(), str.cend(), std::back_inserter(dest) );
+
+			dest.insert(
+				dest.end(),
+				str.cbegin(),
+				str.cend()
+			);
 		}
 	}
 
-	static void packFullHeader(std::vector<char> &dest, const std::pair<std::string, std::string> &header, const bool indexing)
-	{
+	static void packFullHeader(
+		std::vector<char> &dest,
+		const std::pair<std::string, std::string> &header,
+		const bool indexing
+	) {
 		dest.emplace_back(packFirstByte(indexing) );
 		packString(dest, header.first);
 		packString(dest, header.second);
 	}
 
-	static void packHeaderValue(std::vector<char> &dest, const size_t keyIndex, const std::pair<std::string, std::string> &header, const bool indexing)
-	{
+	static void packHeaderValue(
+		std::vector<char> &dest,
+		const size_t keyIndex,
+		const std::pair<std::string, std::string> &header,
+		const bool indexing
+	) {
 		const size_t head = dest.size();
 
 		const uint8_t prefix = indexing ? 6 : 4;
@@ -5458,8 +5486,11 @@ namespace HPack
 		return false;
 	}
 
-	static void packHeader(std::vector<char> &dest, const std::pair<std::string, std::string> &header, Http2::DynamicTable &dynamicTable)
-	{
+	static void packHeader(
+		std::vector<char> &dest,
+		const std::pair<std::string, std::string> &header,
+		Http2::DynamicTable &dynamicTable
+	) {
 		size_t index;
 		bool is_full_match;
 
@@ -5492,23 +5523,24 @@ namespace HPack
 		dest[head] |= 0x20;
 	}
 */
-	void pack(std::vector<char> &dest, const std::vector<std::pair<std::string, std::string> > &headers, Http2::DynamicTable &dynamicTable)
-	{
+	void pack(
+		std::vector<char> &dest,
+		const std::vector<std::pair<std::string, std::string> > &headers,
+		Http2::DynamicTable &dynamicTable
+	) {
 		for (auto const &header : headers) {
 			packHeader(dest, header, dynamicTable);
 		}
 	}
 
-	enum class HuffmanDecodeOpcode
-	{
+	enum class HuffmanDecodeOpcode {
 		NONE,
 		INDEXED,
 		NOT_INDEXED,
 		INDEXED_KEY,
 	};
 
-	enum class HuffmanDecodeState
-	{
+	enum class HuffmanDecodeState {
 		OPCODE,
 		READ_TABLE_SIZE,
 		READ_INDEX,
@@ -5526,8 +5558,10 @@ namespace HPack
 		return getStaticTableSize() + stream.conn.decoding_dynamic_table.size();
 	}
 
-	static const std::pair<std::string, std::string> *getHeaderFromTable(const size_t index, const Http2::IncStream &stream) noexcept
-	{
+	static const std::pair<std::string, std::string> *getHeaderFromTable(
+		const size_t index,
+		const Http2::IncStream &stream
+	) noexcept {
 		if (getStaticTableSize() >= index) {
 			return &staticTable[index - 1];
 		}
@@ -5538,7 +5572,10 @@ namespace HPack
 		return nullptr;
 	}
 
-	static const std::pair<std::string, std::string> *unpackIndexed(const size_t index, const Http2::IncStream &stream) noexcept {
+	static const std::pair<std::string, std::string> *unpackIndexed(
+		const size_t index,
+		const Http2::IncStream &stream
+	) noexcept {
 		return getHeaderFromTable(index, stream);
 	}
 
@@ -5546,8 +5583,12 @@ namespace HPack
 		return c & (1 << 7);
 	}
 
-	static std::tuple<uint64_t, bool> unpackHuffman(std::vector<char> &dest, const uint8_t *data, const size_t dataSize, const uint64_t left)
-	{
+	static std::tuple<uint64_t, bool> unpackHuffman(
+		std::vector<char> &dest,
+		const uint8_t *data,
+		const size_t dataSize,
+		const uint64_t left
+	) {
 		std::tuple<uint64_t, bool> result {
 			left, false
 		};
@@ -5556,24 +5597,42 @@ namespace HPack
 			std::get<uint64_t>(result) = dataSize;
 		}
 
-		std::get<bool>(result) = decode(dest, data, std::get<uint64_t>(result) );
+		std::get<bool>(result) = decode(
+			dest,
+			data,
+			std::get<uint64_t>(result)
+		);
 
 		return result;
 	}
 
-	static uint64_t unpackString(std::vector<char> &dest, const uint8_t *data, const size_t dataSize, uint64_t left)
-	{
+	static uint64_t unpackString(
+		std::vector<char> &dest,
+		const uint8_t *data,
+		const size_t dataSize,
+		uint64_t left
+	) {
 		if (dataSize < left) {
 			left = dataSize;
 		}
 
-		std::copy(data, data + left, std::back_inserter(dest) );
+		dest.insert(
+			dest.end(),
+			data,
+			data + left
+		);
 
 		return left;
 	}
 
-	static std::tuple<uint64_t, uint64_t, uint8_t, bool> unpackInteger(const uint8_t *data, const size_t dataSize, const uint64_t initial, const uint8_t initialShift, const uint8_t prefix)
-	{
+	static std::tuple<uint64_t, uint64_t, uint8_t, bool>
+	unpackInteger(
+		const uint8_t *data,
+		const size_t dataSize,
+		const uint64_t initial,
+		const uint8_t initialShift,
+		const uint8_t prefix
+	) {
 		std::tuple<uint64_t, uint64_t, uint8_t, bool> result {
 			initial, 0, initialShift, true
 		};
@@ -5582,7 +5641,7 @@ namespace HPack
 		uint64_t &nread = std::get<1>(result);
 		uint8_t &shift = std::get<uint8_t>(result);
 
-		uint8_t k = (1 << prefix) - 1;
+		const uint8_t k = uint8_t(1 << prefix) - 1;
 
 		if (0 == num)
 		{
@@ -5658,8 +5717,8 @@ namespace HPack
 		std::pair<std::string, std::string> unpackFullHeader(Http2::IncStream &stream)
 		{
 			std::pair<std::string, std::string> header {
-				std::string(this->buf.cbegin(), this->buf.cbegin() + this->key_length),
-				std::string(this->buf.cbegin() + this->key_length, this->buf.cend() )
+				std::string(this->buf.cbegin(), this->buf.cbegin() + long(this->key_length)),
+				std::string(this->buf.cbegin() + long(this->key_length), this->buf.cend() )
 			};
 
 			this->buf.clear();
@@ -5695,8 +5754,11 @@ namespace HPack
 		}
 	};
 
-	bool unpack(const void *src, const size_t srcSize, Http2::IncStream &stream)
-	{
+	bool unpack(
+		const void *src,
+		const size_t srcSize,
+		Http2::IncStream &stream
+	) {
 		const uint8_t *data = reinterpret_cast<const uint8_t *>(src);
 
 		size_t cur = 0;
@@ -5743,7 +5805,13 @@ namespace HPack
 					uint64_t nread;
 					bool success;
 
-					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(data + cur, srcSize - cur, dec.left, dec.shift, 5);
+					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(
+						data + cur,
+						srcSize - cur,
+						dec.left,
+						dec.shift,
+						5
+					);
 
 					cur += nread;
 
@@ -5756,7 +5824,9 @@ namespace HPack
 						return false;
 					}
 
-					stream.conn.decoding_dynamic_table.changeHeaderTableSize(dec.left);
+					stream.conn.decoding_dynamic_table.changeHeaderTableSize(
+						static_cast<uint32_t>(dec.left)
+					);
 
 					dec.state = HuffmanDecodeState::OPCODE;
 
@@ -5779,7 +5849,13 @@ namespace HPack
 					uint64_t nread;
 					bool success;
 
-					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(data + cur, srcSize - cur, dec.left, dec.shift, prefixlen);
+					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(
+						data + cur,
+						srcSize - cur,
+						dec.left,
+						dec.shift,
+						prefixlen
+					);
 
 					cur += nread;
 
@@ -5811,7 +5887,13 @@ namespace HPack
 					uint64_t nread;
 					bool success;
 
-					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(data + cur, srcSize - cur, dec.left, dec.shift, 7);
+					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(
+						data + cur,
+						srcSize - cur,
+						dec.left,
+						dec.shift,
+						7
+					);
 
 					cur += nread;
 
@@ -5819,9 +5901,9 @@ namespace HPack
 						return false;
 					}
 
-					dec.state = dec.huffman_encoded ?
-						HuffmanDecodeState::READ_KEY_HUFFMAN :
-						HuffmanDecodeState::READ_KEY;
+					dec.state = dec.huffman_encoded
+						? HuffmanDecodeState::READ_KEY_HUFFMAN
+						: HuffmanDecodeState::READ_KEY;
 
 					break;
 				}
@@ -5831,7 +5913,12 @@ namespace HPack
 					uint64_t nread;
 					bool success;
 
-					std::tie(nread, success) = unpackHuffman(dec.buf, data + cur, srcSize - cur, dec.left);
+					std::tie(nread, success) = unpackHuffman(
+						dec.buf,
+						data + cur,
+						srcSize - cur,
+						dec.left
+					);
 
 					cur += nread;
 					dec.left -= nread;
@@ -5849,7 +5936,12 @@ namespace HPack
 
 				case HuffmanDecodeState::READ_KEY:
 				{
-					const uint64_t nread = unpackString(dec.buf, data + cur, srcSize - cur, dec.left);
+					const uint64_t nread = unpackString(
+						dec.buf,
+						data + cur,
+						srcSize - cur,
+						dec.left
+					);
 
 					cur += nread;
 					dec.left -= nread;
@@ -5878,7 +5970,13 @@ namespace HPack
 					uint64_t nread;
 					bool success;
 
-					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(data + cur, srcSize - cur, dec.left, dec.shift, 7);
+					std::tie(dec.left, nread, dec.shift, success) = unpackInteger(
+						data + cur,
+						srcSize - cur,
+						dec.left,
+						dec.shift,
+						7
+					);
 
 					cur += nread;
 
@@ -5888,18 +5986,18 @@ namespace HPack
 
 					if (0 == dec.left)
 					{
-						HuffmanDecodeOpcode::NOT_INDEXED == dec.opcode ?
-							stream.incoming_headers.emplace(dec.unpackFullHeader(stream) ) :
-							stream.incoming_headers.emplace(dec.unpackHeaderValue(stream) );
+						HuffmanDecodeOpcode::NOT_INDEXED == dec.opcode
+							? stream.incoming_headers.emplace(dec.unpackFullHeader(stream) )
+							: stream.incoming_headers.emplace(dec.unpackHeaderValue(stream) );
 
 						dec.state = HuffmanDecodeState::OPCODE;
 
 						break;
 					}
 
-					dec.state = dec.huffman_encoded ?
-						HuffmanDecodeState::READ_VALUE_HUFFMAN :
-						HuffmanDecodeState::READ_VALUE;
+					dec.state = dec.huffman_encoded
+						? HuffmanDecodeState::READ_VALUE_HUFFMAN
+						: HuffmanDecodeState::READ_VALUE;
 
 					break;
 				}
@@ -5909,7 +6007,12 @@ namespace HPack
 					uint64_t nread;
 					bool success;
 
-					std::tie(nread, success) = unpackHuffman(dec.buf, data + cur, srcSize - cur, dec.left);
+					std::tie(nread, success) = unpackHuffman(
+						dec.buf,
+						data + cur,
+						srcSize - cur,
+						dec.left
+					);
 
 					cur += nread;
 					dec.left -= nread;
@@ -5918,9 +6021,9 @@ namespace HPack
 						return false;
 					}
 
-					HuffmanDecodeOpcode::NOT_INDEXED == dec.opcode ?
-						stream.incoming_headers.emplace(dec.unpackFullHeader(stream) ) :
-						stream.incoming_headers.emplace(dec.unpackHeaderValue(stream) );
+					HuffmanDecodeOpcode::NOT_INDEXED == dec.opcode
+						? stream.incoming_headers.emplace(dec.unpackFullHeader(stream) )
+						: stream.incoming_headers.emplace(dec.unpackHeaderValue(stream) );
 
 					dec.state = HuffmanDecodeState::OPCODE;
 
@@ -5929,7 +6032,12 @@ namespace HPack
 
 				case HuffmanDecodeState::READ_VALUE:
 				{
-					const uint64_t nread = unpackString(dec.buf, data + cur, srcSize - cur, dec.left);
+					const uint64_t nread = unpackString(
+						dec.buf,
+						data + cur,
+						srcSize - cur,
+						dec.left
+					);
 
 					cur += nread;
 					dec.left -= nread;
@@ -5938,9 +6046,9 @@ namespace HPack
 						return false;
 					}
 
-					HuffmanDecodeOpcode::NOT_INDEXED == dec.opcode ?
-						stream.incoming_headers.emplace(dec.unpackFullHeader(stream) ) :
-						stream.incoming_headers.emplace(dec.unpackHeaderValue(stream) );
+					HuffmanDecodeOpcode::NOT_INDEXED == dec.opcode
+						? stream.incoming_headers.emplace(dec.unpackFullHeader(stream) )
+						: stream.incoming_headers.emplace(dec.unpackHeaderValue(stream) );
 
 					dec.state = HuffmanDecodeState::OPCODE;
 

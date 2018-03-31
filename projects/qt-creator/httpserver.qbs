@@ -12,12 +12,12 @@ Project {
 
         Properties {
             condition: qbs.targetOS.contains("linux")
-            cpp.platformDefines: outer.concat(["POSIX"])
+            cpp.defines: outer.concat(["POSIX"])
             cpp.dynamicLibraries: outer.concat(["dl", "pthread", "rt"])
         }
         Properties {
             condition: qbs.targetOS.contains("windows")
-            cpp.platformDefines: outer.concat(["WIN32", "NOMINMAX"])
+            cpp.defines: outer.concat(["WIN32", "NOMINMAX"])
         }
 
         files: [

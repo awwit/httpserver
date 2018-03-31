@@ -20,8 +20,7 @@
 namespace System
 {
 #ifdef WIN32
-	struct EnumData
-	{
+	struct EnumData {
 		native_processid_type process_id;
 		::HWND hWnd;
 	};
@@ -34,7 +33,7 @@ namespace System
 
 		::GetWindowThreadProcessId(hWnd, &process_id);
 
-        if (process_id == ed.process_id && ::GetConsoleWindow() != hWnd)
+		if (process_id == ed.process_id && ::GetConsoleWindow() != hWnd)
 		{
 			std::array<::TCHAR, 257> class_name;
 
@@ -57,7 +56,7 @@ namespace System
 	#elif POSIX
 		return ::getpid();
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -74,7 +73,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::chdir(dir.c_str() );
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -87,7 +86,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::kill(pid, 0);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -106,7 +105,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::kill(pid, signal);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -117,7 +116,7 @@ namespace System
 	#elif POSIX
 		return 0 != ::pthread_kill(handle, 0);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -135,7 +134,7 @@ namespace System
 			return std::string(buf.cbegin(), buf.cbegin() + len);
 		#endif
 	#elif POSIX
-        const char *buf = ::getenv("TMPDIR");
+		const char *buf = ::getenv("TMPDIR");
 
 		if (nullptr == buf) {
 			return std::string("/tmp/");
@@ -149,7 +148,7 @@ namespace System
 
 		return str;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -179,12 +178,15 @@ namespace System
 
 		return S_ISREG(attrib.st_mode);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
-	bool getFileSizeAndTimeGmt(const std::string &filePath, size_t *fileSize, time_t *fileTime)
-	{
+	bool getFileSizeAndTimeGmt(
+		const std::string &filePath,
+		size_t *fileSize,
+		time_t *fileTime
+	) {
 	#ifdef WIN32
 		#ifdef UNICODE
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -193,7 +195,15 @@ namespace System
 			const std::string &file_path = filePath;
 		#endif
 
-		const ::HANDLE hFile = ::CreateFile(file_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+		const ::HANDLE hFile = ::CreateFile(
+			file_path.c_str(),
+			GENERIC_READ,
+			FILE_SHARE_READ,
+			nullptr,
+			OPEN_EXISTING,
+			0,
+			nullptr
+		);
 
 		if (INVALID_HANDLE_VALUE == hFile) {
 			return false;
@@ -206,7 +216,12 @@ namespace System
 
 		::FILETIME ftWrite;
 
-		::BOOL result = ::GetFileTime(hFile, nullptr, nullptr, &ftWrite);
+		::BOOL result = ::GetFileTime(
+			hFile,
+			nullptr,
+			nullptr,
+			&ftWrite
+		);
 
 		::CloseHandle(hFile);
 
@@ -227,7 +242,7 @@ namespace System
 			stUtc.wYear - 1900,
 			0,
 			0,
-            -1
+			-1
 		};
 
 		*fileTime = std::mktime(&tm_time);
@@ -240,7 +255,7 @@ namespace System
 			return false;
 		}
 
-		*fileSize = attrib.st_size;
+		*fileSize = static_cast<size_t>(attrib.st_size);
 
 		std::tm clock {};
 
@@ -250,7 +265,7 @@ namespace System
 
 		return true;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -297,7 +312,7 @@ namespace System
 			}
 		}
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 }

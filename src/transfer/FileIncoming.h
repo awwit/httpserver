@@ -18,7 +18,13 @@ namespace Transfer
 		FileIncoming() = delete;
 
 	public:
-		FileIncoming(std::string &&fileTmpName, std::string &&fileName, std::string &&fileType, const size_t fileSize) noexcept;
+		FileIncoming(
+			std::string &&fileTmpName,
+			std::string &&fileName,
+			std::string &&fileType,
+			const size_t fileSize
+		) noexcept;
+
 		FileIncoming(const FileIncoming &obj);
 		FileIncoming(FileIncoming &&obj) noexcept;
 
@@ -35,6 +41,13 @@ namespace Transfer
 
 namespace Utils
 {
-	void packFilesIncoming(std::vector<char> &buf, const std::unordered_multimap<std::string, Transfer::FileIncoming> &map);
-	const uint8_t *unpackFilesIncoming(std::unordered_multimap<std::string, Transfer::FileIncoming> &map, const uint8_t *src);
+	void packFilesIncoming(
+		std::vector<char> &buf,
+		const std::unordered_multimap<std::string, Transfer::FileIncoming> &map
+	);
+
+	const uint8_t *unpackFilesIncoming(
+		std::unordered_multimap<std::string, Transfer::FileIncoming> &map,
+		const uint8_t *src
+	);
 }

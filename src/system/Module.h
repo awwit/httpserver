@@ -17,7 +17,7 @@ namespace System
 	#elif POSIX
 		void *lib_handle;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 	public:
@@ -33,8 +33,15 @@ namespace System
 		bool open(const std::string &libPath);
 		void close() noexcept;
 
-		bool find(const std::string &symbolName, void *(**addr)(void *) ) const noexcept;
-		bool find(const char *symbolName, void *(**addr)(void *) ) const noexcept;
+		bool find(
+			const std::string &symbolName,
+			void *(**addr)(void *)
+		) const noexcept;
+
+		bool find(
+			const char *symbolName,
+			void *(**addr)(void *)
+		) const noexcept;
 
 		bool operator ==(const Module &obj) const noexcept;
 		bool operator !=(const Module &obj) const noexcept;
@@ -42,4 +49,4 @@ namespace System
 		Module &operator =(const Module &obj) noexcept;
 		Module &operator =(Module &&obj) noexcept;
 	};
-};
+}

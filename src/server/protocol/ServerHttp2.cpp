@@ -7,7 +7,12 @@
 
 namespace HttpServer
 {
-	ServerHttp2::ServerHttp2(Socket::Adapter &sock, const ServerSettings &settings, ServerControls &controls, SocketsQueue &sockets) noexcept
+	ServerHttp2::ServerHttp2(
+		Socket::Adapter &sock,
+		const ServerSettings &settings,
+		ServerControls &controls,
+		SocketsQueue &sockets
+	) noexcept
 		: ServerHttp2Protocol(sock, settings, controls, nullptr), sockets(sockets)
 	{
 
@@ -17,8 +22,13 @@ namespace HttpServer
 		this->sock.close();
 	}
 
-	static uint8_t *setHttp2FrameHeader(uint8_t *addr, const uint32_t frameSize, const Http2::FrameType frameType, const Http2::FrameFlag frameFlags, const uint32_t streamId) noexcept
-	{
+	static uint8_t *setHttp2FrameHeader(
+		uint8_t *addr,
+		const uint32_t frameSize,
+		const Http2::FrameType frameType,
+		const Http2::FrameFlag frameFlags,
+		const uint32_t streamId
+	) noexcept {
 		Utils::hton24(addr, frameSize);
 		*(addr + 3) = static_cast<const uint8_t>(frameType);
 		*(addr + 4) = static_cast<const uint8_t>(frameFlags);
@@ -27,8 +37,11 @@ namespace HttpServer
 		return (addr + Http2::FRAME_HEADER_SIZE);
 	}
 
-	static Http2::IncStream &getStreamData(std::unordered_map<uint32_t, Http2::IncStream> &streams, const uint32_t streamId, Http2::ConnectionData &conn) noexcept
-	{
+	static Http2::IncStream &getStreamData(
+		std::unordered_map<uint32_t, Http2::IncStream> &streams,
+		const uint32_t streamId,
+		Http2::ConnectionData &conn
+	) noexcept {
 		auto it = streams.find(streamId);
 
 		if (streams.end() != it) {
@@ -38,12 +51,22 @@ namespace HttpServer
 		return streams.emplace(streamId, Http2::IncStream(streamId, conn) ).first->second;
 	}
 
-	static void sendWindowUpdate(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, const Http2::IncStream &stream, const uint32_t size) noexcept
-	{
+	static void sendWindowUpdate(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		const Http2::IncStream &stream,
+		const uint32_t size
+	) noexcept {
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + sizeof(uint32_t)> buf;
 		uint8_t *addr = buf.data();
 
-		addr = setHttp2FrameHeader(addr, sizeof(uint32_t), Http2::FrameType::WINDOW_UPDATE, Http2::FrameFlag::EMPTY, stream.stream_id);
+		addr = setHttp2FrameHeader(
+			addr,
+			sizeof(uint32_t),
+			Http2::FrameType::WINDOW_UPDATE,
+			Http2::FrameFlag::EMPTY,
+			stream.stream_id
+		);
 
 		*reinterpret_cast<uint32_t *>(addr) = ::htonl(size);
 
@@ -52,8 +75,12 @@ namespace HttpServer
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static Http2::ErrorCode parseHttp2Data(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
-	{
+	static Http2::ErrorCode parseHttp2Data(
+		Http2::FrameMeta &meta,
+		Http2::IncStream &stream,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
 		if (0 == meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
@@ -91,24 +118,20 @@ namespace HttpServer
 
 			buf.append(src, end - padding);
 
-			dr->recv_total += end - padding - src;
+			dr->recv_total += size_t(end - src) - padding;
 
-			if (dr->data_variant->parse(buf, rd, dr) )
-			{
-				buf.erase(buf.begin(), buf.end() - dr->left);
-			}
-			else
-			{
+			if (dr->data_variant->parse(buf, rd, dr) ) {
+				buf.erase(
+					0, buf.length() - dr->left
+				);
+			} else {
 				error_code = Http2::ErrorCode::PROTOCOL_ERROR;
 			}
-		}
-		else
-		{
+		} else {
 			error_code = Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
-		if (meta.flags & Http2::FrameFlag::END_STREAM)
-		{
+		if (meta.flags & Http2::FrameFlag::END_STREAM) {
 			stream.state = Http2::StreamState::HALF_CLOSED;
 
 			ServerProtocol::destroyDataReceiver(stream.reserved);
@@ -118,9 +141,15 @@ namespace HttpServer
 		return error_code;
 	}
 
-	static Http2::ErrorCode parseHttp2Headers(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
-	{
-		stream.state = (meta.flags & Http2::FrameFlag::END_STREAM) ? Http2::StreamState::HALF_CLOSED : Http2::StreamState::OPEN;
+	static Http2::ErrorCode parseHttp2Headers(
+		Http2::FrameMeta &meta,
+		Http2::IncStream &stream,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
+		stream.state = (meta.flags & Http2::FrameFlag::END_STREAM)
+			? Http2::StreamState::HALF_CLOSED
+			: Http2::StreamState::OPEN;
 
 		uint8_t padding = 0;
 
@@ -138,7 +167,9 @@ namespace HttpServer
 		if (meta.flags & Http2::FrameFlag::PRIORITY)
 		{
 			// Stream id
-			const uint32_t depend_stream_id = ::ntohl(*reinterpret_cast<const uint32_t *>(src) ) & ~(1 << 31);
+			const uint32_t depend_stream_id = ::ntohl(
+				*reinterpret_cast<const uint32_t *>(src)
+			) & ~(uint32_t(1) << 31);
 
 			src += sizeof(uint32_t);
 
@@ -148,15 +179,19 @@ namespace HttpServer
 			src += sizeof(uint8_t);
 		}
 
-		if (HPack::unpack(src, end - src - padding, stream) == false) {
+		if (HPack::unpack(src, size_t(end - src) - padding, stream) == false) {
 			return Http2::ErrorCode::COMPRESSION_ERROR;
 		}
 
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static Http2::ErrorCode parseHttp2rstStream(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
-	{
+	static Http2::ErrorCode parseHttp2rstStream(
+		Http2::FrameMeta &meta,
+		Http2::IncStream &stream,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
 		if (Http2::StreamState::IDLE == stream.state) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
@@ -171,7 +206,9 @@ namespace HttpServer
 			return Http2::ErrorCode::FRAME_SIZE_ERROR;
 		}
 
-		const Http2::ErrorCode error_code = static_cast<const Http2::ErrorCode>(::ntohl(*reinterpret_cast<const uint32_t *>(src) ) );
+		const Http2::ErrorCode error_code = static_cast<const Http2::ErrorCode>(
+			::ntohl(*reinterpret_cast<const uint32_t *>(src) )
+		);
 
 		if (Http2::ErrorCode::NO_ERROR != error_code) {
 			// DEBUG
@@ -180,8 +217,12 @@ namespace HttpServer
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static Http2::ErrorCode parseHttp2Settings(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
-	{
+	static Http2::ErrorCode parseHttp2Settings(
+		Http2::FrameMeta &meta,
+		Http2::IncStream &stream,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
 		if (0 != meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
@@ -198,7 +239,9 @@ namespace HttpServer
 
 		while (src != end)
 		{
-			const Http2::ConnectionSetting setting = static_cast<Http2::ConnectionSetting>(ntohs(*reinterpret_cast<const uint16_t *>(src) ) );
+			const Http2::ConnectionSetting setting = static_cast<Http2::ConnectionSetting>(
+				ntohs(*reinterpret_cast<const uint16_t *>(src) )
+			);
 
 			src += sizeof(uint16_t);
 
@@ -208,68 +251,74 @@ namespace HttpServer
 
 			switch (setting)
 			{
-			case Http2::ConnectionSetting::SETTINGS_HEADER_TABLE_SIZE:
-				settings.header_table_size = value;
-				break;
-
-			case Http2::ConnectionSetting::SETTINGS_ENABLE_PUSH:
-			{
-				if (value > 1) {
-					return Http2::ErrorCode::PROTOCOL_ERROR;
+				case Http2::ConnectionSetting::SETTINGS_HEADER_TABLE_SIZE: {
+					settings.header_table_size = value;
+					break;
 				}
 
-				settings.enable_push = value;
+				case Http2::ConnectionSetting::SETTINGS_ENABLE_PUSH: {
+					if (value > 1) {
+						return Http2::ErrorCode::PROTOCOL_ERROR;
+					}
 
-				break;
-			}
+					settings.enable_push = value;
 
-			case Http2::ConnectionSetting::SETTINGS_MAX_CONCURRENT_STREAMS:
-				settings.max_concurrent_streams = value;
-				break;
-
-			case Http2::ConnectionSetting::SETTINGS_INITIAL_WINDOW_SIZE:
-			{
-				if (value >= uint32_t(1 << 31) ) {
-					return Http2::ErrorCode::FLOW_CONTROL_ERROR;
+					break;
 				}
 
-				settings.initial_window_size = value;
-
-				break;
-			}
-
-			case Http2::ConnectionSetting::SETTINGS_MAX_FRAME_SIZE:
-			{
-				if (value < (1 << 14) || value >= (1 << 24) ) {
-					return Http2::ErrorCode::PROTOCOL_ERROR;
+				case Http2::ConnectionSetting::SETTINGS_MAX_CONCURRENT_STREAMS: {
+					settings.max_concurrent_streams = value;
+					break;
 				}
 
-				settings.max_frame_size = value;
+				case Http2::ConnectionSetting::SETTINGS_INITIAL_WINDOW_SIZE: {
+					if (value >= uint32_t(1) << 31) {
+						return Http2::ErrorCode::FLOW_CONTROL_ERROR;
+					}
 
-				break;
-			}
+					settings.initial_window_size = value;
 
-			case Http2::ConnectionSetting::SETTINGS_MAX_HEADER_LIST_SIZE:
-				settings.max_header_list_size = value;
-				break;
+					break;
+				}
 
-			default:
-				break;
+				case Http2::ConnectionSetting::SETTINGS_MAX_FRAME_SIZE: {
+					if (value < (1 << 14) || value >= (1 << 24) ) {
+						return Http2::ErrorCode::PROTOCOL_ERROR;
+					}
+
+					settings.max_frame_size = value;
+
+					break;
+				}
+
+				case Http2::ConnectionSetting::SETTINGS_MAX_HEADER_LIST_SIZE: {
+					settings.max_header_list_size = value;
+					break;
+				}
+
+				default:
+					break;
 			}
 		}
 
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static Http2::ErrorCode parseHttp2GoAway(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
-	{
+	static Http2::ErrorCode parseHttp2GoAway(
+		Http2::FrameMeta &meta,
+		Http2::IncStream &stream,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
 		if (0 != meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
 
 		stream.state = Http2::StreamState::CLOSED;
 
-		const uint32_t last_stream_id = ::ntohl(*reinterpret_cast<const uint32_t *>(src) );
+		const uint32_t last_stream_id = ::ntohl(
+			*reinterpret_cast<const uint32_t *>(src)
+		);
 
 		if (last_stream_id > 0) {
 
@@ -277,7 +326,9 @@ namespace HttpServer
 
 		src += sizeof(uint32_t);
 
-		const Http2::ErrorCode error_code = static_cast<Http2::ErrorCode>(::ntohl(*reinterpret_cast<const uint32_t *>(src) ) );
+		const Http2::ErrorCode error_code = static_cast<Http2::ErrorCode>(
+			::ntohl(*reinterpret_cast<const uint32_t *>(src) )
+		);
 
 		if (Http2::ErrorCode::NO_ERROR != error_code) {
 
@@ -286,8 +337,12 @@ namespace HttpServer
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static void ping(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const uint64_t pingData)
-	{
+	static void ping(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		Http2::ConnectionData &conn,
+		const uint64_t pingData
+	) {
 		constexpr uint32_t frame_size = sizeof(uint64_t);
 
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
@@ -295,7 +350,13 @@ namespace HttpServer
 
 		constexpr uint32_t stream_id = 0;
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::PING, Http2::FrameFlag::ACK, stream_id);
+		addr = setHttp2FrameHeader(
+			addr,
+			frame_size,
+			Http2::FrameType::PING,
+			Http2::FrameFlag::ACK,
+			stream_id
+		);
 
 		*reinterpret_cast<uint64_t *>(addr) = pingData;
 
@@ -304,8 +365,9 @@ namespace HttpServer
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static Http2::ErrorCode parseHttp2Ping(Http2::FrameMeta &meta)
-	{
+	static Http2::ErrorCode parseHttp2Ping(
+		Http2::FrameMeta &meta
+	) {
 		if (0 != meta.stream_id) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
@@ -317,8 +379,12 @@ namespace HttpServer
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static Http2::ErrorCode parseHttp2WindowUpdate(Http2::FrameMeta &meta, Http2::IncStream &stream, const uint8_t *src, const uint8_t *end)
-	{
+	static Http2::ErrorCode parseHttp2WindowUpdate(
+		Http2::FrameMeta &meta,
+		Http2::IncStream &stream,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
 		if (Http2::StreamState::RESERVED == stream.state) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
@@ -330,12 +396,14 @@ namespace HttpServer
 			return Http2::ErrorCode::FRAME_SIZE_ERROR;
 		}
 
-		const uint32_t window_size_increment = ::ntohl(*reinterpret_cast<const uint32_t *>(src) );
+		const uint32_t window_size_increment = ::ntohl(
+			*reinterpret_cast<const uint32_t *>(src)
+		);
 
 		if (0 == window_size_increment) {
 			return Http2::ErrorCode::PROTOCOL_ERROR;
 		}
-		else if (window_size_increment >= uint32_t(1 << 31) ) {
+		else if (window_size_increment >= uint32_t(1) << 31) {
 			return Http2::ErrorCode::FLOW_CONTROL_ERROR;
 		}
 
@@ -349,25 +417,42 @@ namespace HttpServer
 		return Http2::ErrorCode::NO_ERROR;
 	}
 
-	static void rstStream(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::IncStream &stream, const Http2::ErrorCode errorCode)
-	{
+	static void rstStream(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		Http2::IncStream &stream,
+		const Http2::ErrorCode errorCode
+	) {
 		constexpr uint32_t frame_size = sizeof(uint32_t);
 
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
 		uint8_t *addr = buf.data();
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::RST_STREAM, Http2::FrameFlag::EMPTY, stream.stream_id);
+		addr = setHttp2FrameHeader(
+			addr,
+			frame_size,
+			Http2::FrameType::RST_STREAM,
+			Http2::FrameFlag::EMPTY,
+			stream.stream_id
+		);
 
-		*reinterpret_cast<uint32_t *>(addr) = ::htonl(static_cast<const uint32_t>(errorCode) );
+		*reinterpret_cast<uint32_t *>(addr) = ::htonl(
+			static_cast<const uint32_t>(errorCode)
+		);
 
 		const std::unique_lock<std::mutex> lock(stream.conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static void sendSettings(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const uint8_t *src, const uint8_t *end)
-	{
-		const uint32_t frame_size = end - src;
+	static void sendSettings(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		Http2::ConnectionData &conn,
+		const uint8_t *src,
+		const uint8_t *end
+	) {
+		const uint32_t frame_size = uint32_t(end - src);
 
 		std::vector<uint8_t> buf(Http2::FRAME_HEADER_SIZE + frame_size);
 
@@ -375,7 +460,13 @@ namespace HttpServer
 
 		constexpr uint32_t stream_id = 0;
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::SETTINGS, Http2::FrameFlag::EMPTY, stream_id);
+		addr = setHttp2FrameHeader(
+			addr,
+			frame_size,
+			Http2::FrameType::SETTINGS,
+			Http2::FrameFlag::EMPTY,
+			stream_id
+		);
 
 		std::copy(src, end, addr);
 
@@ -384,31 +475,51 @@ namespace HttpServer
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static void goAway(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const uint32_t lastStreamId, const Http2::ErrorCode errorCode)
-	{
+	static void goAway(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		Http2::ConnectionData &conn,
+		const uint32_t lastStreamId,
+		const Http2::ErrorCode errorCode
+	) {
 		constexpr uint32_t frame_size = sizeof(uint32_t) * 2;
 
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
 
 		uint8_t *addr = buf.data();
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::RST_STREAM, Http2::FrameFlag::EMPTY, 0);
+		addr = setHttp2FrameHeader(
+			addr,
+			frame_size,
+			Http2::FrameType::RST_STREAM,
+			Http2::FrameFlag::EMPTY,
+			0
+		);
 
-		*reinterpret_cast<uint32_t *>(addr) = ::htonl(static_cast<const uint32_t>(lastStreamId) );
-		*reinterpret_cast<uint32_t *>(addr + sizeof(uint32_t) ) = ::htonl(static_cast<const uint32_t>(errorCode) );
+		*reinterpret_cast<uint32_t *>(addr) = ::htonl(lastStreamId);
+
+		*reinterpret_cast<uint32_t *>(addr + sizeof(uint32_t) ) = ::htonl(
+			static_cast<const uint32_t>(errorCode)
+		);
 
 		const std::unique_lock<std::mutex> lock(conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static bool getClientPreface(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout)
-	{
+	static bool getClientPreface(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout
+	) {
 		std::array<uint8_t, 24> buf;
 
-		const long read_size = sock.nonblock_recv(buf.data(), buf.size(), timeout);
+		const long read_size = sock.nonblock_recv(
+			buf.data(),
+			buf.size(),
+			timeout
+		);
 
-		if (read_size != buf.size() ) {
+		if (buf.size() != read_size) {
 			return false;
 		}
 
@@ -426,8 +537,12 @@ namespace HttpServer
 		return 0 == compare;
 	}
 
-	static void sendEmptySettings(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, Http2::ConnectionData &conn, const Http2::FrameFlag flags)
-	{
+	static void sendEmptySettings(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		Http2::ConnectionData &conn,
+		const Http2::FrameFlag flags
+	) {
 		constexpr uint32_t frame_size = 0;
 
 		std::array<uint8_t, Http2::FRAME_HEADER_SIZE + frame_size> buf;
@@ -435,32 +550,52 @@ namespace HttpServer
 
 		constexpr uint32_t stream_id = 0;
 
-		addr = setHttp2FrameHeader(addr, frame_size, Http2::FrameType::SETTINGS, flags, stream_id);
+		addr = setHttp2FrameHeader(
+			addr,
+			frame_size,
+			Http2::FrameType::SETTINGS,
+			flags,
+			stream_id
+		);
 
 		const std::unique_lock<std::mutex> lock(conn.sync.mtx);
 
 		sock.nonblock_send(buf.data(), buf.size(), timeout);
 	}
 
-	static bool getNextHttp2FrameMeta(const Socket::Adapter &sock, const std::chrono::milliseconds &timeout, std::vector<char> &buf, Http2::FrameMeta &meta, long &read_size)
-	{
-		if (read_size <= static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) )
-		{
-			if (read_size == static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE) ) {
+	static bool getNextHttp2FrameMeta(
+		const Socket::Adapter &sock,
+		const std::chrono::milliseconds &timeout,
+		std::vector<char> &buf,
+		Http2::FrameMeta &meta,
+		long &read_size
+	) {
+		const long length = long(
+			meta.length + Http2::FRAME_HEADER_SIZE
+		);
+
+		if (read_size <= length) {
+			if (read_size == length) {
 				read_size = 0;
 			}
 
-			read_size = sock.nonblock_recv(buf.data() + read_size, buf.size() - read_size, timeout);
+			read_size = sock.nonblock_recv(
+				buf.data() + read_size,
+				buf.size() - size_t(read_size),
+				timeout
+			);
 
-			if (read_size < static_cast<long>(Http2::FRAME_HEADER_SIZE) ) {
+			if (read_size < long(Http2::FRAME_HEADER_SIZE) ) {
 				return false;
 			}
-		}
-		else
-		{
-			std::copy(buf.cbegin() + meta.length + Http2::FRAME_HEADER_SIZE, buf.cbegin() + read_size, buf.begin() );
+		} else {
+			std::copy(
+				buf.cbegin() + length,
+				buf.cbegin() + read_size,
+				buf.begin()
+			);
 
-			read_size -= static_cast<long>(meta.length + Http2::FRAME_HEADER_SIZE);
+			read_size -= length;
 		}
 
 		const uint8_t *addr = reinterpret_cast<const uint8_t *>(buf.data() );
@@ -481,11 +616,24 @@ namespace HttpServer
 
 		Http2::ConnectionData conn;
 
-		sendEmptySettings(this->sock, req.timeout, conn, Http2::FrameFlag::EMPTY);
+		sendEmptySettings(
+			this->sock,
+			req.timeout,
+			conn,
+			Http2::FrameFlag::EMPTY
+		);
 
 		if (getClientPreface(this->sock, req.timeout) == false) {
 			constexpr uint32_t last_stream_id = 0;
-			goAway(this->sock, req.timeout, conn, last_stream_id, Http2::ErrorCode::PROTOCOL_ERROR);
+
+			goAway(
+				this->sock,
+				req.timeout,
+				conn,
+				last_stream_id,
+				Http2::ErrorCode::PROTOCOL_ERROR
+			);
+
 			return this;
 		}
 
@@ -512,7 +660,10 @@ namespace HttpServer
 				break;
 			}
 
-			const uint8_t *addr = reinterpret_cast<const uint8_t *>(buf.data() ) + Http2::FRAME_HEADER_SIZE;
+			const uint8_t *addr = reinterpret_cast<const uint8_t *>(
+				buf.data()
+			) + Http2::FRAME_HEADER_SIZE;
+
 			const uint8_t *end = addr + meta.length;
 
 			if (meta.stream_id > last_stream_id) {
@@ -544,16 +695,17 @@ namespace HttpServer
 				{
 					DataVariant::DataReceiver *dr = reinterpret_cast<DataVariant::DataReceiver *>(stream.reserved);
 
-					if (static_cast<int32_t>(stream.window_size_inc - conn.server_settings.max_frame_size) <= 0)
+					if (stream.window_size_inc - long(conn.server_settings.max_frame_size) <= 0)
 					{
-						size_t update_size = conn.server_settings.initial_window_size + (dr->full_size - dr->recv_total) - stream.window_size_inc;
+						size_t update_size = conn.server_settings.initial_window_size +
+							(dr->full_size - dr->recv_total) - size_t(stream.window_size_inc);
 
 						if (update_size > Http2::MAX_WINDOW_UPDATE) {
 							update_size = Http2::MAX_WINDOW_UPDATE;
 						}
 
-						sendWindowUpdate(this->sock, req.timeout, stream, static_cast<uint32_t>(update_size) );
-						sendWindowUpdate(this->sock, req.timeout, primary, static_cast<uint32_t>(update_size) );
+						sendWindowUpdate(this->sock, req.timeout, stream, uint32_t(update_size) );
+						sendWindowUpdate(this->sock, req.timeout, primary, uint32_t(update_size) );
 
 						stream.window_size_inc += update_size;
 					}
@@ -593,7 +745,7 @@ namespace HttpServer
 			{
 				result = parseHttp2Settings(meta, stream, addr, end);
 
-				if (Http2::ErrorCode::NO_ERROR == result && false == (meta.flags & Http2::FrameFlag::ACK) )
+				if (Http2::ErrorCode::NO_ERROR == result && (meta.flags & Http2::FrameFlag::ACK) == false)
 				{
 					conn.decoding_dynamic_table.changeHeaderTableSize(conn.client_settings.header_table_size);
 					conn.decoding_dynamic_table.changeMaxHeaderListSize(conn.client_settings.max_header_list_size);
@@ -612,7 +764,7 @@ namespace HttpServer
 			{
 				result = parseHttp2Ping(meta);
 
-				if (Http2::ErrorCode::NO_ERROR == result && false == (meta.flags & Http2::FrameFlag::ACK) )
+				if (Http2::ErrorCode::NO_ERROR == result && (meta.flags & Http2::FrameFlag::ACK) == false)
 				{
 					const uint64_t ping_data = *reinterpret_cast<const uint64_t *>(addr);
 					ping(this->sock, req.timeout, conn, ping_data);
@@ -668,7 +820,13 @@ namespace HttpServer
 			conn.sync.event.wait();
 		}
 
-		goAway(this->sock, req.timeout, conn, last_stream_id, Http2::ErrorCode::NO_ERROR);
+		goAway(
+			this->sock,
+			req.timeout,
+			conn,
+			last_stream_id,
+			Http2::ErrorCode::NO_ERROR
+		);
 
 		for (auto &pair : streams) {
 			destroyDataReceiver(pair.second.reserved);

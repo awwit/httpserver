@@ -13,7 +13,12 @@ namespace HttpServer
 		SocketsQueue &sockets;
 
 	public:
-		ServerHttp2(Socket::Adapter &sock, const ServerSettings &settings, ServerControls &controls, SocketsQueue &sockets) noexcept;
+		ServerHttp2(
+			Socket::Adapter &sock,
+			const ServerSettings &settings,
+			ServerControls &controls,
+			SocketsQueue &sockets
+		) noexcept;
 
 		virtual ServerProtocol *process() override;
 		virtual void close() override;

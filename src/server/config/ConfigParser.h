@@ -10,13 +10,16 @@ namespace HttpServer
 	class ConfigParser
 	{
 	private:
-		struct ServerApplicationDefaultSettings
-		{
+		struct ServerApplicationDefaultSettings {
 			std::string temp_dir;
 			size_t request_max_size;
 		};
 
-		static bool includeConfigFile(const std::string &fileName, std::string &strBuf, const size_t offset = 0);
+		static bool includeConfigFile(
+			const std::string &fileName,
+			std::string &strBuf,
+			const size_t offset = 0
+		);
 
 		static bool addApplication(
 			const std::unordered_multimap<std::string, std::string> &app,
@@ -25,9 +28,16 @@ namespace HttpServer
 			ServerApplicationsTree &apps_tree
 		);
 
-		static bool parseMimes(const std::string &fileName, std::unordered_map<std::string, std::string> &mimes_types);
+		static bool parseMimes(
+			const std::string &fileName,
+			std::unordered_map<std::string, std::string> &mimes_types
+		);
 
 	public:
-		bool loadConfig(const std::string &conf, ServerSettings &settings, std::vector<System::Module> &modules);
+		bool loadConfig(
+			const std::string &conf,
+			ServerSettings &settings,
+			std::vector<System::Module> &modules
+		);
 	};
 }

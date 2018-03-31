@@ -6,15 +6,21 @@
 
 namespace HttpServer
 {
-	static std::string getMimeTypeByFileName(const std::string &fileName, const std::unordered_map<std::string, std::string> &mimesTypes) noexcept
-	{
+	static std::string getMimeTypeByFileName(
+		const std::string &fileName,
+		const std::unordered_map<std::string, std::string> &mimesTypes
+	) noexcept {
 		const size_t ext_pos = fileName.rfind('.');
 
-		const std::string file_ext = Utils::getLowerString(std::string::npos != ext_pos ? fileName.substr(ext_pos + 1) : std::string() );
+		const std::string file_ext = std::string::npos != ext_pos
+			? Utils::getLowerString(fileName.substr(ext_pos + 1) )
+			: std::string();
 
 		auto const it_mime = mimesTypes.find(file_ext);
 
-		return mimesTypes.cend() != it_mime ? it_mime->second : std::string("application/octet-stream");
+		return mimesTypes.cend() == it_mime
+			? std::string("application/octet-stream")
+			: it_mime->second;
 	}
 
 	static std::vector<std::tuple<size_t, size_t> > getRanges(
@@ -23,15 +29,17 @@ namespace HttpServer
 		const size_t fileSize,
 		std::string *resultRangeHeader,
 		size_t *contentLength
-	) noexcept
-	{
+	) noexcept {
 		std::vector<std::tuple<size_t, size_t> > ranges;
 
 		*contentLength = 0;
 
 		size_t delimiter = posSymEqual; // rangeHeader.find('=');
 
-		const std::string range_unit_name(rangeHeader.cbegin(), rangeHeader.cbegin() + delimiter);
+		const std::string range_unit_name(
+			rangeHeader.cbegin(),
+			rangeHeader.cbegin() + delimiter
+		);
 
 		static const std::unordered_map<std::string, size_t> ranges_units {
 			{ "bytes", 1 }
@@ -39,8 +47,7 @@ namespace HttpServer
 
 		auto const it_unit = ranges_units.find(range_unit_name);
 
-		if (ranges_units.cend() == it_unit)
-		{
+		if (ranges_units.cend() == it_unit) {
 			return ranges;
 		}
 
@@ -49,30 +56,41 @@ namespace HttpServer
 		for (size_t str_pos; std::string::npos != delimiter; )
 		{
 			str_pos = delimiter + 1;
-
 			delimiter = rangeHeader.find(',', str_pos);
 
 			const size_t range_pos = rangeHeader.find('-', str_pos);
 
 			if (range_pos < delimiter)
 			{
-				const std::string range_begin_str(rangeHeader.cbegin() + str_pos, rangeHeader.cbegin() + range_pos);
-				const std::string range_end_str(rangeHeader.cbegin() + range_pos + 1, std::string::npos == delimiter ? rangeHeader.cend() : rangeHeader.cbegin() + delimiter);
+				const std::string range_begin_str(
+					rangeHeader.cbegin() + str_pos,
+					rangeHeader.cbegin() + range_pos
+				);
 
-				if (false == range_begin_str.empty() )
+				const std::string range_end_str(
+					rangeHeader.cbegin() + range_pos + 1,
+					std::string::npos == delimiter
+						? rangeHeader.cend()
+						: rangeHeader.cbegin() + delimiter
+				);
+
+				if (range_begin_str.empty() == false)
 				{
-					const size_t range_begin = std::strtoull(range_begin_str.c_str(), nullptr, 10) * range_unit;
+					const size_t range_begin = std::strtoull(
+						range_begin_str.c_str(), nullptr, 10
+					) * range_unit;
 
 					if (range_begin < fileSize)
 					{
-						if (false == range_end_str.empty() )
+						if (range_end_str.empty() == false)
 						{
-							size_t range_end = std::strtoull(range_end_str.c_str(), nullptr, 10) * range_unit;
+							size_t range_end = std::strtoull(
+								range_end_str.c_str(), nullptr, 10
+							) * range_unit;
 
 							if (range_end >= range_begin)
 							{
-								if (range_end > fileSize)
-								{
+								if (range_end > fileSize) {
 									range_end = fileSize;
 								}
 
@@ -93,15 +111,21 @@ namespace HttpServer
 
 							*resultRangeHeader += std::to_string(range_begin) + '-' + std::to_string(fileSize - 1) + ',';
 
-							ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
+							ranges.emplace_back(std::tuple<size_t, size_t> {
+								range_begin, length
+							});
 						}
 					}
 				}
-				else if (false == range_end_str.empty() ) // if range_begin_str empty
+				else if (range_end_str.empty() == false) // if range_begin_str empty
 				{
-					size_t range_end = std::strtoull(range_end_str.c_str(), nullptr, 10) * range_unit;
+					size_t range_end = std::strtoull(
+						range_end_str.c_str(), nullptr, 10
+					) * range_unit;
 
-					const size_t length = range_end < fileSize ? fileSize - range_end : fileSize;
+					const size_t length = range_end < fileSize
+						? fileSize - range_end
+						: fileSize;
 
 					const size_t range_begin = fileSize - length;
 
@@ -111,15 +135,15 @@ namespace HttpServer
 
 					*resultRangeHeader += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
 
-					ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
+					ranges.emplace_back(std::tuple<size_t, size_t> {
+						range_begin, length
+					});
 				}
 			}
 		}
 
-		if (false == ranges.empty() )
-		{
+		if (ranges.empty() == false) {
 			(*resultRangeHeader).back() = '/';
-
 			*resultRangeHeader = "bytes " + *resultRangeHeader + std::to_string(fileSize);
 		}
 
@@ -136,13 +160,15 @@ namespace HttpServer
 		const std::string &rangeHeader,
 		std::vector<std::pair<std::string, std::string> > &additionalHeaders,
 		const bool headersOnly
-	) noexcept
-	{
+	) noexcept {
 		const size_t pos_sym_equal = rangeHeader.find('=');
 
-		if (std::string::npos == pos_sym_equal)
-		{
-			prot.sendHeaders(Http::StatusCode::BAD_REQUEST, additionalHeaders, req.timeout);
+		if (std::string::npos == pos_sym_equal) {
+			prot.sendHeaders(
+				Http::StatusCode::BAD_REQUEST,
+				additionalHeaders,
+				req.timeout
+			);
 
 			return 1;
 		}
@@ -151,11 +177,20 @@ namespace HttpServer
 
 		size_t content_length;
 
-		const std::vector<std::tuple<size_t, size_t> > ranges = getRanges(rangeHeader, pos_sym_equal, fileSize, &content_range_header, &content_length);
+		const std::vector<std::tuple<size_t, size_t> > ranges = getRanges(
+			rangeHeader,
+			pos_sym_equal,
+			fileSize,
+			&content_range_header,
+			&content_length
+		);
 
-		if (0 == content_length)
-		{
-			prot.sendHeaders(Http::StatusCode::REQUESTED_RANGE_NOT_SATISFIABLE, additionalHeaders, req.timeout);
+		if (0 == content_length) {
+			prot.sendHeaders(
+				Http::StatusCode::REQUESTED_RANGE_NOT_SATISFIABLE,
+				additionalHeaders,
+				req.timeout
+			);
 
 			return 2;
 		}
@@ -163,11 +198,14 @@ namespace HttpServer
 		// Ranges transfer
 		std::ifstream file(fileName, std::ifstream::binary);
 
-		if ( ! file)
-		{
+		if ( ! file) {
 			file.close();
 
-			prot.sendHeaders(Http::StatusCode::INTERNAL_SERVER_ERROR, additionalHeaders, req.timeout);
+			prot.sendHeaders(
+				Http::StatusCode::INTERNAL_SERVER_ERROR,
+				additionalHeaders,
+				req.timeout
+			);
 
 			return 3;
 		}
@@ -181,10 +219,14 @@ namespace HttpServer
 		additionalHeaders.emplace_back("last-modified", Utils::getDatetimeAsString(fileTime, true) );
 
 		// Отправить заголовки (206 Partial Content)
-		if (false == prot.sendHeaders(Http::StatusCode::PARTIAL_CONTENT, additionalHeaders, req.timeout, headersOnly) )
-		{
+		if (prot.sendHeaders(
+				Http::StatusCode::PARTIAL_CONTENT,
+				additionalHeaders,
+				req.timeout,
+				headersOnly
+			) == false
+		) {
 			file.close();
-
 			return 4;
 		}
 
@@ -203,7 +245,11 @@ namespace HttpServer
 			{
 				std::tie(position, length) = range;
 
-				buf.resize(length < 512 * 1024 ? length : 512 * 1024);
+				buf.resize(
+					length < 512 * 1024
+						? length
+						: 512 * 1024
+				);
 
 				file.seekg(position, file.beg);
 
@@ -211,10 +257,8 @@ namespace HttpServer
 
 				long send_size;
 
-				do
-				{
-					if (send_size_left < 512 * 1024)
-					{
+				do {
+					if (send_size_left < 512 * 1024) {
 						buf.resize(send_size_left);
 					}
 
@@ -222,7 +266,12 @@ namespace HttpServer
 
 					auto const read_size = file.gcount();
 
-					send_size = prot.sendData(buf.data(), read_size, req.timeout, &dt);
+					send_size = prot.sendData(
+						buf.data(),
+						read_size,
+						req.timeout,
+						&dt
+					);
 
 					send_size_left -= send_size;
 				}
@@ -245,8 +294,7 @@ namespace HttpServer
 		const std::unordered_map<std::string, std::string> &mimesTypes,
 		std::vector<std::pair<std::string, std::string> > &additionalHeaders,
 		const bool headersOnly
-	) noexcept
-	{
+	) noexcept {
 		// Get current time in GMT
 		additionalHeaders.emplace_back("date", Utils::getDatetimeAsString() );
 
@@ -254,9 +302,12 @@ namespace HttpServer
 		size_t file_size;
 
 		// Получить размер файла и дату последнего изменения
-		if (false == System::getFileSizeAndTimeGmt(fileName, &file_size, &file_time) )
-		{
-			prot.sendHeaders(Http::StatusCode::NOT_FOUND, additionalHeaders, req.timeout);
+		if (System::getFileSizeAndTimeGmt(fileName, &file_size, &file_time) == false) {
+			prot.sendHeaders(
+				Http::StatusCode::NOT_FOUND,
+				additionalHeaders,
+				req.timeout
+			);
 
 			return 1;
 		}
@@ -265,13 +316,15 @@ namespace HttpServer
 		auto const it_modified = req.incoming_headers.find("if-modified-since");
 
 		// Если найден заголовок проверки изменения файла (проверить, изменялся ли файл)
-		if (req.incoming_headers.cend() != it_modified)
-		{
+		if (req.incoming_headers.cend() != it_modified) {
 			const time_t time_in_request = Utils::rfc822DatetimeToTimestamp(it_modified->second);
 
-			if (file_time == time_in_request)
-			{
-				prot.sendHeaders(Http::StatusCode::NOT_MODIFIED, additionalHeaders, req.timeout);
+			if (file_time == time_in_request) {
+				prot.sendHeaders(
+					Http::StatusCode::NOT_MODIFIED,
+					additionalHeaders,
+					req.timeout
+				);
 
 				return 2;
 			}
@@ -280,19 +333,31 @@ namespace HttpServer
 		auto const it_range = req.incoming_headers.find("range");
 
 		// Range transfer
-		if (req.incoming_headers.cend() != it_range)
-		{
-			return transferFilePart(prot, req, fileName, mimesTypes, file_time, file_size, it_range->second, additionalHeaders, headersOnly);
+		if (req.incoming_headers.cend() != it_range) {
+			return transferFilePart(
+				prot,
+				req,
+				fileName,
+				mimesTypes,
+				file_time,
+				file_size,
+				it_range->second,
+				additionalHeaders,
+				headersOnly
+			);
 		}
 
 		// File transfer
 		std::ifstream file(fileName, std::ifstream::binary);
 
-		if ( ! file)
-		{
+		if ( ! file) {
 			file.close();
 
-			prot.sendHeaders(Http::StatusCode::INTERNAL_SERVER_ERROR, additionalHeaders, req.timeout);
+			prot.sendHeaders(
+				Http::StatusCode::INTERNAL_SERVER_ERROR,
+				additionalHeaders,
+				req.timeout
+			);
 
 			return 3;
 		}
@@ -305,17 +370,25 @@ namespace HttpServer
 		additionalHeaders.emplace_back("last-modified", Utils::getDatetimeAsString(file_time, true) );
 
 		// Отправить заголовки (200 OK)
-		if (false == prot.sendHeaders(Http::StatusCode::OK, additionalHeaders, req.timeout, headersOnly || 0 == file_size) )
-		{
+		if (prot.sendHeaders(
+				Http::StatusCode::OK,
+				additionalHeaders,
+				req.timeout,
+				headersOnly || 0 == file_size
+			) == false
+		) {
 			file.close();
-
 			return 4;
 		}
 
 		// Отправить файл
 		if (false == headersOnly && file_size)
 		{
-			std::vector<char> buf(file_size < 512 * 1024 ? file_size : 512 * 1024);
+			std::vector<char> buf(
+				file_size < 512 * 1024
+					? file_size
+					: 512 * 1024
+			);
 
 			long send_size;
 
@@ -324,10 +397,15 @@ namespace HttpServer
 				0
 			};
 
-			do
-			{
+			do {
 				file.read(buf.data(), buf.size() );
-				send_size = prot.sendData(buf.data(), file.gcount(), req.timeout, &dt);
+
+				send_size = prot.sendData(
+					buf.data(),
+					file.gcount(),
+					req.timeout,
+					&dt
+				);
 			}
 			while (false == file.eof() && false == file.fail() && send_size > 0 && (dt.full_size - dt.send_total) );
 		}
@@ -337,8 +415,7 @@ namespace HttpServer
 		return 0;
 	}
 
-	bool Sendfile::isConnectionReuse(const struct Request &req) noexcept
-	{
+	bool Sendfile::isConnectionReuse(const struct Request &req) noexcept {
 		return (req.connection_params & ConnectionParams::CONNECTION_REUSE) == ConnectionParams::CONNECTION_REUSE;
 	}
 
@@ -346,30 +423,32 @@ namespace HttpServer
 		const ServerProtocol &prot,
 		struct Request &req,
 		const std::unordered_map<std::string, std::string> &mimesTypes
-	) noexcept
-	{
+	) noexcept {
 		auto const it_x_sendfile = req.outgoing_headers.find("x-sendfile");
 
 		if (req.outgoing_headers.cend() != it_x_sendfile)
 		{
 			std::vector<std::pair<std::string, std::string> > additional_headers;
 
-			if (Transfer::ProtocolVariant::HTTP_1 == req.protocol_variant)
-			{
-				if (isConnectionReuse(req) )
-				{
+			if (Transfer::ProtocolVariant::HTTP_1 == req.protocol_variant) {
+				if (isConnectionReuse(req) ) {
 					additional_headers.emplace_back("connection", "keep-alive");
 					additional_headers.emplace_back("keep-alive", "timeout=5; max=" + std::to_string(req.keep_alive_count) );
-				}
-				else
-				{
+				} else {
 					additional_headers.emplace_back("connection", "close");
 				}
 			}
 
 			const bool headers_only = ("head" == req.method);
 
-			transferFile(prot, req, it_x_sendfile->second, mimesTypes, additional_headers, headers_only);
+			transferFile(
+				prot,
+				req,
+				it_x_sendfile->second,
+				mimesTypes,
+				additional_headers,
+				headers_only
+			);
 		}
 	}
-};
+}

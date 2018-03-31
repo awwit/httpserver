@@ -38,4 +38,4 @@ namespace HttpServer
 			const std::unordered_map<std::string, std::string> &mimesTypes
 		) noexcept;
 	};
-};
+}

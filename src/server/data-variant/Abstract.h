@@ -17,13 +17,19 @@ namespace DataVariant
 
 	public:
 		/**
-		 * virtual destructor
+		 * Virtual destructor
 		 */
 		virtual ~Abstract() noexcept = default;
 
-		virtual void *createStateStruct(const Transfer::request_data *rd, const std::unordered_map<std::string, std::string> &contentParams) const;
+		virtual void *createStateStruct(
+			const Transfer::request_data *rd,
+			const std::unordered_map<std::string, std::string> &contentParams
+		) const;
 
-		virtual bool parse(const std::string &buf, Transfer::request_data *rd, DataReceiver *dr) const = 0;
+		virtual bool parse(
+			const std::string &buf,
+			Transfer::request_data *rd, DataReceiver *dr
+		) const = 0;
 
 		virtual void destroyStateStruct(void *st) const noexcept;
 	};
@@ -37,4 +43,4 @@ namespace DataVariant
 		size_t left;
 		void *reserved;
 	};
-};
+}

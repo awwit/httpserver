@@ -6,23 +6,34 @@
 
 namespace Transfer
 {
-	FileIncoming::FileIncoming(std::string &&fileTmpName, std::string &&fileName, std::string &&fileType, const size_t fileSize) noexcept
-		: file_tmp_name(std::move(fileTmpName) ), file_name(std::move(fileName) ),
-		  file_type(std::move(fileType) ), file_size(fileSize)
+	FileIncoming::FileIncoming(
+		std::string &&fileTmpName,
+		std::string &&fileName,
+		std::string &&fileType,
+		const size_t fileSize
+	) noexcept
+		: file_tmp_name(std::move(fileTmpName) ),
+		  file_name(std::move(fileName) ),
+		  file_type(std::move(fileType) ),
+		  file_size(fileSize)
 	{
 
 	}
 
 	FileIncoming::FileIncoming(const FileIncoming &obj)
-		: file_tmp_name(obj.file_tmp_name), file_name(obj.file_name),
-		  file_type(obj.file_type), file_size(obj.file_size)
+		: file_tmp_name(obj.file_tmp_name),
+		  file_name(obj.file_name),
+		  file_type(obj.file_type),
+		  file_size(obj.file_size)
 	{
 
 	}
 
 	FileIncoming::FileIncoming(FileIncoming &&obj) noexcept
-		: file_tmp_name(std::move(obj.file_tmp_name) ), file_name(std::move(obj.file_name) ),
-		  file_type(std::move(obj.file_type) ), file_size(obj.file_size)
+		: file_tmp_name(std::move(obj.file_tmp_name) ),
+		  file_name(std::move(obj.file_name) ),
+		  file_type(std::move(obj.file_type) ),
+		  file_size(obj.file_size)
 	{
 		obj.file_size = 0;
 	}
@@ -53,8 +64,10 @@ namespace Transfer
 
 namespace Utils
 {
-	void packFilesIncoming(std::vector<char> &buf, const std::unordered_multimap<std::string, Transfer::FileIncoming> &map)
-	{
+	void packFilesIncoming(
+		std::vector<char> &buf,
+		const std::unordered_multimap<std::string, Transfer::FileIncoming> &map
+	) {
 		packNumber(buf, map.size() );
 
 		for (auto it = map.cbegin(); map.cend() != it; ++it) {
@@ -69,8 +82,10 @@ namespace Utils
 		}
 	}
 
-	const uint8_t *unpackFilesIncoming(std::unordered_multimap<std::string, Transfer::FileIncoming> &map, const uint8_t *src)
-	{
+	const uint8_t *unpackFilesIncoming(
+		std::unordered_multimap<std::string, Transfer::FileIncoming> &map,
+		const uint8_t *src
+	) {
 		size_t count;
 		src = unpackNumber(&count, src);
 
@@ -90,7 +105,15 @@ namespace Utils
 			size_t file_size;
 			src = unpackNumber(&file_size, src);
 
-			map.emplace(std::move(key), Transfer::FileIncoming(std::move(file_tmp_name), std::move(file_name), std::move(file_type), file_size) );
+			map.emplace(
+				std::move(key),
+				Transfer::FileIncoming(
+					std::move(file_tmp_name),
+					std::move(file_name),
+					std::move(file_type),
+					file_size
+				)
+			);
 		}
 
 		return src;

@@ -14,36 +14,38 @@
 
 namespace System
 {
-	Module::Module() noexcept : lib_handle(nullptr)
+	Module::Module() noexcept
+		: lib_handle(nullptr)
 	{
 		
 	}
 
-	Module::Module(const std::string &libPath): lib_handle(nullptr)
+	Module::Module(const std::string &libPath)
+		: lib_handle(nullptr)
 	{
 		open(libPath);
 	}
 
-	Module::Module(const Module &obj) noexcept : lib_handle(obj.lib_handle)
+	Module::Module(const Module &obj) noexcept
+		: lib_handle(obj.lib_handle)
 	{
 		
 	}
 
-	Module::Module(Module &&obj) noexcept : lib_handle(obj.lib_handle)
+	Module::Module(Module &&obj) noexcept
+		: lib_handle(obj.lib_handle)
 	{
 		obj.lib_handle = nullptr;
 	}
 
-	bool Module::is_open() const noexcept
-	{
+	bool Module::is_open() const noexcept {
 		return nullptr != this->lib_handle;
 	}
 
 	bool Module::open(const std::string &libPath)
 	{
-		if (is_open() )
-		{
-			close();
+		if (this->is_open() ) {
+			this->close();
 		}
 
 	#ifdef WIN32
@@ -77,19 +79,18 @@ namespace System
 			const std::string &lib_path = libPath;
 		#endif
 
-		lib_handle = ::LoadLibraryEx(lib_path.c_str(), 0, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+		this->lib_handle = ::LoadLibraryEx(lib_path.c_str(), 0, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
-		if (cookie)
-		{
+		if (cookie) {
 			::RemoveDllDirectory(cookie);
 		}
 	#elif POSIX
-		lib_handle = ::dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+		this->lib_handle = ::dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
-		if (nullptr == lib_handle)
+		if (nullptr == this->lib_handle)
 		{
 		#ifdef POSIX
 			std::cout << ::dlerror() << std::endl;
@@ -102,85 +103,89 @@ namespace System
 
 	void Module::close() noexcept
 	{
-		if (lib_handle)
+		if (this->lib_handle)
 		{
 		#ifdef WIN32
-			::FreeLibrary(lib_handle);
+			::FreeLibrary(this->lib_handle);
 		#elif POSIX
-			::dlclose(lib_handle);
+			::dlclose(this->lib_handle);
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 
-			lib_handle = nullptr;
+			this->lib_handle = nullptr;
 		}
 	}
 
-	bool Module::find(const std::string &symbolName, void *(**addr)(void *) ) const noexcept
-	{
+	bool Module::find(
+		const std::string &symbolName,
+		void *(**addr)(void *)
+	) const noexcept {
 		if (lib_handle)
 		{
 		#ifdef WIN32
-			*addr = reinterpret_cast<void *(*)(void *)>(::GetProcAddress(lib_handle, symbolName.c_str() ) );
+			*addr = reinterpret_cast<void *(*)(void *)>(::GetProcAddress(this->lib_handle, symbolName.c_str() ) );
 
 			return nullptr != *addr;
 		#elif POSIX
 			char *error = ::dlerror();
 
-			*addr = reinterpret_cast<void *(*)(void *)>(::dlsym(lib_handle, symbolName.c_str() ) );
+			*addr = reinterpret_cast<void *(*)(void *)>(
+				::dlsym(this->lib_handle, symbolName.c_str() )
+			);
 
 			error = ::dlerror();
 
 			return nullptr == error;
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 		}
 
 		return false;
 	}
 
-	bool Module::find(const char *symbolName, void *(**addr)(void *) ) const noexcept
-	{
+	bool Module::find(
+		const char *symbolName,
+		void *(**addr)(void *)
+	) const noexcept {
 		if (lib_handle)
 		{
 		#ifdef WIN32
-			*addr = reinterpret_cast<void *(*)(void *)>(::GetProcAddress(lib_handle, symbolName) );
+			*addr = reinterpret_cast<void *(*)(void *)>(::GetProcAddress(this->lib_handle, symbolName) );
 
 			return nullptr != *addr;
 		#elif POSIX
 			char *error = ::dlerror();
 
-			*addr = reinterpret_cast<void *(*)(void *)>(::dlsym(lib_handle, symbolName) );
+			*addr = reinterpret_cast<void *(*)(void *)>(
+				::dlsym(this->lib_handle, symbolName)
+			);
 
 			error = ::dlerror();
 
 			return nullptr == error;
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 		}
 
 		return false;
 	}
 
-	bool Module::operator ==(const Module &obj) const noexcept
-	{
+	bool Module::operator ==(const Module &obj) const noexcept {
 		return this->lib_handle == obj.lib_handle;
 	}
 
-	bool Module::operator !=(const Module &obj) const noexcept
-	{
+	bool Module::operator !=(const Module &obj) const noexcept {
 		return this->lib_handle != obj.lib_handle;
 	}
 
 	Module &Module::operator =(const Module &obj) noexcept
 	{
-		if (*this != obj)
-		{
-			close();
-
-			lib_handle = obj.lib_handle;
+		if (*this != obj) {
+			this->close();
+			this->lib_handle = obj.lib_handle;
 		}
 
 		return *this;
@@ -188,15 +193,12 @@ namespace System
 
 	Module &Module::operator =(Module &&obj) noexcept
 	{
-		if (*this != obj)
-		{
-			close();
-
-			lib_handle = obj.lib_handle;
-
+		if (*this != obj) {
+			this->close();
+			this->lib_handle = obj.lib_handle;
 			obj.lib_handle = nullptr;
 		}
 
 		return *this;
 	}
-};
+}

@@ -4,39 +4,36 @@
 namespace HttpServer
 {
 	ServerControls::ServerControls()
-		: eventProcessQueue(nullptr), eventNotFullQueue(nullptr), eventUpdateModule(nullptr)
+		: eventProcessQueue(nullptr),
+		  eventNotFullQueue(nullptr),
+		  eventUpdateModule(nullptr)
 	{
 
 	}
 
-	ServerControls::~ServerControls()
-	{
+	ServerControls::~ServerControls() {
 		this->clear();
 	}
 
 	void ServerControls::clear()
 	{
-		if (this->eventNotFullQueue)
-		{
+		if (this->eventNotFullQueue) {
 			delete this->eventNotFullQueue;
 			this->eventNotFullQueue = nullptr;
 		}
 
-		if (this->eventProcessQueue)
-		{
+		if (this->eventProcessQueue) {
 			delete this->eventProcessQueue;
 			this->eventProcessQueue = nullptr;
 		}
 
-		if (this->eventUpdateModule)
-		{
+		if (this->eventUpdateModule) {
 			delete this->eventUpdateModule;
 			this->eventUpdateModule = nullptr;
 		}
 	}
 
-	void ServerControls::setProcess(const bool flag)
-	{
+	void ServerControls::setProcess(const bool flag) {
 		this->process_flag = flag;
 	}
 
@@ -44,32 +41,26 @@ namespace HttpServer
 	{
 		this->process_flag = false;
 
-		if (this->eventNotFullQueue)
-		{
+		if (this->eventNotFullQueue) {
 			this->eventNotFullQueue->notify();
 		}
 
 		this->setProcessQueue();
 	}
 
-	void ServerControls::setRestart(const bool flag)
-	{
+	void ServerControls::setRestart(const bool flag) {
 		this->restart_flag = flag;
 	}
 
-	void ServerControls::setUpdateModule()
-	{
-		if (this->eventUpdateModule)
-		{
+	void ServerControls::setUpdateModule() {
+		if (this->eventUpdateModule) {
 			this->eventUpdateModule->notify();
 		}
 	}
 
-	void ServerControls::setProcessQueue()
-	{
-		if (this->eventProcessQueue)
-		{
+	void ServerControls::setProcessQueue() {
+		if (this->eventProcessQueue) {
 			this->eventProcessQueue->notify();
 		}
 	}
-};
+}

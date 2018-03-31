@@ -34,4 +34,4 @@ namespace HttpServer
 		std::function<bool(const char *)> application_init;
 		std::function<void(const char *)> application_final;
 	};
-};
+}

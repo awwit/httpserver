@@ -22,7 +22,7 @@ namespace Socket
 	#elif POSIX
 		return true;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -33,7 +33,7 @@ namespace Socket
 	#elif POSIX
 		return true;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -44,7 +44,7 @@ namespace Socket
 	#elif POSIX
 		return errno;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -54,7 +54,9 @@ namespace Socket
 
 	Socket::Socket(const Socket &obj) noexcept : socket_handle(obj.socket_handle) {}
 
-	Socket::Socket(Socket &&obj) noexcept : socket_handle(obj.socket_handle) {
+	Socket::Socket(Socket &&obj) noexcept
+		: socket_handle(obj.socket_handle)
+	{
 		obj.socket_handle = ~0;
 	}
 
@@ -73,7 +75,7 @@ namespace Socket
 		#elif POSIX
 			const int result = ::close(this->socket_handle);
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 
 			if (0 == result) {
@@ -92,7 +94,7 @@ namespace Socket
 	#elif POSIX
 		return ~0 != this->socket_handle;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -100,16 +102,19 @@ namespace Socket
 		return this->socket_handle;
 	}
 
-	bool Socket::bind(const int port) const noexcept
-	{
-		const ::sockaddr_in sock_addr = {
-            AF_INET,
-            htons(port),
-            ::htonl(INADDR_ANY),
-            0
-        };
+	bool Socket::bind(const int port) const noexcept {
+		const ::sockaddr_in sock_addr {
+			AF_INET,
+			::htons(port),
+			::htonl(INADDR_ANY),
+			0
+		};
 
-		return 0 == ::bind(this->socket_handle, reinterpret_cast<const sockaddr *>(&sock_addr), sizeof(sockaddr_in) );
+		return 0 == ::bind(
+			this->socket_handle,
+			reinterpret_cast<const sockaddr *>(&sock_addr),
+			sizeof(sockaddr_in)
+		);
 	}
 
 	bool Socket::listen() const noexcept {
@@ -119,11 +124,19 @@ namespace Socket
 	Socket Socket::accept() const noexcept
 	{
 	#ifdef WIN32
-		System::native_socket_type client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
+		System::native_socket_type client_socket = ::accept(
+			this->socket_handle,
+			static_cast<sockaddr *>(nullptr),
+			static_cast<int *>(nullptr)
+		);
 	#elif POSIX
-		System::native_socket_type client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
+		System::native_socket_type client_socket = ::accept(
+			this->socket_handle,
+			static_cast<sockaddr *>(nullptr),
+			static_cast<socklen_t *>(nullptr)
+		);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 		return Socket(client_socket);
 	}
@@ -132,27 +145,35 @@ namespace Socket
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
-        WSAPOLLFD event = {
+		WSAPOLLFD event {
 			this->socket_handle,
             POLLRDNORM,
             0
         };
 
 		if (1 == ::WSAPoll(&event, 1, ~0) && event.revents & POLLRDNORM) {
-			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
+			client_socket = ::accept(
+				this->socket_handle,
+				static_cast<sockaddr *>(nullptr),
+				static_cast<int *>(nullptr)
+			);
 		}
 	#elif POSIX
-        struct ::pollfd event = {
+		struct ::pollfd event {
 			this->socket_handle,
             POLLIN,
             0
         };
 
 		if (1 == ::poll(&event, 1, ~0) && event.revents & POLLIN) {
-			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
+			client_socket = ::accept(
+				this->socket_handle,
+				static_cast<sockaddr *>(nullptr),
+				static_cast<socklen_t *>(nullptr)
+			);
 		}
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 		return Socket(client_socket);
 	}
@@ -161,27 +182,35 @@ namespace Socket
 	{
 		System::native_socket_type client_socket = ~0;
 	#ifdef WIN32
-        WSAPOLLFD event = {
+		WSAPOLLFD event {
 			this->socket_handle,
-            POLLRDNORM,
-            0
-        };
+			POLLRDNORM,
+			0
+		};
 
 		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM) {
-			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
+			client_socket = ::accept(
+				this->socket_handle,
+				static_cast<sockaddr *>(nullptr),
+				static_cast<int *>(nullptr)
+			);
 		}
 	#elif POSIX
-        struct ::pollfd event = {
+		struct ::pollfd event {
 			this->socket_handle,
-            POLLIN,
-            0
-        };
+			POLLIN,
+			0
+		};
 
-		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN) {
-			client_socket = ::accept(this->socket_handle, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
+		if (1 == ::poll(&event, 1, int(timeout.count()) ) && event.revents & POLLIN) {
+			client_socket = ::accept(
+				this->socket_handle,
+				static_cast<sockaddr *>(nullptr),
+				static_cast<socklen_t *>(nullptr)
+			);
 		}
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 		return Socket(client_socket);
 	}
@@ -195,7 +224,7 @@ namespace Socket
 		#elif POSIX
 			return 0 == ::shutdown(this->socket_handle, SHUT_RDWR);
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 		}
 
@@ -208,9 +237,15 @@ namespace Socket
 		unsigned long value = isNonBlock;
 		return 0 == ::ioctlsocket(this->socket_handle, FIONBIO, &value);
 	#elif POSIX
-		return ~0 != ::fcntl(this->socket_handle, F_SETFL, isNonBlock ? O_NONBLOCK : O_SYNC);
+		return ~0 != ::fcntl(
+			this->socket_handle,
+			F_SETFL,
+			isNonBlock
+				? O_NONBLOCK
+				: O_SYNC
+		);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -223,7 +258,7 @@ namespace Socket
 		const int flags = ::fcntl(socket_handle, F_GETFL, 0);
 		return (flags != ~0) && (flags & O_NONBLOCK);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 */
@@ -232,67 +267,106 @@ namespace Socket
 	{
 	#ifdef WIN32
 		int flags = nodelay ? 1 : 0;
-		return 0 == setsockopt(this->socket_handle, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char *>(&flags), sizeof(flags) );
+
+		return 0 == ::setsockopt(
+			this->socket_handle,
+			IPPROTO_TCP,
+			TCP_NODELAY,
+			reinterpret_cast<char *>(&flags),
+			sizeof(flags)
+		);
 	#elif POSIX
 		int flags = nodelay ? 1 : 0;
-		return 0 == setsockopt(this->socket_handle, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags) );
+
+		return 0 == ::setsockopt(
+			this->socket_handle,
+			IPPROTO_TCP,
+			TCP_NODELAY,
+			&flags,
+			sizeof(flags)
+		);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
-	long Socket::recv(std::vector<std::string::value_type> &buf) const noexcept {
+	long Socket::recv(
+		std::vector<std::string::value_type> &buf
+	) const noexcept {
 		return this->recv(buf.data(), buf.size() );
 	}
 
-	long Socket::recv(void *buf, const size_t length) const noexcept
-	{
+	long Socket::recv(
+		void *buf,
+		const size_t length
+	) const noexcept {
 	#ifdef WIN32
-		return ::recv(this->socket_handle, reinterpret_cast<char *>(buf), static_cast<const int>(length), 0);
+		return ::recv(
+			this->socket_handle,
+			reinterpret_cast<char *>(buf),
+			static_cast<const int>(length),
+			0
+		);
 	#elif POSIX
 		return ::recv(this->socket_handle, buf, length, 0);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
-	long Socket::nonblock_recv(std::vector<std::string::value_type> &buf, const std::chrono::milliseconds &timeout) const noexcept {
-		return this->nonblock_recv(buf.data(), buf.size(), timeout);
+	long Socket::nonblock_recv(
+		std::vector<std::string::value_type> &buf,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
+		return this->nonblock_recv(
+			buf.data(),
+			buf.size(),
+			timeout
+		);
 	}
 
-	long Socket::nonblock_recv(void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
-	{
+	long Socket::nonblock_recv(
+		void *buf,
+		const size_t length,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
 		long recv_len = ~0;
 	#ifdef WIN32
-		WSAPOLLFD event = {
+		WSAPOLLFD event {
 			this->socket_handle,
 			POLLRDNORM,
 			0
 		};
 
 		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM) {
-			recv_len = ::recv(this->socket_handle, reinterpret_cast<char *>(buf), static_cast<const int>(length), 0);
+			recv_len = ::recv(
+				this->socket_handle,
+				reinterpret_cast<char *>(buf),
+				static_cast<const int>(length),
+				0
+			);
 		}
 	#elif POSIX
-		struct ::pollfd event = {
+		struct ::pollfd event {
 			this->socket_handle,
 			POLLIN,
 			0
 		};
 
-		if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLIN) {
+		if (1 == ::poll(&event, 1, int(timeout.count()) ) && event.revents & POLLIN) {
 			recv_len = ::recv(this->socket_handle, buf, length, 0);
 		}
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 		return recv_len;
 	}
 
-	bool Socket::nonblock_recv_sync(const std::chrono::milliseconds &timeout) const noexcept
-	{
+	bool Socket::nonblock_recv_sync(
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
 	#ifdef WIN32
-		WSAPOLLFD event = {
+		WSAPOLLFD event {
 			this->socket_handle,
 			POLLIN,
 			0
@@ -300,30 +374,38 @@ namespace Socket
 
 		return ::WSAPoll(&event, 1, timeout.count() ) == 1;
 	#elif POSIX
-		struct ::pollfd event = {
+		struct ::pollfd event {
 			this->socket_handle,
 			POLLIN,
 			0
 		};
 
-		return ::poll(&event, 1, timeout.count() ) == 1;
+		return ::poll(&event, 1, int(timeout.count()) ) == 1;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
-	static long send_all(const System::native_socket_type socket_handle, const void *data, const size_t length) noexcept
-	{
+	static long send_all(
+		const System::native_socket_type socket_handle,
+		const void *data,
+		const size_t length
+	) noexcept {
 		size_t total = 0;
 
 		while (total < length) {
-			const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, length - total, 0);
+			const long send_size = ::send(
+				socket_handle,
+				reinterpret_cast<const char *>(data) + total,
+				length - total,
+				0
+			);
 
 			if (send_size < 0) {
 				return send_size;
 			}
 
-			total += send_size;
+			total += static_cast<size_t>(send_size);
 		}
 
 		return static_cast<long>(total);
@@ -337,8 +419,12 @@ namespace Socket
 		return send_all(this->socket_handle, buf, length);
 	}
 
-	static long nonblock_send_all(const System::native_socket_type socket_handle, const void *data, const size_t length, const std::chrono::milliseconds &timeout) noexcept
-	{
+	static long nonblock_send_all(
+		const System::native_socket_type socket_handle,
+		const void *data,
+		const size_t length,
+		const std::chrono::milliseconds &timeout
+	) noexcept {
 		size_t total = 0;
 
 	#ifdef WIN32
@@ -350,7 +436,12 @@ namespace Socket
 
 		while (total < length) {
 			if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLOUT) {
-				const long send_size = ::send(socket_handle, reinterpret_cast<const char *>(data) + total, static_cast<const int>(length - total), 0);
+				const long send_size = ::send(
+					socket_handle,
+					reinterpret_cast<const char *>(data) + total,
+					static_cast<const int>(length - total),
+					0
+				);
 
 				if (send_size < 0) {
 					return send_size;
@@ -370,37 +461,58 @@ namespace Socket
 		};
 
 		while (total < length) {
-			if (1 == ::poll(&event, 1, timeout.count() ) && event.revents & POLLOUT) {
-				const long send_size = ::send(socket_handle, reinterpret_cast<const uint8_t *>(data) + total, length - total, 0);
+			if (1 == ::poll(&event, 1, int(timeout.count()) ) && event.revents & POLLOUT) {
+				const long send_size = ::send(
+					socket_handle,
+					reinterpret_cast<const uint8_t *>(data) + total,
+					length - total,
+					0
+				);
 
 				if (send_size < 0) {
 					return send_size;
 				}
 
-				total += send_size;
+				total += static_cast<size_t>(send_size);
 			} else {
 				return -1;
 			}
 		}
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		return static_cast<long>(total);
 	}
 
-	long Socket::nonblock_send(const std::string &buf, const std::chrono::milliseconds &timeout) const noexcept {
-		return this->nonblock_send(buf.data(), buf.length(), timeout);
+	long Socket::nonblock_send(
+		const std::string &buf,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
+		return this->nonblock_send(
+			buf.data(),
+			buf.length(),
+			timeout
+		);
 	}
 
-	long Socket::nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept {
-		return nonblock_send_all(this->socket_handle, buf, length, timeout);
+	long Socket::nonblock_send(
+		const void *buf,
+		const size_t length,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
+		return nonblock_send_all(
+			this->socket_handle,
+			buf,
+			length,
+			timeout
+		);
 	}
 
 	void Socket::nonblock_send_sync() const noexcept
 	{
 	#ifdef WIN32
-		WSAPOLLFD event = {
+		WSAPOLLFD event {
 			this->socket_handle,
 			POLLOUT,
 			0
@@ -408,7 +520,7 @@ namespace Socket
 
 		::WSAPoll(&event, 1, ~0);
 	#elif POSIX
-		struct ::pollfd event = {
+		struct ::pollfd event {
 			this->socket_handle,
 			POLLOUT,
 			0
@@ -416,7 +528,7 @@ namespace Socket
 
 		::poll(&event, 1, ~0);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 

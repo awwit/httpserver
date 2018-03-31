@@ -25,8 +25,11 @@ namespace HttpServer
 	/**
 	 * Config - include file
 	 */
-	bool ConfigParser::includeConfigFile(const std::string &fileName, std::string &strBuf, const std::size_t offset)
-	{
+	bool ConfigParser::includeConfigFile(
+		const std::string &fileName,
+		std::string &strBuf,
+		const std::size_t offset
+	) {
 		std::ifstream file(fileName);
 
 		if ( ! file) {
@@ -51,7 +54,11 @@ namespace HttpServer
 			std::vector<char> buf(file_size);
 			file.read(buf.data(), file_size);
 
-			strBuf.insert(strBuf.begin() + offset, buf.cbegin(), buf.cend() );
+			strBuf.insert(
+				strBuf.begin() + long(offset),
+				buf.cbegin(),
+				buf.cend()
+			);
 		}
 
 		file.close();
@@ -63,12 +70,11 @@ namespace HttpServer
 	 * Config - add application
 	 */
 	bool ConfigParser::addApplication(
-			const std::unordered_multimap<std::string, std::string> &app,
-			const ServerApplicationDefaultSettings &defaults,
-			std::vector<System::Module> &modules,
-			ServerApplicationsTree &apps_tree
-		)
-	{
+		const std::unordered_multimap<std::string, std::string> &app,
+		const ServerApplicationDefaultSettings &defaults,
+		std::vector<System::Module> &modules,
+		ServerApplicationsTree &apps_tree
+	) {
 		auto const it_name = app.find("server_name");
 
 		if (app.cend() == it_name) {
@@ -84,16 +90,26 @@ namespace HttpServer
 
 		size_t delimiter = app_name.find_first_of(whitespace);
 
-		if (delimiter)
-		{
+		if (delimiter) {
 			size_t cur_pos = 0;
 
-			while (std::string::npos != delimiter)
-			{
-				std::string name = app_name.substr(cur_pos, delimiter - cur_pos);
+			while (std::string::npos != delimiter) {
+				std::string name = app_name.substr(
+					cur_pos,
+					delimiter - cur_pos
+				);
+
 				names.emplace_back(std::move(name) );
-				cur_pos = app_name.find_first_not_of(whitespace, delimiter + 1);
-				delimiter = app_name.find_first_of(whitespace, cur_pos);
+
+				cur_pos = app_name.find_first_not_of(
+					whitespace,
+					delimiter + 1
+				);
+
+				delimiter = app_name.find_first_of(
+					whitespace,
+					cur_pos
+				);
 			}
 
 			std::string name = app_name.substr(cur_pos);
@@ -102,8 +118,7 @@ namespace HttpServer
 
 		auto const range_port = app.equal_range("listen");
 
-		if (range_port.first == range_port.second)
-		{
+		if (range_port.first == range_port.second) {
 			std::cout << "Error: application port is not set;" << std::endl;
 			return false;
 		}
@@ -121,7 +136,7 @@ namespace HttpServer
 
 			for (auto const &value : list)
 			{
-				const int port = std::strtol(value.c_str(), nullptr, 10);
+				const int port = std::atoi(value.c_str());
 
 				if (port) {
 					if (is_tls)	{
@@ -215,7 +230,13 @@ namespace HttpServer
 			return false;
 		}
 
-		std::function<int(Transfer::app_request *, Transfer::app_response *)> app_call = reinterpret_cast<int(*)(Transfer::app_request *, Transfer::app_response *)>(addr);
+		std::function<int(
+			Transfer::app_request *,
+			Transfer::app_response *
+		)> app_call = reinterpret_cast<int(*)(
+			Transfer::app_request *,
+			Transfer::app_response *
+		)>(addr);
 
 		if ( ! app_call) {
 			std::cout << "Error: invalid function 'application_call' in module '" << it_module->second << "';" << std::endl;
@@ -256,18 +277,14 @@ namespace HttpServer
 
 		bool success = true;
 
-		try
-		{
-			if (app_init)
-			{
+		try {
+			if (app_init) {
 				const std::string root = root_dir;
 				success = app_init(root.data() );
 			}
 		}
-		catch (std::exception &exc)
-		{
+		catch (std::exception &exc) {
 			std::cout << "Warning: an exception was thrown when the application '" << it_module->second << "' was initialized: " << exc.what() << std::endl;
-
 			success = false;
 		}
 
@@ -278,23 +295,27 @@ namespace HttpServer
 
 		auto const it_temp_dir = app.find("temp_dir");
 
-		std::string temp_dir = app.cend() != it_temp_dir ? it_temp_dir->second : defaults.temp_dir;
+		std::string temp_dir = app.cend() != it_temp_dir
+			? it_temp_dir->second
+			: defaults.temp_dir;
 
 		auto const it_request_max_size = app.find("request_max_size");
 
-		const size_t request_max_size = app.cend() != it_request_max_size ? std::strtoull(it_request_max_size->second.c_str(), nullptr, 10) : defaults.request_max_size;
+		const size_t request_max_size = app.cend() != it_request_max_size
+			? std::strtoull(it_request_max_size->second.c_str(), nullptr, 10)
+			: defaults.request_max_size;
 
 		auto const it_module_update = app.find("server_module_update");
 
-		std::string module_update = app.cend() != it_module_update ? it_module_update->second : "";
+		std::string module_update = app.cend() != it_module_update
+			? it_module_update->second
+			: std::string();
 
 		// Calculate module index
 		size_t module_index = std::numeric_limits<size_t>::max();
 
-		for (size_t i = 0; i < modules.size(); ++i)
-		{
-			if (modules[i] == module)
-			{
+		for (size_t i = 0; i < modules.size(); ++i) {
+			if (modules[i] == module) {
 				module_index = i;
 				break;
 			}
@@ -349,8 +370,10 @@ namespace HttpServer
 	 * @param mimes_types
 	 * @return bool
 	 */
-	bool ConfigParser::parseMimes(const std::string &fileName, std::unordered_map<std::string, std::string> &mimes_types)
-	{
+	bool ConfigParser::parseMimes(
+		const std::string &fileName,
+		std::unordered_map<std::string, std::string> &mimes_types
+	) {
 		std::ifstream file(fileName);
 
 		if ( ! file) {
@@ -436,7 +459,10 @@ namespace HttpServer
 							);
 
 							if (ext_unit.empty() == false) {
-								mimes_types.emplace(std::move(ext_unit), mime_type);
+								mimes_types.emplace(
+									std::move(ext_unit),
+									mime_type
+								);
 							}
 
 							ext_pos = ext.find_first_not_of(whitespace, delimiter);
@@ -446,7 +472,10 @@ namespace HttpServer
 					}
 					else
 					{
-						mimes_types.emplace(std::move(ext), std::move(mime_type) );
+						mimes_types.emplace(
+							std::move(ext),
+							std::move(mime_type)
+						);
 					}
 
 					cur_pos = end_pos + 1;
@@ -492,8 +521,11 @@ namespace HttpServer
 	/**
 	 * Config - parse
 	 */
-	bool ConfigParser::loadConfig(const std::string &conf_file_name, ServerSettings &settings, std::vector<System::Module> &modules)
-	{
+	bool ConfigParser::loadConfig(
+		const std::string &conf_file_name,
+		ServerSettings &settings,
+		std::vector<System::Module> &modules
+	) {
 		std::string str_buf;
 
 		if (includeConfigFile(conf_file_name, str_buf) == false) {
@@ -552,17 +584,20 @@ namespace HttpServer
 
 							std::string param_value = str_buf.substr(cur_pos, delimiter - cur_pos);
 
-							if ("include" == param_name)
-							{
-								this->includeConfigFile(param_value, str_buf, end_pos + 1);
+							if ("include" == param_name) {
+								this->includeConfigFile(
+									param_value,
+									str_buf,
+									end_pos + 1
+								);
+							} else {
+								global.emplace(
+									std::move(param_name),
+									std::move(param_value)
+								);
 							}
-							else
-							{
-								global.emplace(std::move(param_name), std::move(param_value) );
-							}
-						}
-						else // if comment line
-						{
+						} else {
+							// if comment line
 							end_pos = str_buf.find_first_of("\r\n", cur_pos);
 						}
 					}
@@ -622,19 +657,18 @@ namespace HttpServer
 
 											std::string param_value = str_buf.substr(cur_pos, delimiter - cur_pos);
 
-											if ("include" == param_name)
-											{
+											if ("include" == param_name) {
 												cur_pos = end_pos + 1;
 												this->includeConfigFile(param_value, str_buf, cur_pos);
 												block_end = findBlockEnd(str_buf, cur_pos);
+											} else {
+												app.emplace(
+													std::move(param_name),
+													std::move(param_value)
+												);
 											}
-											else
-											{
-												app.emplace(std::move(param_name), std::move(param_value) );
-											}
-										}
-										else // if comment line
-										{
+										} else {
+											// if comment line
 											end_pos = str_buf.find_first_of("\r\n", cur_pos);
 										}
 									}
@@ -687,11 +721,15 @@ namespace HttpServer
 		{
 			auto const it_default_temp_dir = global.find("default_temp_dir");
 
-			const std::string default_temp_dir = global.cend() != it_default_temp_dir ? it_default_temp_dir->second : System::getTempDir();
+			const std::string default_temp_dir = global.cend() != it_default_temp_dir
+				? it_default_temp_dir->second
+				: System::getTempDir();
 
 			auto const it_default_request_max_size = global.find("request_max_size");
 
-			const size_t default_request_max_size = global.cend() != it_default_request_max_size ? std::strtoull(it_default_request_max_size->second.c_str(), nullptr, 10) : 0;
+			const size_t default_request_max_size = global.cend() != it_default_request_max_size
+				? std::strtoull(it_default_request_max_size->second.c_str(), nullptr, 10)
+				: 0;
 
 			ServerApplicationDefaultSettings defaults {
 				default_temp_dir,

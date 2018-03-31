@@ -16,7 +16,7 @@ namespace Socket
 	#elif POSIX
 		this->obj_list = ~0;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -30,7 +30,7 @@ namespace Socket
 		obj.obj_list = ~0;
 		obj.epoll_events.swap(this->epoll_events);
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -63,7 +63,7 @@ namespace Socket
 
 		return true;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -79,7 +79,7 @@ namespace Socket
 			this->obj_list = ~0;
 			this->epoll_events.clear();
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 		}
 	}
@@ -91,7 +91,7 @@ namespace Socket
 	#elif POSIX
 		return this->obj_list != ~0;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -102,7 +102,7 @@ namespace Socket
 		}
 
 	#ifdef WIN32
-		WSAPOLLFD event = {
+		WSAPOLLFD event {
 			sock.get_handle(),
 			POLLRDNORM,
 			0
@@ -112,12 +112,17 @@ namespace Socket
 
 		return true;
 	#elif POSIX
-		struct ::epoll_event event = {
+		struct ::epoll_event event {
 			EPOLLIN | EPOLLET | EPOLLRDHUP,
 			reinterpret_cast<void *>(sock.get_handle() )
 		};
 
-		const int result = ::epoll_ctl(this->obj_list, EPOLL_CTL_ADD, sock.get_handle(), &event);
+		const int result = ::epoll_ctl(
+			this->obj_list,
+			EPOLL_CTL_ADD,
+			sock.get_handle(),
+			&event
+		);
 
 		if (result == ~0) {
 			return false;
@@ -127,7 +132,7 @@ namespace Socket
 
 		return true;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -147,7 +152,12 @@ namespace Socket
 
 		return false;
 	#elif POSIX
-		const int result = ::epoll_ctl(this->obj_list, EPOLL_CTL_DEL, sock.get_handle(), nullptr);
+		const int result = ::epoll_ctl(
+			this->obj_list,
+			EPOLL_CTL_DEL,
+			sock.get_handle(),
+			nullptr
+		);
 
 		if (result == ~0) {
 			return false;
@@ -157,7 +167,7 @@ namespace Socket
 
 		return true;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -166,7 +176,11 @@ namespace Socket
 		if (this->is_created() )
 		{
 		#ifdef WIN32
-			const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), ~0);
+			const int count = ::WSAPoll(
+				this->poll_events.data(),
+				static_cast<::ULONG>(this->poll_events.size() ),
+				~0
+			);
 
 			if (SOCKET_ERROR == count) {
 				return false;
@@ -181,7 +195,11 @@ namespace Socket
 					System::native_socket_type client_socket = ~0;
 
 					do {
-						client_socket = ::accept(event.fd, static_cast<sockaddr *>(nullptr), static_cast<int *>(nullptr) );
+						client_socket = ::accept(
+							event.fd,
+							static_cast<sockaddr *>(nullptr),
+							static_cast<int *>(nullptr)
+						);
 
 						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
@@ -193,7 +211,12 @@ namespace Socket
 
 			return false == sockets.empty();
 		#elif POSIX
-			const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+			const int count = ::epoll_wait(
+				this->obj_list,
+				this->epoll_events.data(),
+				this->epoll_events.size(),
+				~0
+			);
 
 			if (count == ~0) {
 				return false;
@@ -208,7 +231,11 @@ namespace Socket
 					System::native_socket_type client_socket = ~0;
 
 					do {
-						client_socket = ::accept(event.data.fd, static_cast<sockaddr *>(nullptr), static_cast<socklen_t *>(nullptr) );
+						client_socket = ::accept(
+							event.data.fd,
+							static_cast<sockaddr *>(nullptr),
+							static_cast<socklen_t *>(nullptr)
+						);
 
 						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
@@ -220,19 +247,25 @@ namespace Socket
 
 			return false == sockets.empty();
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 		}
 
 		return false;
 	}
 
-	bool List::accept(std::vector<Socket> &sockets, std::vector<struct sockaddr_in> &socketsAddress) const noexcept
-	{
+	bool List::accept(
+		std::vector<Socket> &sockets,
+		std::vector<struct sockaddr_in> &socketsAddress
+	) const noexcept {
 		if (this->is_created() )
 		{
 		#ifdef WIN32
-			const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), ~0);
+			const int count = ::WSAPoll(
+				this->poll_events.data(),
+				static_cast<::ULONG>(this->poll_events.size() ),
+				~0
+			);
 
 			if (SOCKET_ERROR == count) {
 				return false;
@@ -250,7 +283,11 @@ namespace Socket
 						::sockaddr_in client_addr {};
 						socklen_t client_addr_len = sizeof(client_addr);
 
-						client_socket = ::accept(event.fd, reinterpret_cast<::sockaddr *>(&client_addr), &client_addr_len);
+						client_socket = ::accept(
+							event.fd,
+							reinterpret_cast<::sockaddr *>(&client_addr),
+							&client_addr_len
+						);
 
 						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
@@ -263,7 +300,12 @@ namespace Socket
 
 			return false == sockets.empty();
 		#elif POSIX
-			const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), ~0);
+			const int count = ::epoll_wait(
+				this->obj_list,
+				this->epoll_events.data(),
+				this->epoll_events.size(),
+				~0
+			);
 
 			if (count == ~0) {
 				return false;
@@ -281,7 +323,11 @@ namespace Socket
 						::sockaddr_in client_addr {};
 						socklen_t client_addr_len = sizeof(client_addr);
 
-						client_socket = ::accept(event.data.fd, reinterpret_cast<::sockaddr *>(&client_addr), &client_addr_len);
+						client_socket = ::accept(
+							event.data.fd,
+							reinterpret_cast<::sockaddr *>(&client_addr),
+							&client_addr_len
+						);
 
 						if (~0 != client_socket) {
 							sockets.emplace_back(Socket(client_socket) );
@@ -294,21 +340,28 @@ namespace Socket
 
 			return false == sockets.empty();
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 		}
 
 		return false;
 	}
 
-	bool List::recv(std::vector<Socket> &sockets, std::vector<Socket> &disconnected, std::chrono::milliseconds timeout) const noexcept
-	{
+	bool List::recv(
+		std::vector<Socket> &sockets,
+		std::vector<Socket> &disconnected,
+		std::chrono::milliseconds timeout
+	) const noexcept {
 		if (this->is_created() == false) {
 			return false;
 		}
 
 	#ifdef WIN32
-		const int count = ::WSAPoll(this->poll_events.data(), static_cast<::ULONG>(this->poll_events.size() ), static_cast<::INT>(timeout.count() ) );
+		const int count = ::WSAPoll(
+			this->poll_events.data(),
+			static_cast<::ULONG>(this->poll_events.size() ),
+			static_cast<::INT>(timeout.count() )
+		);
 
 		if (SOCKET_ERROR == count) {
 			return false;
@@ -328,7 +381,12 @@ namespace Socket
 
 		return false == sockets.empty() || false == disconnected.empty();
 	#elif POSIX
-		const int count = ::epoll_wait(this->obj_list, this->epoll_events.data(), this->epoll_events.size(), timeout.count() );
+		const int count = ::epoll_wait(
+			this->obj_list,
+			this->epoll_events.data(),
+			this->epoll_events.size(),
+			timeout.count()
+		);
 
 		if (count == ~0) {
 			return false;
@@ -348,7 +406,7 @@ namespace Socket
 
 		return false == sockets.empty() || false == disconnected.empty();
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 }

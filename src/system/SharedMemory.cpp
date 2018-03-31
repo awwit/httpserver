@@ -24,17 +24,18 @@ namespace System
 	#elif POSIX
 		this->shm_desc = -1;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
-	SharedMemory::~SharedMemory() noexcept
-	{
+	SharedMemory::~SharedMemory() noexcept {
 		this->close();
 	}
 
-	bool SharedMemory::create(const std::string &memName, const size_t memSize)
-	{
+	bool SharedMemory::create(
+		const std::string &memName,
+		const size_t memSize
+	) {
 		this->close();
 
 	#ifdef WIN32
@@ -57,31 +58,31 @@ namespace System
 			memory_name.c_str()
 		);
 
-		if (nullptr == this->shm_desc)
-		{
+		if (nullptr == this->shm_desc) {
 			return false;
 		}
 
 	#elif POSIX
 
-		this->shm_desc = ::shm_open(memName.c_str(), O_CREAT | O_RDWR, 0666);
+		this->shm_desc = ::shm_open(
+			memName.c_str(),
+			O_CREAT | O_RDWR,
+			0666
+		);
 
-		if (-1 == this->shm_desc)
-		{
+		if (-1 == this->shm_desc) {
 			return false;
 		}
 
-		if (-1 == ::ftruncate64(this->shm_desc, memSize) )
-		{
+		if (::ftruncate64(this->shm_desc, long(memSize)) == -1) {
 			this->destroy(memName);
-
 			return false;
 		}
 
 		this->shm_name = memName;
 
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		return true;
@@ -104,8 +105,7 @@ namespace System
 
 		this->shm_desc = ::OpenFileMapping(FILE_MAP_ALL_ACCESS, false, memory_name.c_str() );
 
-		if (nullptr == this->shm_desc)
-		{
+		if (nullptr == this->shm_desc) {
 			return false;
 		}
 
@@ -113,17 +113,20 @@ namespace System
 
 	#elif POSIX
 
-		this->shm_desc = ::shm_open(memName.c_str(), O_RDWR, 0666);
+		this->shm_desc = ::shm_open(
+			memName.c_str(),
+			O_RDWR,
+			0666
+		);
 
-		if (-1 == this->shm_desc)
-		{
+		if (-1 == this->shm_desc) {
 			return false;
 		}
 
 		this->shm_name = memName;
 
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		return true;
@@ -136,18 +139,20 @@ namespace System
 	#elif POSIX
 		return -1 != this->shm_desc;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
-	bool SharedMemory::write(const void *src, const size_t size, const size_t offset) const noexcept
-	{
+	bool SharedMemory::write(
+		const void *src,
+		const size_t size,
+		const size_t offset
+	) const noexcept {
 	#ifdef WIN32
 
 		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_WRITE, 0, static_cast<::DWORD>(offset), size);
 
-		if (nullptr == addr)
-		{
+		if (nullptr == addr) {
 			return false;
 		}
 
@@ -157,32 +162,40 @@ namespace System
 
 	#elif POSIX
 
-		void * const addr = ::mmap(0, size, PROT_WRITE, MAP_SHARED, this->shm_desc, offset);
+		void * const addr = ::mmap(
+			nullptr,
+			size,
+			PROT_WRITE,
+			MAP_SHARED,
+			this->shm_desc,
+			long(offset)
+		);
 
-		if (reinterpret_cast<void *>(-1) == addr)
-		{
+		if (reinterpret_cast<void *>(-1) == addr) {
 			return false;
 		}
 
-		::memcpy(addr, src, size);
+		std::memcpy(addr, src, size);
 
 		::munmap(addr, size);
 
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		return true;
 	}
 
-	bool SharedMemory::read(void *dest, const size_t size, const size_t offset) const noexcept
-	{
+	bool SharedMemory::read(
+		void *dest,
+		const size_t size,
+		const size_t offset
+	) const noexcept {
 	#ifdef WIN32
 
 		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_READ, 0, static_cast<::DWORD>(offset), size);
 
-		if (nullptr == addr)
-		{
+		if (nullptr == addr) {
 			return false;
 		}
 
@@ -192,19 +205,25 @@ namespace System
 
 	#elif POSIX
 
-		void * const addr = ::mmap(0, size, PROT_READ, MAP_SHARED, this->shm_desc, offset);
+		void * const addr = ::mmap(
+			nullptr,
+			size,
+			PROT_READ,
+			MAP_SHARED,
+			this->shm_desc,
+			long(offset)
+		);
 
-		if (reinterpret_cast<const void *>(-1) == addr)
-		{
+		if (reinterpret_cast<const void *>(-1) == addr) {
 			return false;
 		}
 
-		::memcpy(dest, addr, size);
+		std::memcpy(dest, addr, size);
 
 		::munmap(addr, size);
 
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 
 		return true;
@@ -221,7 +240,7 @@ namespace System
 			::close(this->shm_desc);
 			this->shm_desc = ~0;
 		#else
-			#error "Undefine platform"
+			#error "Undefined platform"
 		#endif
 
 			this->shm_name.clear();
@@ -250,13 +269,15 @@ namespace System
 
 		return ret;
 	#elif POSIX
-		const int ret = ::shm_unlink(this->shm_name.c_str() );
+		const int ret = ::shm_unlink(
+			this->shm_name.c_str()
+		);
 
 		this->close();
 
 		return 0 == ret;
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
 
@@ -278,7 +299,7 @@ namespace System
 	#elif POSIX
 		return 0 == ::shm_unlink(memName.c_str() );
 	#else
-		#error "Undefine platform"
+		#error "Undefined platform"
 	#endif
 	}
-};
+}

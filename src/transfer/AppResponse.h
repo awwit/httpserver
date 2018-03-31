@@ -5,8 +5,7 @@
 
 namespace Transfer
 {
-	struct app_response
-	{
+	struct app_response {
 		void *response_data;
 		size_t data_size;
 	};

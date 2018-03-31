@@ -128,7 +128,10 @@ namespace Utils
 
 	size_t getNumberLength(size_t number) noexcept;
 
-	bool parseCookies(const std::string &cookieHeader, std::unordered_multimap<std::string, std::string> &cookies);
+	bool parseCookies(
+		const std::string &cookieHeader,
+		std::unordered_multimap<std::string, std::string> &cookies
+	);
 
 	std::string urlEncode(const std::string &str);
 	std::string urlDecode(const std::string &str);

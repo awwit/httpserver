@@ -6,13 +6,11 @@
 
 namespace DataVariant
 {
-	MultipartFormData::MultipartFormData() noexcept
-	{
+	MultipartFormData::MultipartFormData() noexcept {
 		this->data_variant_name = "multipart/form-data";
 	}
 
-	enum class ParsingState : uint8_t
-	{
+	enum class ParsingState : uint8_t {
 		INITIALIZATION = 0,
 		FIND_DATA_BLOCK,
 		GET_DATA_BLOCK_TYPE,
@@ -20,15 +18,13 @@ namespace DataVariant
 		SAVE_DATA_BLOCK,
 	};
 
-	enum class BlockType : uint8_t
-	{
+	enum class BlockType : uint8_t {
 		UNKNOWN = 0,
 		DATA,
 		FILE,
 	};
 
-	struct StateMultipartFormData
-	{
+	struct StateMultipartFormData {
 		std::string block_name;
 		std::string block_value;
 		std::string file_tmp_name;
@@ -40,14 +36,15 @@ namespace DataVariant
 		BlockType block_type;
 	};
 
-	void *MultipartFormData::createStateStruct(const Transfer::request_data *rd, const std::unordered_map<std::string, std::string> &contentParams) const
-	{
+	void *MultipartFormData::createStateStruct(
+		const Transfer::request_data *rd,
+		const std::unordered_map<std::string, std::string> &contentParams
+	) const {
 		std::string boundary;
 
 		auto const it = contentParams.find("boundary");
 
-		if (contentParams.cend() != it)
-		{
+		if (contentParams.cend() != it) {
 			boundary = it->second;
 		}
 
@@ -57,8 +54,7 @@ namespace DataVariant
 		};
 	}
 
-	void MultipartFormData::destroyStateStruct(void *st) const noexcept
-	{
+	void MultipartFormData::destroyStateStruct(void *st) const noexcept {
 		delete reinterpret_cast<StateMultipartFormData *>(st);
 	}
 
@@ -68,8 +64,11 @@ namespace DataVariant
 
 		std::unordered_map<std::string, std::string> headers;
 
-		for (size_t line_end = buf.find(nl.data(), cur); cur < end; line_end = buf.find(nl.data(), cur) )
-		{
+		for (
+			 size_t line_end = buf.find(nl.data(), cur);
+			 cur < end;
+			 line_end = buf.find(nl.data(), cur)
+		) {
 			size_t delimiter = buf.find(':', cur);
 
 			if (std::string::npos == delimiter || delimiter > line_end)
@@ -77,10 +76,12 @@ namespace DataVariant
 				std::string header_name = buf.substr(cur, line_end - cur);
 				Utils::trim(header_name);
 				Utils::toLower(header_name);
-				headers.emplace(std::move(header_name), std::string() );
-			}
-			else
-			{
+
+				headers.emplace(
+					std::move(header_name),
+					std::string()
+				);
+			} else {
 				std::string header_name = buf.substr(cur, delimiter - cur);
 				Utils::trim(header_name);
 				Utils::toLower(header_name);
@@ -90,7 +91,10 @@ namespace DataVariant
 				std::string header_value = buf.substr(delimiter, line_end - delimiter);
 				Utils::trim(header_value);
 
-				headers.emplace(std::move(header_name), std::move(header_value) );
+				headers.emplace(
+					std::move(header_name),
+					std::move(header_value)
+				);
 			}
 
 			// Перейти к следующему заголовку
@@ -107,8 +111,7 @@ namespace DataVariant
 
 		size_t delimiter = header.find(';');
 
-		if (std::string::npos == delimiter)
-		{
+		if (std::string::npos == delimiter) {
 			return header_params;
 		}
 
@@ -116,8 +119,7 @@ namespace DataVariant
 		Utils::trim(content_disposition);
 
 		// Проверить соответствие указанного формата
-		if ("form-data" != content_disposition)
-		{
+		if ("form-data" != content_disposition) {
 			return header_params;
 		}
 
@@ -129,13 +131,21 @@ namespace DataVariant
 
 			if (std::string::npos == delimiter || delimiter > end)
 			{
-				std::string param_name = header.substr(cur, (std::string::npos != end) ? end - cur: std::string::npos);
+				std::string param_name = header.substr(
+					cur,
+					std::string::npos != end
+						? end - cur
+						: std::string::npos
+				);
+
 				Utils::trim(param_name);
 				Utils::toLower(param_name);
-				header_params.emplace(std::move(param_name), std::string() );
-			}
-			else
-			{
+
+				header_params.emplace(
+					std::move(param_name),
+					std::string()
+				);
+			} else {
 				std::string param_name = header.substr(cur, delimiter - cur);
 				Utils::trim(param_name);
 				Utils::toLower(param_name);
@@ -148,26 +158,40 @@ namespace DataVariant
 				{
 					end = header.find(';', cur);
 
-					std::string param_value = header.substr(delimiter, (std::string::npos != end) ? end - delimiter : std::string::npos);
+					std::string param_value = header.substr(
+						delimiter,
+						std::string::npos != end
+							? end - delimiter
+							: std::string::npos
+					);
+
 					Utils::trim(param_value);
 
-					header_params.emplace(std::move(param_name), std::move(param_value) );
-				}
-				else
-				{
+					header_params.emplace(
+						std::move(param_name),
+						std::move(param_value)
+					);
+				} else {
 					++delimiter;
 
 					cur = header.find('"', delimiter);
 					end = header.find(';', cur);
 
-					std::string param_value = header.substr(delimiter, (std::string::npos != cur) ? cur - delimiter : std::string::npos);
+					std::string param_value = header.substr(
+						delimiter,
+						std::string::npos != cur
+							? cur - delimiter
+							: std::string::npos
+					);
 
-					header_params.emplace(std::move(param_name), std::move(param_value) );
+					header_params.emplace(
+						std::move(param_name),
+						std::move(param_value)
+					);
 				}
 			}
 
-			if (std::string::npos != end)
-			{
+			if (std::string::npos != end) {
 				++end;
 			}
 		}
@@ -175,8 +199,11 @@ namespace DataVariant
 		return header_params;
 	}
 
-	bool MultipartFormData::parse(const std::string &buf, Transfer::request_data *rd, DataReceiver *dr) const
-	{
+	bool MultipartFormData::parse(
+		const std::string &buf,
+		Transfer::request_data *rd,
+		DataReceiver *dr
+	) const {
 		StateMultipartFormData *ss = reinterpret_cast<StateMultipartFormData *>(dr->ss);
 
 		size_t cur = 0;
@@ -187,22 +214,18 @@ namespace DataVariant
 			{
 				case ParsingState::INITIALIZATION:
 				{
-					if (ss->boundary.empty() )
-					{
+					if (ss->boundary.empty() ) {
 						return false;
 					}
 
 					const std::string data_end("--" + ss->boundary + "--\r\n");
 
-					if (buf.size() < data_end.length() )
-					{
+					if (buf.size() < data_end.length() ) {
 						dr->left = buf.size();
-
 						return dr->full_size != dr->recv_total;
 					}
 
-					if (0 == buf.find(data_end) )
-					{
+					if (0 == buf.find(data_end) ) {
 						return dr->full_size == data_end.length() && dr->full_size == dr->recv_total;
 					}
 
@@ -210,8 +233,7 @@ namespace DataVariant
 
 					cur = buf.find(first_block);
 
-					if (0 != cur)
-					{
+					if (0 != cur) {
 						return false;
 					}
 
@@ -228,17 +250,14 @@ namespace DataVariant
 
 					const std::string data_end("\r\n--" + ss->boundary + "--\r\n");
 
-					if (data_end.length() > dr->left)
-					{
+					if (data_end.length() > dr->left) {
 						return dr->full_size != dr->recv_total;
 					}
 
 					const size_t end = buf.find(data_end, cur);
 
-					if (end == cur)
-					{
+					if (end == cur) {
 						dr->left -= data_end.length();
-
 						return dr->full_size == dr->recv_total;
 					}
 
@@ -246,8 +265,7 @@ namespace DataVariant
 
 					cur = buf.find(block_delimiter, cur);
 
-					if (std::string::npos == cur)
-					{
+					if (std::string::npos == cur) {
 						return dr->full_size != dr->recv_total;
 					}
 
@@ -262,10 +280,8 @@ namespace DataVariant
 				{
 					const size_t end = buf.find("\r\n\r\n", cur);
 
-					if (std::string::npos == end)
-					{
+					if (std::string::npos == end) {
 						dr->left = buf.size() - cur;
-
 						return dr->full_size != dr->recv_total;
 					}
 
@@ -276,8 +292,7 @@ namespace DataVariant
 					auto const it = headers.find("content-disposition");
 
 					// Если заголовок не определён
-					if (headers.cend() == it)
-					{
+					if (headers.cend() == it) {
 						return false;
 					}
 
@@ -286,8 +301,7 @@ namespace DataVariant
 					// Поиск имени блока данных
 					auto const it_name = header_params.find("name");
 
-					if (header_params.cend() == it_name)
-					{
+					if (header_params.cend() == it_name) {
 						return false;
 					}
 
@@ -304,8 +318,7 @@ namespace DataVariant
 						// Найти тип файла
 						auto const it_filetype = headers.find("content-type");
 
-						if (headers.cend() != it_filetype)
-						{
+						if (headers.cend() != it_filetype) {
 							ss->file_type = it_filetype->second;
 						}
 
@@ -315,8 +328,7 @@ namespace DataVariant
 						// Создать файл
 						ss->file.open(ss->file_tmp_name, std::ofstream::trunc | std::ofstream::binary);
 
-						if (false == ss->file.is_open() )
-						{
+						if (ss->file.is_open() == false) {
 							return false;
 						}
 					}
@@ -340,16 +352,20 @@ namespace DataVariant
 
 					switch (ss->block_type)
 					{
-						case BlockType::DATA:
-						{
-							ss->block_value.append(buf.cbegin() + cur, buf.cbegin() + end);
+						case BlockType::DATA: {
+							ss->block_value.append(
+								buf.cbegin() + long(cur),
+								buf.cbegin() + long(end)
+							);
 
 							break;
 						}
 
-						case BlockType::FILE:
-						{
-							ss->file.write(&buf[cur], end - cur);
+						case BlockType::FILE: {
+							ss->file.write(
+								&buf[cur],
+								std::streamsize(end - cur)
+							);
 
 							break;
 						}
@@ -358,10 +374,8 @@ namespace DataVariant
 							return false;
 					}
 
-					if (std::string::npos == block_end)
-					{
+					if (std::string::npos == block_end) {
 						dr->left = buf.size() - end;
-
 						return dr->full_size != dr->recv_total;
 					}
 
@@ -376,19 +390,27 @@ namespace DataVariant
 				{
 					switch (ss->block_type)
 					{
-						case BlockType::DATA:
-						{
-							rd->incoming_data.emplace(std::move(ss->block_name), std::move(ss->block_value) );
+						case BlockType::DATA: {
+							rd->incoming_data.emplace(
+								std::move(ss->block_name),
+								std::move(ss->block_value)
+							);
 
 							break;
 						}
 
-						case BlockType::FILE:
-						{
-							rd->incoming_files.emplace(std::move(ss->block_name), Transfer::FileIncoming(std::move(ss->file_tmp_name), std::move(ss->file_name), std::move(ss->file_type), ss->file.tellp() ) );
+						case BlockType::FILE: {
+							rd->incoming_files.emplace(
+								std::move(ss->block_name),
+								Transfer::FileIncoming(
+									std::move(ss->file_tmp_name),
+									std::move(ss->file_name),
+									std::move(ss->file_type),
+									size_t(ss->file.tellp())
+								)
+							);
 
 							ss->file.close();
-
 							break;
 						}
 
@@ -408,4 +430,4 @@ namespace DataVariant
 
 		return dr->full_size != dr->recv_total;
 	}
-};
+}

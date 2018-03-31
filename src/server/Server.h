@@ -31,11 +31,22 @@ namespace HttpServer
 	protected:
 		int cycleQueue(SocketsQueue &sockets);
 
-		void threadRequestProc(Socket::Adapter &sock, SocketsQueue &sockets, Http2::IncStream *stream) const;
+		void threadRequestProc(
+			Socket::Adapter &sock,
+			SocketsQueue &sockets,
+			Http2::IncStream *stream
+		) const;
 
-		void threadRequestCycle(SocketsQueue &sockets, Utils::Event &eventThreadCycle) const;
+		void threadRequestCycle(
+			SocketsQueue &sockets,
+			Utils::Event &eventThreadCycle
+		) const;
 
-		bool tryBindPort(const int port, std::unordered_set<int> &ports);
+		bool tryBindPort(
+			const int port,
+			std::unordered_set<int> &ports
+		);
+
 		void initAppsPorts();
 
 		bool init();
@@ -45,10 +56,19 @@ namespace HttpServer
 		static System::native_processid_type getServerProcessId(const std::string &serverName);
 
 		void updateModules();
-		bool updateModule(System::Module &module, std::unordered_set<ServerApplicationSettings *> &applications, const size_t moduleIndex);
+
+		bool updateModule(
+			System::Module &module,
+			std::unordered_set<ServerApplicationSettings *> &applications,
+			const size_t moduleIndex
+		);
 
 	private:
-		static bool get_start_args(const int argc, const char *argv[], struct server_start_args *st);
+		static bool get_start_args(
+			const int argc,
+			const char *argv[],
+			struct server_start_args *st
+		);
 
 	public:
 		Server() = default;
@@ -63,4 +83,4 @@ namespace HttpServer
 		int command_terminate(const int argc, const char *argv[]) const;
 		int command_update_module(const int argc, const char *argv[]) const;
 	};
-};
+}

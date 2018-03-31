@@ -12,4 +12,4 @@ namespace DataVariant
 	public:
 		virtual bool parse(const std::string &buf, Transfer::request_data *rd, DataReceiver *dr) const override;
 	};
-};
+}

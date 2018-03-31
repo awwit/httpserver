@@ -3,8 +3,11 @@
 
 namespace Socket
 {
-	AdapterTls::AdapterTls(const Socket &sock, ::gnutls_priority_t priority_cache, ::gnutls_certificate_credentials_t x509_cred) noexcept
-	{
+	AdapterTls::AdapterTls(
+		const Socket &sock,
+		::gnutls_priority_t priority_cache,
+		::gnutls_certificate_credentials_t x509_cred
+	) noexcept {
 		// https://leandromoreira.com.br/2015/10/12/how-to-optimize-nginx-configuration-for-http2-tls-ssl/
 		// https://www.gnutls.org/manual/html_node/False-Start.html
 
@@ -39,6 +42,8 @@ namespace Socket
 	{
 		int ret;
 
+		::gnutls_handshake_set_timeout(this->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+
 		do {
 			ret = ::gnutls_handshake(this->session);
 		}
@@ -56,9 +61,10 @@ namespace Socket
 		return true;
 	}
 
-	long AdapterTls::nonblock_send_all(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
-	{
-	//	size_t record_size = ::gnutls_record_get_max_size(this->session);
+	long AdapterTls::nonblock_send_all(
+		const void *buf, const size_t length,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
 		size_t record_size = length;
 
 		if (0 == record_size) {
@@ -66,8 +72,6 @@ namespace Socket
 		}
 
 		Socket sock(this->get_handle() );
-
-	//	::gnutls_record_set_timeout(this->session, static_cast<unsigned int>(timeout.count() ) );
 
 		size_t total = 0;
 
@@ -80,7 +84,12 @@ namespace Socket
 
 			do {
 				sock.nonblock_send_sync();
-				send_size = ::gnutls_record_send(this->session, reinterpret_cast<const uint8_t *>(buf) + total, record_size);
+
+				send_size = ::gnutls_record_send(
+					this->session,
+					reinterpret_cast<const uint8_t *>(buf) + total,
+					record_size
+				);
 			}
 			while (GNUTLS_E_AGAIN == send_size);
 
@@ -95,7 +104,9 @@ namespace Socket
 	}
 
 	System::native_socket_type AdapterTls::get_handle() const noexcept {
-		return static_cast<System::native_socket_type>(::gnutls_transport_get_int(this->session) );
+		return static_cast<System::native_socket_type>(
+			::gnutls_transport_get_int(this->session)
+		);
 	}
 
 	::gnutls_session_t AdapterTls::get_tls_session() const noexcept {
@@ -106,8 +117,11 @@ namespace Socket
 		return new AdapterTls(this->session);
 	}
 
-	long AdapterTls::nonblock_recv(void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept
-	{
+	long AdapterTls::nonblock_recv(
+		void *buf,
+		const size_t length,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
 		Socket sock(this->get_handle() );
 
 		long result;
@@ -126,7 +140,11 @@ namespace Socket
 		return result;
 	}
 
-	long AdapterTls::nonblock_send(const void *buf, const size_t length, const std::chrono::milliseconds &timeout) const noexcept {
+	long AdapterTls::nonblock_send(
+		const void *buf,
+		const size_t length,
+		const std::chrono::milliseconds &timeout
+	) const noexcept {
 		return this->nonblock_send_all(buf, length, timeout);
 	}
 

@@ -7,27 +7,27 @@
 
 	::TCHAR myWndClassName[];
 
-    #ifdef SIGTERM
-        #undef SIGTERM
-        #define SIGTERM (WM_USER + 15)
-    #endif
+	#ifdef SIGTERM
+		#undef SIGTERM
+		#define SIGTERM (WM_USER + 15)
+	#endif
 
-    #ifdef SIGINT
-        #undef SIGINT
-        #define SIGINT (WM_USER + 2)
-    #endif
+	#ifdef SIGINT
+		#undef SIGINT
+		#define SIGINT (WM_USER + 2)
+	#endif
 
-    #ifndef SIGUSR1
-        #define SIGUSR1 (WM_USER + 10)
-    #endif
+	#ifndef SIGUSR1
+		#define SIGUSR1 (WM_USER + 10)
+	#endif
 
-    #ifndef SIGUSR2
-        #define SIGUSR2 (WM_USER + 12)
-    #endif
+	#ifndef SIGUSR2
+		#define SIGUSR2 (WM_USER + 12)
+	#endif
 #elif POSIX
 	#include <sys/types.h>
 #else
-	#error "Undefine platform"
+	#error "Undefined platform"
 #endif
 
 #include <string>
@@ -41,7 +41,7 @@ namespace System
 #elif POSIX
 	typedef int native_socket_type;
 #else
-	#error "Undefine platform"
+	#error "Undefined platform"
 #endif
 
 #ifdef WIN32
@@ -49,7 +49,7 @@ namespace System
 #elif POSIX
 	typedef ::pid_t native_processid_type;
 #else
-	#error "Undefine platform"
+	#error "Undefined platform"
 #endif
 
 	native_processid_type getProcessId() noexcept;
