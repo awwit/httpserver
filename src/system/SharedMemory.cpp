@@ -103,7 +103,11 @@ namespace System
 		const std::string &memory_name = this->shm_name;
 	#endif
 
-		this->shm_desc = ::OpenFileMapping(FILE_MAP_ALL_ACCESS, false, memory_name.c_str() );
+		this->shm_desc = ::OpenFileMapping(
+			FILE_MAP_ALL_ACCESS,
+			false,
+			memory_name.c_str()
+		);
 
 		if (nullptr == this->shm_desc) {
 			return false;
@@ -150,7 +154,16 @@ namespace System
 	) const noexcept {
 	#ifdef WIN32
 
-		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_WRITE, 0, static_cast<::DWORD>(offset), size);
+		::ULARGE_INTEGER off;
+		off.QuadPart = ::ULONGLONG(offset);
+
+		void * const addr = ::MapViewOfFile(
+			this->shm_desc,
+			FILE_MAP_WRITE,
+			off.HighPart,
+			off.LowPart,
+			size
+		);
 
 		if (nullptr == addr) {
 			return false;
@@ -193,7 +206,16 @@ namespace System
 	) const noexcept {
 	#ifdef WIN32
 
-		void * const addr = ::MapViewOfFile(this->shm_desc, FILE_MAP_READ, 0, static_cast<::DWORD>(offset), size);
+		::ULARGE_INTEGER off;
+		off.QuadPart = ::ULONGLONG(offset);
+
+		void * const addr = ::MapViewOfFile(
+			this->shm_desc,
+			FILE_MAP_READ,
+			off.HighPart,
+			off.LowPart,
+			size
+		);
 
 		if (nullptr == addr) {
 			return false;
@@ -261,9 +283,15 @@ namespace System
 		const std::string &memory_name = this->shm_name;
 	#endif
 
-		::HANDLE hMemory = ::OpenFileMapping(DELETE, false, memory_name.c_str() );
+		const ::HANDLE hMemory = ::OpenFileMapping(
+			DELETE,
+			false,
+			memory_name.c_str()
+		);
 
-		const bool ret = (0 != ::CloseHandle(hMemory) );
+		const bool ret = (
+			0 != ::CloseHandle(hMemory)
+		);
 
 		this->close();
 
@@ -293,7 +321,11 @@ namespace System
 		const std::string &memory_name = shm_name;
 	#endif
 
-		::HANDLE hMemory = ::OpenFileMapping(DELETE, false, memory_name.c_str() );
+		const ::HANDLE hMemory = ::OpenFileMapping(
+			DELETE,
+			false,
+			memory_name.c_str()
+		);
 
 		return 0 != ::CloseHandle(hMemory);
 	#elif POSIX

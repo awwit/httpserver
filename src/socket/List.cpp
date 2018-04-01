@@ -1,4 +1,4 @@
-﻿
+
 #include "List.h"
 
 #ifdef POSIX
@@ -271,17 +271,15 @@ namespace Socket
 				return false;
 			}
 
-			for (size_t i = 0; i < this->poll_events.size(); ++i)
+			for (auto const &event : this->poll_events)
 			{
-				const WSAPOLLFD &event = this->poll_events[i];
-
 				if (event.revents & POLLRDNORM)
 				{
 					System::native_socket_type client_socket = ~0;
 
 					do {
 						::sockaddr_in client_addr {};
-						socklen_t client_addr_len = sizeof(client_addr);
+						::socklen_t client_addr_len = sizeof(client_addr);
 
 						client_socket = ::accept(
 							event.fd,
@@ -367,10 +365,8 @@ namespace Socket
 			return false;
 		}
 
-		for (size_t i = 0; i < this->poll_events.size(); ++i)
+		for (auto const &event : this->poll_events)
 		{
-			const WSAPOLLFD &event = this->poll_events[i];
-
 			if (event.revents & POLLRDNORM) {
 				sockets.emplace_back(Socket(event.fd) );
 			}

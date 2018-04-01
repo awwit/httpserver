@@ -39,7 +39,11 @@ namespace System
 		const std::string &mutex_name = this->mtx_name;
 	#endif
 
-		this->mtx_desc = ::CreateMutex(nullptr, false, mutex_name.c_str() );
+		this->mtx_desc = ::CreateMutex(
+			nullptr,
+			false,
+			mutex_name.c_str()
+		);
 
 		if (nullptr == this->mtx_desc) {
 			return false;
@@ -77,7 +81,11 @@ namespace System
 		const std::string &mutex_name = mtx_name;
 	#endif
 
-		::HANDLE hMutex = ::OpenMutex(DELETE, true, mutex_name.c_str() );
+		const ::HANDLE hMutex = ::OpenMutex(
+			DELETE,
+			true,
+			mutex_name.c_str()
+		);
 
 		return 0 != ::CloseHandle(hMutex);
 	#elif POSIX
@@ -97,9 +105,15 @@ namespace System
 		const std::string &mutex_name = this->mtx_name;
 	#endif
 
-		::HANDLE hMutex = ::OpenMutex(DELETE, true, mutex_name.c_str() );
+		const ::HANDLE hMutex = ::OpenMutex(
+			DELETE,
+			true,
+			mutex_name.c_str()
+		);
 
-		const bool ret = (0 != ::CloseHandle(hMutex) );
+		const bool ret = (
+			0 != ::CloseHandle(hMutex)
+		);
 
 		this->close();
 
@@ -132,7 +146,11 @@ namespace System
 		const std::string &mutex_name = this->mtx_name;
 	#endif
 
-		this->mtx_desc = ::OpenMutex(SYNCHRONIZE, false, mutex_name.c_str() );
+		this->mtx_desc = ::OpenMutex(
+			SYNCHRONIZE,
+			false,
+			mutex_name.c_str()
+		);
 
 		if (nullptr == this->mtx_desc) {
 			return false;
@@ -193,7 +211,10 @@ namespace System
 	bool GlobalMutex::lock() const noexcept
 	{
 	#ifdef WIN32
-		return WAIT_OBJECT_0 == ::WaitForSingleObject(this->mtx_desc, INFINITE);
+		return WAIT_OBJECT_0 == ::WaitForSingleObject(
+			this->mtx_desc,
+			INFINITE
+		);
 	#elif POSIX
 		return 0 == ::sem_wait(this->mtx_desc);
 	#else
@@ -204,7 +225,10 @@ namespace System
 	bool GlobalMutex::try_lock() const noexcept
 	{
 	#ifdef WIN32
-		return WAIT_OBJECT_0 == ::WaitForSingleObject(this->mtx_desc, 0);
+		return WAIT_OBJECT_0 == ::WaitForSingleObject(
+			this->mtx_desc,
+			0
+		);
 	#elif POSIX
 		return 0 == ::sem_trywait(this->mtx_desc);
 	#else

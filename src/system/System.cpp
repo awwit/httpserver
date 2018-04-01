@@ -1,4 +1,4 @@
-﻿
+
 #include "System.h"
 
 #include <array>
@@ -37,7 +37,7 @@ namespace System
 		{
 			std::array<::TCHAR, 257> class_name;
 
-			::GetClassName(hWnd, class_name.data(), static_cast<int>(class_name.size() - 1) );
+			::GetClassName(hWnd, class_name.data(), int(class_name.size() - 1) );
 
 			if (0 == ::_tcscmp(class_name.data(), myWndClassName) ) {
 				ed.hWnd = hWnd;
@@ -284,7 +284,10 @@ namespace System
 		const size_t pos = memory_name.rfind(file_ext);
 
 		if (pos == memory_name.length() - file_ext.length() ) {
-			memory_name.erase(memory_name.begin() + pos, memory_name.end() );
+			memory_name.erase(
+				pos,
+				memory_name.length()
+			);
 		}
 
 		::TCHAR buf[MAX_PATH + 1] {};

@@ -279,7 +279,7 @@ namespace HttpServer
 
 		try {
 			if (app_init) {
-				const std::string root = root_dir;
+				const std::string &root = root_dir;
 				success = app_init(root.data() );
 			}
 		}
@@ -356,8 +356,8 @@ namespace HttpServer
 		if (names.empty() ) {
 			apps_tree.addApplication(app_name, settings);
 		} else {
-			for (size_t i = 0; i < names.size(); ++i) {
-				apps_tree.addApplication(names[i], settings);
+			for (auto const &name : names) {
+				apps_tree.addApplication(name, settings);
 			}
 		}
 

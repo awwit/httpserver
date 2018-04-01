@@ -1,4 +1,4 @@
-﻿
+
 #include "FormUrlencoded.h"
 
 #include "../../utils/Utils.h"
@@ -20,7 +20,7 @@ namespace DataVariant
 			std::string::npos != var_end;
 			var_pos = var_end + 1
 		) {
-			// Поиск следующего параметра
+			// Search next parameter
 			var_end = buf.find('&', var_pos);
 
 			if (std::string::npos == var_end) {
@@ -30,12 +30,11 @@ namespace DataVariant
 				}
 			}
 
-			// Поиск значения параметра
+			// Search parameter value
 			size_t delimiter = buf.find('=', var_pos);
 
-			if (delimiter >= var_end)
-			{
-				// Получить имя параметра
+			if (delimiter >= var_end) {
+				// Get parameter name
 				std::string var_name = Utils::urlDecode(
 					buf.substr(
 						var_pos,
@@ -45,15 +44,13 @@ namespace DataVariant
 					)
 				);
 
-				// Сохранить параметр с пустым значением
+				// Store parameter with empty value
 				rd->incoming_data.emplace(
 					std::move(var_name),
 					std::string()
 				);
-			}
-			else
-			{
-				// Получить имя параметра
+			} else {
+				// Get parameter name
 				std::string var_name = Utils::urlDecode(
 					buf.substr(
 						var_pos,
@@ -63,7 +60,7 @@ namespace DataVariant
 
 				++delimiter;
 
-				// Получить значение параметра
+				// Get parameter value
 				std::string var_value = Utils::urlDecode(
 					buf.substr(
 						delimiter,
@@ -73,7 +70,7 @@ namespace DataVariant
 					)
 				);
 
-				// Сохранить параметр и значение
+				// Store parameter and value
 				rd->incoming_data.emplace(
 					std::move(var_name),
 					std::move(var_value)

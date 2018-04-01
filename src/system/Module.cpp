@@ -1,4 +1,4 @@
-﻿
+
 #include "Module.h"
 
 #ifdef WIN32
@@ -52,24 +52,26 @@ namespace System
 		const size_t pos_slash = libPath.rfind('\\');
 		const size_t pos_slash_back = libPath.rfind('/');
 
-		size_t pos = std::string::npos;
+		const size_t pos = (
+			pos_slash != std::string::npos &&
+			pos_slash > pos_slash_back
+				? pos_slash
+				: pos_slash_back != std::string::npos
+					? pos_slash_back
+					: std::string::npos
+		);
 
-		if (pos_slash != std::string::npos && pos_slash > pos_slash_back)
-		{
-			pos = pos_slash;
-		}
-		else if (pos_slash_back != std::string::npos)
-		{
-			pos = pos_slash_back;
-		}
+		::DLL_DIRECTORY_COOKIE cookie = nullptr;
 
-		DLL_DIRECTORY_COOKIE cookie = nullptr;
+		if (std::string::npos != pos) {
+			const std::wstring directory(
+				libPath.cbegin(),
+				libPath.cbegin() + pos + 1
+			);
 
-		if (std::string::npos != pos)
-		{
-			std::wstring directory(libPath.cbegin(), libPath.cbegin() + pos + 1);
-
-			cookie = ::AddDllDirectory(directory.data() );
+			cookie = ::AddDllDirectory(
+				directory.data()
+			);
 		}
 
 		#ifdef UNICODE
@@ -79,13 +81,20 @@ namespace System
 			const std::string &lib_path = libPath;
 		#endif
 
-		this->lib_handle = ::LoadLibraryEx(lib_path.c_str(), 0, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+		this->lib_handle = ::LoadLibraryEx(
+			lib_path.c_str(),
+			0,
+			LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+		);
 
 		if (cookie) {
 			::RemoveDllDirectory(cookie);
 		}
 	#elif POSIX
-		this->lib_handle = ::dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+		this->lib_handle = ::dlopen(
+			libPath.c_str(),
+			RTLD_NOW | RTLD_LOCAL
+		);
 	#else
 		#error "Undefined platform"
 	#endif
@@ -121,17 +130,24 @@ namespace System
 		const std::string &symbolName,
 		void *(**addr)(void *)
 	) const noexcept {
-		if (lib_handle)
-		{
+		if (lib_handle) {
 		#ifdef WIN32
-			*addr = reinterpret_cast<void *(*)(void *)>(::GetProcAddress(this->lib_handle, symbolName.c_str() ) );
+			*addr = reinterpret_cast<void *(*)(void *)>(
+				::GetProcAddress(
+					this->lib_handle,
+					symbolName.c_str()
+				)
+			);
 
 			return nullptr != *addr;
 		#elif POSIX
 			char *error = ::dlerror();
 
 			*addr = reinterpret_cast<void *(*)(void *)>(
-				::dlsym(this->lib_handle, symbolName.c_str() )
+				::dlsym(
+					this->lib_handle,
+					symbolName.c_str()
+				)
 			);
 
 			error = ::dlerror();
@@ -152,14 +168,22 @@ namespace System
 		if (lib_handle)
 		{
 		#ifdef WIN32
-			*addr = reinterpret_cast<void *(*)(void *)>(::GetProcAddress(this->lib_handle, symbolName) );
+			*addr = reinterpret_cast<void *(*)(void *)>(
+				::GetProcAddress(
+					this->lib_handle,
+					symbolName
+				)
+			);
 
 			return nullptr != *addr;
 		#elif POSIX
 			char *error = ::dlerror();
 
 			*addr = reinterpret_cast<void *(*)(void *)>(
-				::dlsym(this->lib_handle, symbolName)
+				::dlsym(
+					this->lib_handle,
+					symbolName
+				)
 			);
 
 			error = ::dlerror();

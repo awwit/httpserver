@@ -100,7 +100,9 @@ namespace HttpServer
 
 								*resultRangeHeader += std::to_string(range_begin) + '-' + std::to_string(range_end) + ',';
 
-								ranges.emplace_back(std::tuple<size_t, size_t> {range_begin, length});
+								ranges.emplace_back(std::tuple<size_t, size_t> {
+									range_begin, length
+								});
 							}
 						}
 						else // if range_end_str empty
@@ -275,7 +277,12 @@ namespace HttpServer
 
 					send_size_left -= send_size;
 				}
-				while (false == file.eof() && false == file.fail() && send_size > 0 && send_size_left);
+				while (
+					false == file.eof() &&
+					false == file.fail() &&
+					send_size > 0 &&
+					send_size_left
+				);
 			}
 		}
 
@@ -407,7 +414,12 @@ namespace HttpServer
 					&dt
 				);
 			}
-			while (false == file.eof() && false == file.fail() && send_size > 0 && (dt.full_size - dt.send_total) );
+			while (
+				false == file.eof() &&
+				false == file.fail() &&
+				send_size > 0 &&
+				(dt.full_size - dt.send_total)
+			);
 		}
 
 		file.close();

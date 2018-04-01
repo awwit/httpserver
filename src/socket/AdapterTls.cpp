@@ -97,10 +97,10 @@ namespace Socket
 				return send_size;
 			}
 
-			total += send_size;
+			total += long(send_size);
 		}
 
-		return static_cast<long>(total);
+		return long(total);
 	}
 
 	System::native_socket_type AdapterTls::get_handle() const noexcept {

@@ -25,9 +25,8 @@ namespace HttpServer
 		}
 
 		std::random_device rd;
-		std::uniform_int_distribution<uint8_t> dist;
 
-		uint8_t padding = dist(rd);
+		uint8_t padding = uint8_t(rd());
 
 		while (dataSize <= padding) {
 			padding /= 2;
@@ -177,7 +176,7 @@ namespace HttpServer
 			}
 
 			data += data_size;
-			send_size += data_size;
+			send_size += long(data_size);
 			dt->send_total += data_size;
 		//	stream->window_size_out -= frame_size;
 

@@ -1,9 +1,11 @@
-﻿#pragma once
+#pragma once
 
 #ifdef WIN32
 	#include <WS2tcpip.h>
 
-	typedef long ssize_t;
+	#ifndef ssize_t
+		typedef long ssize_t;
+	#endif
 
 	::TCHAR myWndClassName[];
 

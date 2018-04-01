@@ -188,7 +188,7 @@ namespace Socket
 			0
 		};
 
-		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM) {
+		if (1 == ::WSAPoll(&event, 1, int(timeout.count()) ) && event.revents & POLLRDNORM) {
 			client_socket = ::accept(
 				this->socket_handle,
 				static_cast<sockaddr *>(nullptr),
@@ -235,7 +235,12 @@ namespace Socket
 	{
 	#ifdef WIN32
 		unsigned long value = isNonBlock;
-		return 0 == ::ioctlsocket(this->socket_handle, FIONBIO, &value);
+
+		return 0 == ::ioctlsocket(
+			this->socket_handle,
+			FIONBIO,
+			&value
+		);
 	#elif POSIX
 		return ~0 != ::fcntl(
 			this->socket_handle,
@@ -338,7 +343,7 @@ namespace Socket
 			0
 		};
 
-		if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLRDNORM) {
+		if (1 == ::WSAPoll(&event, 1, int(timeout.count()) ) && event.revents & POLLRDNORM) {
 			recv_len = ::recv(
 				this->socket_handle,
 				reinterpret_cast<char *>(buf),
@@ -372,7 +377,7 @@ namespace Socket
 			0
 		};
 
-		return ::WSAPoll(&event, 1, timeout.count() ) == 1;
+		return ::WSAPoll(&event, 1, int(timeout.count()) ) == 1;
 	#elif POSIX
 		struct ::pollfd event {
 			this->socket_handle,
@@ -405,7 +410,7 @@ namespace Socket
 				return send_size;
 			}
 
-			total += static_cast<size_t>(send_size);
+			total += size_t(send_size);
 		}
 
 		return static_cast<long>(total);
@@ -435,7 +440,7 @@ namespace Socket
 		};
 
 		while (total < length) {
-			if (1 == ::WSAPoll(&event, 1, static_cast<::INT>(timeout.count() ) ) && event.revents & POLLOUT) {
+			if (1 == ::WSAPoll(&event, 1, int(timeout.count()) ) && event.revents & POLLOUT) {
 				const long send_size = ::send(
 					socket_handle,
 					reinterpret_cast<const char *>(data) + total,
@@ -447,7 +452,7 @@ namespace Socket
 					return send_size;
 				}
 
-				total += send_size;
+				total += size_t(send_size);
 			} else {
 				return -1;
 			}
@@ -473,7 +478,7 @@ namespace Socket
 					return send_size;
 				}
 
-				total += static_cast<size_t>(send_size);
+				total += size_t(send_size);
 			} else {
 				return -1;
 			}
@@ -482,7 +487,7 @@ namespace Socket
 		#error "Undefined platform"
 	#endif
 
-		return static_cast<long>(total);
+		return long(total);
 	}
 
 	long Socket::nonblock_send(
