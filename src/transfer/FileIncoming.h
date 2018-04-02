@@ -14,10 +14,9 @@ namespace Transfer
 		std::string file_type;
 		size_t file_size;
 
-	private:
-		FileIncoming() = delete;
-
 	public:
+		FileIncoming() = default;
+
 		FileIncoming(
 			std::string &&fileTmpName,
 			std::string &&fileName,
@@ -29,6 +28,8 @@ namespace Transfer
 		FileIncoming(FileIncoming &&obj) noexcept;
 
 		~FileIncoming() noexcept = default;
+
+		FileIncoming &operator =(const FileIncoming &) = default;
 
 		const std::string &getTmpName() const noexcept;
 		const std::string &getName() const noexcept;

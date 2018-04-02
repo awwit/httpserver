@@ -106,7 +106,9 @@ namespace HttpServer
 				}
 			}
 
-			const size_t frame_size = data_size + padding_size;
+			const uint32_t frame_size = static_cast<uint32_t>(
+				data_size + padding_size
+			);
 
 			buf.resize(frame_size + Http2::FRAME_HEADER_SIZE);
 
@@ -141,7 +143,7 @@ namespace HttpServer
 
 			this->stream->setHttp2FrameHeader(
 				buf.data(),
-				static_cast<uint32_t>(frame_size),
+				frame_size,
 				Http2::FrameType::DATA,
 				flags
 			);
@@ -149,7 +151,7 @@ namespace HttpServer
 			std::copy(
 				data,
 				data + data_size,
-				buf.begin() + long(cur)
+				buf.data() + cur
 			);
 
 			if (padding) {

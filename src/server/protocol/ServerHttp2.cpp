@@ -590,9 +590,9 @@ namespace HttpServer
 			}
 		} else {
 			std::copy(
-				buf.cbegin() + length,
-				buf.cbegin() + read_size,
-				buf.begin()
+				buf.data() + length,
+				buf.data() + read_size,
+				buf.data()
 			);
 
 			read_size -= length;
