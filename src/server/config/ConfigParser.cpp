@@ -283,7 +283,7 @@ namespace HttpServer
 				success = app_init(root.data() );
 			}
 		}
-		catch (std::exception &exc) {
+		catch (const std::exception &exc) {
 			std::cout << "Warning: an exception was thrown when the application '" << it_module->second << "' was initialized: " << exc.what() << std::endl;
 			success = false;
 		}

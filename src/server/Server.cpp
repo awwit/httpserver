@@ -313,7 +313,7 @@ namespace HttpServer
 						app->application_final(root.data() );
 					}
 				}
-				catch (std::exception &exc) {
+				catch (const std::exception &exc) {
 					std::cout << "Warning: an exception was thrown when the application '"
 						<< app->server_module << "' was finishes: " << exc.what() << std::endl;
 				}
@@ -460,7 +460,7 @@ namespace HttpServer
 					app->application_init(root.data() );
 				}
 			}
-			catch (std::exception &exc) {
+			catch (const std::exception &exc) {
 				std::cout << "Warning: an exception was thrown when the application '" << module_name << "' was initialized: " << exc.what() << std::endl;
 			}
 		}

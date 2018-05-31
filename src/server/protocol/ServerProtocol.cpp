@@ -2,6 +2,8 @@
 #include "ServerProtocol.h"
 #include "../../utils/Utils.h"
 
+#include <iostream>
+
 namespace HttpServer
 {
 	ServerProtocol::ServerProtocol(
@@ -167,8 +169,9 @@ namespace HttpServer
 			// Launch application
 			req.app_exit_code = appSets.application_call(&request, &response);
 		}
-		catch (std::exception &exc) {
-			// TODO: exception output
+		catch (const std::exception &exc) {
+			// Exception output
+			std::cout << "Exception when application_call: " << exc.what() << std::endl;
 		}
 
 		if (response.response_data && response.data_size)
@@ -181,8 +184,9 @@ namespace HttpServer
 			try {
 				appSets.application_clear(response.response_data, response.data_size);
 			}
-			catch (std::exception &exc) {
-				// TODO: exception output
+			catch (const std::exception &exc) {
+				// Exception output
+				std::cout << "Exception when application_clear: " << exc.what() << std::endl;
 			}
 		}
 	}
