@@ -103,17 +103,21 @@ namespace Socket
 	}
 
 	bool Socket::bind(const int port) const noexcept {
+		// GCC bug with global namespace: https://bbs.archlinux.org/viewtopic.php?id=53751
+		auto const net_port = htons(static_cast<uint16_t>(port));
+		auto const net_addr = ::htonl(INADDR_ANY);
+
 		const ::sockaddr_in sock_addr {
 			AF_INET,
-			::htons(port),
-			::htonl(INADDR_ANY),
-			0
+			net_port,
+			{ net_addr },
+			{ 0 } // sin_zero
 		};
 
 		return 0 == ::bind(
 			this->socket_handle,
-			reinterpret_cast<const sockaddr *>(&sock_addr),
-			sizeof(sockaddr_in)
+			reinterpret_cast<const ::sockaddr *>(&sock_addr),
+			sizeof(::sockaddr_in)
 		);
 	}
 
@@ -147,9 +151,9 @@ namespace Socket
 	#ifdef WIN32
 		WSAPOLLFD event {
 			this->socket_handle,
-            POLLRDNORM,
-            0
-        };
+			POLLRDNORM,
+			0
+		};
 
 		if (1 == ::WSAPoll(&event, 1, ~0) && event.revents & POLLRDNORM) {
 			client_socket = ::accept(
@@ -161,9 +165,9 @@ namespace Socket
 	#elif POSIX
 		struct ::pollfd event {
 			this->socket_handle,
-            POLLIN,
-            0
-        };
+			POLLIN,
+			0
+		};
 
 		if (1 == ::poll(&event, 1, ~0) && event.revents & POLLIN) {
 			client_socket = ::accept(

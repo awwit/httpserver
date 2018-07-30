@@ -221,7 +221,8 @@ namespace HttpServer
 		additionalHeaders.emplace_back("last-modified", Utils::getDatetimeAsString(fileTime, true) );
 
 		// Отправить заголовки (206 Partial Content)
-		if (prot.sendHeaders(
+		if (
+			prot.sendHeaders(
 				Http::StatusCode::PARTIAL_CONTENT,
 				additionalHeaders,
 				req.timeout,
@@ -377,7 +378,8 @@ namespace HttpServer
 		additionalHeaders.emplace_back("last-modified", Utils::getDatetimeAsString(file_time, true) );
 
 		// Отправить заголовки (200 OK)
-		if (prot.sendHeaders(
+		if (
+			prot.sendHeaders(
 				Http::StatusCode::OK,
 				additionalHeaders,
 				req.timeout,
